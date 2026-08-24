@@ -1,7 +1,7 @@
 [project]
 name = "touchstone-dqi"
 version = "0.0.1"
-description = "Evaluation runs that produce verifiable evidence bundles"
+description = "Run an AI evaluation and get a sealed evidence bundle anyone can re-check offline."
 readme = "README.md"
 requires-python = ">=3.12"
 license = "Apache-2.0"
