@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 license = "Apache-2.0"
 authors = [{ name = "Quantile Labs" }]
+maintainers = [{ name = "Quantile Labs" }]
 keywords = ["evaluation", "ai-assurance", "audit", "reproducibility"]
 dependencies = [
     "pydantic>=2.11",
