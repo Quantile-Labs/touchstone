@@ -1,0 +1,57 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+      - run: uv sync --all-extras --dev
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run pytest -q
+
+  commit-messages:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: check every commit message in the pull request
+        run: |
+          set -e
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          status=0
+          for sha in $(git rev-list "$base".."$head"); do
+            git log -1 --format=%B "$sha" > /tmp/msg
+            echo "--- $(git log -1 --format=%h\ %s "$sha")"
+            python3 scripts/check_commit_msg.py /tmp/msg || status=1
+          done
+          exit $status
+
+  offline-install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: build a wheel and vendor its dependencies
+        run: |
+          pip install build
+          python -m build --wheel --outdir dist
+          pip download -d vendor dist/*.whl
+      - name: install and run with networking disabled
+        run: |
+          python -m venv .airgap
+          .airgap/bin/pip install --no-index --find-links vendor touchstone-dqi
+          .airgap/bin/touchstone version
