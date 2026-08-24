@@ -1,0 +1,41 @@
+# Internal planning documents. Never commit these.
+# They live outside this repo, in products/touchstone/. This is a second line of defence.
+*-NIGERIA-FIRST.md
+*-ASQI-TEARDOWN.md
+*-DESIGN.md
+*-BUILD-PLAN.md
+*-NAMING.md
+PLAN-*.md
+CONTEXT.md
+HANDBOOK.md
+productPlan.md
+DECISIONS.md
+RUNLOG.md
+notes/
+internal/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Runtime output
+runs/
+bundles/
+logs/
+
+# OS
+.DS_Store

@@ -1,0 +1,21 @@
+name: "example_pack"
+version: "1.0"
+description: "Minimal pack used by the test suite and as a template."
+
+input_systems:
+  - name: "system_under_test"
+    type: "llm_api"
+    required: true
+
+input_schema:
+  - name: "max_items"
+    type: "integer"
+    required: false
+
+emits_items: true
+
+strata:
+  - name: "language"
+
+network:
+  egress: []
