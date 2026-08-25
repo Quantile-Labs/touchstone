@@ -24,6 +24,12 @@ class LockedPack(BaseModel):
     freeze time and pinned here, so what was calibrated is part of the frozen plan rather
     than a flag somebody typed."""
 
+    emits_items: bool = True
+    """False means the pack reported summaries and no observations. Read from its manifest
+    at freeze time, because a sealed bundle otherwise has no way to tell a rate computed
+    from items apart from one a container asserted, and `grade` caps the second. See
+    02-DESIGN.md section 3.4."""
+
     seeds: list[int]
     """One per replicate, derived from the root seed and recorded so a rerun matches."""
 
@@ -35,9 +41,9 @@ class PlanLock(BaseModel):
     twice produces the same bytes and therefore the same hash. When it was frozen is an
     event, and events belong in the ledger."""
 
-    lock_format: int = Field(default=2, ge=1)
-    """2 added `calibrates` to every pack. A format bump changes the bytes and therefore
-    the hash of an unchanged plan, which is what the field is for."""
+    lock_format: int = Field(default=3, ge=1)
+    """2 added `calibrates` to every pack, 3 added `emits_items`. A format bump changes the
+    bytes and therefore the hash of an unchanged plan, which is what the field is for."""
 
     plan_name: str
     access_tier: str
