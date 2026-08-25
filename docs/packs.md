@@ -12,6 +12,11 @@ A pack is a container image that evaluates a system and reports what happened.
 5. Accept `--output-dir`, defaulting to `/output`. This is what lets a pack author run
    the pack outside a container while writing it.
 
+**The container runs as the user who invoked Touchstone**, not as root and not as the
+image's `USER`. A bind mount on Linux keeps host ownership, so a pack running as anyone
+else cannot write to `/output`. Do not put a `USER` line in your Dockerfile expecting it
+to apply.
+
 **Results go in `/output`, never to stdout.** Stdout is logs, it is not captured into the
 bundle, and a pack that prints a request prints the credential with it.
 

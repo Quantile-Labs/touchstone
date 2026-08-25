@@ -8,6 +8,7 @@ binary also makes podman and nerdctl work.
 
 import io
 import json
+import os
 import subprocess
 import tarfile
 from datetime import UTC, datetime
@@ -78,6 +79,11 @@ class DockerBackend(ContainerBackend):
             "ALL",
             "--security-opt",
             "no-new-privileges",
+            # As the caller, not root and not the image's USER. A bind mount on Linux keeps
+            # host ownership, so anything else cannot write to /output, and root would leave
+            # the analyst files they cannot delete. Docker Desktop maps uids and hides both.
+            "--user",
+            f"{os.getuid()}:{os.getgid()}",
             "--volume",
             f"{spec.output_dir.resolve()}:/output",
         ]
@@ -97,7 +103,7 @@ class DockerBackend(ContainerBackend):
             exit_code, termination, stdout = TIMEOUT_EXIT, "timeout", ""
 
         stdout_path = None
-        if spec.capture_stdout and stdout:
+        if spec.capture_stdout:
             stdout_path = spec.output_dir / f"{spec.run_id}.stdout.log"
             stdout_path.write_text(stdout)
 
