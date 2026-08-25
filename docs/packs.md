@@ -51,7 +51,14 @@ network:
 ```
 
 `network.egress` is a declaration a security reviewer can read. Empty means the pack
-reaches nothing.
+reaches nothing, and that is enforced: the container runs with no network at all.
+
+**A non-empty allowlist is not enforced yet.** Docker cannot restrict a container to a
+list of hosts without a proxy, which is not built. `run` refuses such a pack rather than
+quietly granting it everything. `--allow-unenforced-egress` runs it anyway, gives it the
+whole network, and records `egress_enforced: false` in the bundle's `environment.json` so
+a reader knows the pack was not contained. Use it to develop against a real API, not to
+produce evidence for anyone.
 
 `strata` is declared so a plan can be checked against it before anything runs. The
 values are yours. Touchstone never interprets them, which is why a pack for any

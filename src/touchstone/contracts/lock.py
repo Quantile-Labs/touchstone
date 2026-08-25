@@ -15,6 +15,10 @@ class LockedPack(BaseModel):
     systems: dict[str, str] = Field(default_factory=dict)
     params: dict[str, object] = Field(default_factory=dict)
 
+    egress: list[str] = Field(default_factory=list)
+    """Hosts this pack declared, read from its manifest at freeze time and pinned here so
+    a security review reads the frozen plan rather than the image. Empty means no network."""
+
     seeds: list[int]
     """One per replicate, derived from the root seed and recorded so a rerun matches."""
 

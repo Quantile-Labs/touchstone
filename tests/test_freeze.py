@@ -13,8 +13,9 @@ from pathlib import Path
 import pytest
 
 from touchstone import freeze as freeze_plan
-from touchstone.contracts import Plan
+from touchstone.contracts import Manifest, Plan
 from touchstone.contracts.lock import PlanLock
+from touchstone.contracts.manifest import Network
 from touchstone.errors import PlanError
 
 PLAN = {
@@ -41,12 +42,14 @@ class StubBackend:
 
     name = "stub"
     isolation = "none"
+    egress: list[str] = []
 
     def run(self, spec): ...
     def shutdown(self, run_ids): ...
     def check_images(self, images): ...
     def pull_images(self, images): ...
-    def extract_manifest(self, image, manifest_path=""): ...
+    def extract_manifest(self, image, manifest_path=""):
+        return Manifest(name="example_pack", version="1.0", network=Network(egress=self.egress))
 
     def resolve_digest(self, image: str) -> str:
         return DIGEST

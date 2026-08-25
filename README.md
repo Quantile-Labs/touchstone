@@ -84,7 +84,13 @@ plan.lock.json has changed since it was frozen.
 ```
 
 Every run writes `ledger/RUNLOG.jsonl` as it goes, opening with the plan hash it ran
-against. The tool writes it, not a person, and not afterwards.
+against. The tool writes it, not a person, and not afterwards. It also writes
+`environment.json`: the backend, the digests that actually ran, and whether each pack was
+held to the network it declared.
+
+A pack that declares no egress runs with no network. A pack that declares an allowlist is
+refused, because Docker cannot enforce one without a proxy that does not exist yet.
+`--allow-unenforced-egress` runs it with the whole network and records that it did.
 
 ## Seal and verify a bundle
 

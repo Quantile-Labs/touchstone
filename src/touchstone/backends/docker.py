@@ -60,11 +60,16 @@ class DockerBackend(ContainerBackend):
         return self._require("image", "inspect", "--format", "{{.Id}}", image)
 
     def run(self, spec: RunSpec) -> RunResult:
-        if spec.egress:
+        if spec.egress and not spec.allow_unenforced_egress:
             raise BackendError(
                 f"{spec.pack_id} declares egress to {', '.join(spec.egress)} and this backend "
-                "cannot enforce a host allowlist. Refusing rather than granting full network"
+                "cannot enforce a host allowlist. Refusing rather than granting full network. "
+                "Pass --allow-unenforced-egress to run anyway and record that in the bundle"
             )
+
+        # Declared egress with the override on means the whole network, not those hosts.
+        egress_enforced = False if spec.egress else None
+        network = "bridge" if spec.egress else "none"
 
         spec.output_dir.mkdir(parents=True, exist_ok=True)
         args = [
@@ -73,7 +78,7 @@ class DockerBackend(ContainerBackend):
             "--name",
             spec.run_id,
             "--network",
-            "none",
+            network,
             "--read-only",
             "--cap-drop",
             "ALL",
@@ -117,6 +122,7 @@ class DockerBackend(ContainerBackend):
             finished_utc=_now(),
             stdout_path=stdout_path,
             termination=termination,
+            egress_enforced=egress_enforced,
             native_id=spec.run_id,
         )
 

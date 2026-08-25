@@ -47,6 +47,11 @@ class RunSpec(BaseModel):
     capture_stdout: bool = False
     """Off by default. A pack that logs a request logs the key with it."""
 
+    allow_unenforced_egress: bool = False
+    """Run a pack that declares egress on a backend that cannot enforce its allowlist.
+    The pack gets the whole network, not the hosts it asked for, and the bundle records
+    that. Off by default, because the safe reading of an unenforceable allowlist is no."""
+
     timeout_seconds: int | None = Field(default=None, gt=0)
 
     model_config = {"extra": "forbid"}
@@ -63,6 +68,11 @@ class RunResult(BaseModel):
     backend: str
     isolation: str
     """Carried into the bundle so a reader can see the runtime was weaker than a container."""
+
+    egress_enforced: bool | None = None
+    """None when the pack declared no egress and had no network. True when the allowlist
+    was enforced. False when it was declared, granted whole, and not enforced. A grade
+    computed from a run with False here cannot claim the pack was contained."""
 
     termination: str | None = None
     """Set when the runtime ended the pack rather than the pack exiting on its own:

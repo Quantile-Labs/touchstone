@@ -33,12 +33,20 @@ def freeze(plan: Plan, backend: ContainerBackend) -> PlanLock:
     root_seed = plan.seed if plan.seed is not None else DEFAULT_ROOT_SEED
     packs = []
     for pack in plan.packs:
+        image = backend.resolve_digest(pack.image)
+        manifest = backend.extract_manifest(image)
+        if manifest is None:
+            raise PlanError(
+                f"{pack.id}: no manifest in {pack.image}. What the pack may reach cannot be "
+                "pinned, so the plan cannot be frozen"
+            )
         packs.append(
             LockedPack(
                 id=pack.id,
-                image=backend.resolve_digest(pack.image),
+                image=image,
                 systems=pack.systems,
                 params=pack.params,
+                egress=manifest.network.egress,
                 seeds=[derive_seed(root_seed, pack.id, n) for n in range(pack.replicates)],
             )
         )

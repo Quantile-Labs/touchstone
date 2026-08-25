@@ -106,10 +106,18 @@ def freeze(
 def run_(
     lock_dir: Annotated[Path, typer.Argument(exists=True, file_okay=False)],
     out: Annotated[Path, typer.Option("--out", "-o", help="Where to write the run")],
+    allow_unenforced_egress: Annotated[
+        bool,
+        typer.Option(
+            "--allow-unenforced-egress",
+            help="Run packs that declare egress on a backend that cannot enforce it. "
+            "They get the whole network and the bundle records that they did",
+        ),
+    ] = False,
 ) -> None:
     """Execute a frozen plan. Refuses one that was never frozen or has been edited."""
     try:
-        failures = run_plan.run(lock_dir, out, DockerBackend())
+        failures = run_plan.run(lock_dir, out, DockerBackend(), allow_unenforced_egress)
     except TouchstoneError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
@@ -119,6 +127,14 @@ def run_(
         for failure in failures:
             typer.echo(f"  {failure}", err=True)
         raise typer.Exit(1)
+
+    if allow_unenforced_egress:
+        typer.echo(
+            f"{out}: ok, with egress unenforced. environment.json records that no pack was "
+            "restricted to the hosts it declared",
+            err=True,
+        )
+        return
 
     typer.echo(f"{out}: ok")
 
