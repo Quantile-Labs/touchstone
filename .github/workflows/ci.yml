@@ -38,6 +38,19 @@ jobs:
           done
           exit $status
 
+  docker-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+      - run: uv sync --all-extras --dev
+      - name: run the backend tests against a real daemon
+        run: |
+          docker info > /dev/null   # so the tests cannot quietly skip instead
+          uv run pytest tests/test_docker_backend.py -q
+
   offline-install:
     runs-on: ubuntu-latest
     steps:
