@@ -1,3 +1,4 @@
+from collections import Counter
 from pathlib import Path
 from typing import Annotated
 
@@ -7,6 +8,7 @@ from touchstone import __version__, bundle, plan_check
 from touchstone import anchor as anchor_plan
 from touchstone import estimate as estimate_items
 from touchstone import freeze as freeze_plan
+from touchstone import grade as grade_run
 from touchstone import run as run_plan
 from touchstone.backends.docker import DockerBackend
 from touchstone.errors import TouchstoneError
@@ -190,9 +192,56 @@ def estimate(
 
 
 @app.command()
-def grade() -> None:
-    """Apply a score card and produce DQI indicators."""
-    _pending("grade")
+def grade(
+    run_dir: Annotated[Path, typer.Argument(exists=True, file_okay=False)],
+    score_card: Annotated[
+        Path,
+        typer.Option(
+            "--score-card",
+            "-s",
+            exists=True,
+            dir_okay=False,
+            help="The score card to apply: the ladder, its thresholds and its ceilings",
+        ),
+    ],
+) -> None:
+    """Apply a score card and produce DQI indicators. Offline, no Docker."""
+    try:
+        card = grade_run.load_scorecard(score_card)
+        estimates = grade_run.load_estimates(run_dir)
+
+        problems = grade_run.check(card, estimates)
+        if problems:
+            for problem in problems:
+                typer.echo(problem, err=True)
+            raise typer.Exit(1)
+
+        scorecard = grade_run.grade(
+            card,
+            estimates,
+            grade_run.access_tier(run_dir),
+            grade_run.summary_only_packs(run_dir),
+            grade_run.plan_hash(run_dir),
+        )
+        path = grade_run.write_scorecard(scorecard, run_dir)
+    except TouchstoneError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+    counted = Counter(indicator.verdict for indicator in scorecard.indicators)
+    typer.echo(
+        f"{path}: {len(scorecard.indicators)} indicator(s) at access tier {scorecard.access_tier}"
+    )
+    for line in grade_run.lines(scorecard):
+        typer.echo(line)
+
+    if counted["indeterminate"]:
+        typer.echo(
+            f"{counted['indeterminate']} indicator(s) indeterminate: the interval spans a "
+            "grade boundary, so the evidence does not choose between the levels shown. "
+            "Reporting the better one would be a claim this run cannot support",
+            err=True,
+        )
 
 
 @app.command(name="bundle")

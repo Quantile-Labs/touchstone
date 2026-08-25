@@ -6,7 +6,7 @@ without this tool and without trusting whoever produced it.
 
 ## Status
 
-Early. Six of the seven pipeline commands work and `grade` is a stub that exits 2.
+Early. All seven pipeline commands work. The score card format is not fixed yet, so `grade` reads a ladder the score card declares rather than one this tool defines.
 Version 0.0.1 on PyPI is a placeholder release that predates most of this.
 
 ## Requirements
@@ -209,7 +209,7 @@ validate -> freeze -> run -> estimate -> grade -> bundle -> verify
 | `freeze` | pin image digests, derive seeds, hash the result | works |
 | `run` | execute a frozen plan, write per-item observations | works |
 | `estimate` | compute rates and intervals, by stratum | works |
-| `grade` | apply a score card, produce DQI indicators | exits 2 |
+| `grade` | apply a score card, produce DQI indicators | works |
 | `bundle` | hash every file in a directory, write `MANIFEST.json` | works |
 | `verify` | re-check a bundle against its manifest, offline | works |
 
