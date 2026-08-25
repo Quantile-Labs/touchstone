@@ -65,6 +65,11 @@ $ shasum -a 256 -c PLAN.sha256
 plan.lock.json: OK
 ```
 
+Add `--anchor` to timestamp the hash with OpenTimestamps. That step needs the network and
+the `ots` client, so it is opt-in; everything else in `freeze` works offline. The receipt
+lands in `anchors/` next to a copy of the file it covers, with a note saying what it does
+and does not yet prove.
+
 `run` executes a frozen plan and refuses one that was never frozen or has been edited
 since. Not a warning, a non-zero exit:
 

@@ -4,6 +4,7 @@ from typing import Annotated
 import typer
 
 from touchstone import __version__, bundle, plan_check
+from touchstone import anchor as anchor_plan
 from touchstone import freeze as freeze_plan
 from touchstone import run as run_plan
 from touchstone.backends.docker import DockerBackend
@@ -80,12 +81,16 @@ def freeze(
     out: Annotated[
         Path, typer.Option("--out", "-o", help="Where to write the lock and its hash")
     ] = Path("."),
+    anchor: Annotated[
+        bool, typer.Option("--anchor", help="Timestamp the hash with OpenTimestamps. Needs network")
+    ] = False,
 ) -> None:
     """Pin every image to a digest, materialise seeds, and hash the result."""
     try:
         plan = plan_check.load_plan(plan_path)
         lock = freeze_plan.freeze(plan, DockerBackend())
         lock_path, digest = freeze_plan.write_lock(lock, out)
+        receipt = anchor_plan.stamp(out / freeze_plan.HASH_NAME, out) if anchor else None
     except TouchstoneError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
@@ -93,6 +98,8 @@ def freeze(
     typer.echo(f"{lock_path}: {len(lock.packs)} pack(s) pinned")
     typer.echo(f"sha256 {digest}")
     typer.echo(f"check it with: shasum -a 256 -c {out / freeze_plan.HASH_NAME}")
+    if receipt is not None:
+        typer.echo(f"stamped: {receipt}. Pending until you run ots upgrade on it")
 
 
 @app.command(name="run")
