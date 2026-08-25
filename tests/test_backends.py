@@ -51,6 +51,9 @@ class FakeBackend:
     def pull_images(self, images: list[str]) -> None:
         self.pulled.extend(images)
 
+    def resolve_digest(self, image: str) -> str:
+        return image if "@sha256:" in image else f"{image.split(':')[0]}@sha256:{'a' * 64}"
+
     def extract_manifest(self, image: str, manifest_path: str = MANIFEST_PATH) -> Manifest | None:
         return MANIFEST
 
@@ -87,6 +90,7 @@ def test_a_backend_that_does_not_declare_its_isolation_does_not():
         def shutdown(self, run_ids): ...
         def check_images(self, images): ...
         def pull_images(self, images): ...
+        def resolve_digest(self, image): ...
         def extract_manifest(self, image, manifest_path=MANIFEST_PATH): ...
 
     assert not isinstance(Silent(), ContainerBackend)

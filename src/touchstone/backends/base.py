@@ -104,6 +104,11 @@ class ContainerBackend(Protocol):
 
     def pull_images(self, images: list[str]) -> None: ...
 
+    def resolve_digest(self, image: str) -> str:
+        """A tag to the bytes it currently points at. The sixth method, and not ASQI's:
+        their tree contains no digest handling at all, so their five never needed it."""
+        ...
+
     def extract_manifest(self, image: str, manifest_path: str = MANIFEST_PATH) -> Manifest | None:
         """Read the pack's own declaration out of the image. None if it carries none."""
         ...

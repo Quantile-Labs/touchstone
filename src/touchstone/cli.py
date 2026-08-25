@@ -4,6 +4,8 @@ from typing import Annotated
 import typer
 
 from touchstone import __version__, bundle, plan_check
+from touchstone import freeze as freeze_plan
+from touchstone.backends.docker import DockerBackend
 from touchstone.errors import TouchstoneError
 
 app = typer.Typer(add_completion=False, help="Evaluation runs that produce verifiable evidence.")
@@ -72,9 +74,24 @@ def _pending(name: str) -> None:
 
 
 @app.command()
-def freeze() -> None:
-    """Pin digests, hash the plan, fix seeds and thresholds."""
-    _pending("freeze")
+def freeze(
+    plan_path: Annotated[Path, typer.Argument(exists=True, dir_okay=False)],
+    out: Annotated[
+        Path, typer.Option("--out", "-o", help="Where to write the lock and its hash")
+    ] = Path("."),
+) -> None:
+    """Pin every image to a digest, materialise seeds, and hash the result."""
+    try:
+        plan = plan_check.load_plan(plan_path)
+        lock = freeze_plan.freeze(plan, DockerBackend())
+        lock_path, digest = freeze_plan.write_lock(lock, out)
+    except TouchstoneError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+    typer.echo(f"{lock_path}: {len(lock.packs)} pack(s) pinned")
+    typer.echo(f"sha256 {digest}")
+    typer.echo(f"check it with: shasum -a 256 -c {out / freeze_plan.HASH_NAME}")
 
 
 @app.command()

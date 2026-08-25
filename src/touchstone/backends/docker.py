@@ -50,7 +50,7 @@ class DockerBackend(ContainerBackend):
             raise BackendError(f"{self.binary} {' '.join(args)}: {done.stderr.strip()}")
         return done.stdout.strip()
 
-    def _digest(self, image: str) -> str:
+    def resolve_digest(self, image: str) -> str:
         """What actually ran. A locally built image has no RepoDigests, so fall back to
         the image id, which is still a content hash of exactly what executed."""
         fmt = "{{json .RepoDigests}}"
@@ -110,7 +110,7 @@ class DockerBackend(ContainerBackend):
         return RunResult(
             run_id=spec.run_id,
             exit_code=exit_code,
-            image_digest=self._digest(spec.image),
+            image_digest=self.resolve_digest(spec.image),
             backend=self.name,
             isolation=self.isolation,
             started_utc=started,
