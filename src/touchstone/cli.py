@@ -5,6 +5,7 @@ import typer
 
 from touchstone import __version__, bundle, plan_check
 from touchstone import anchor as anchor_plan
+from touchstone import estimate as estimate_items
 from touchstone import freeze as freeze_plan
 from touchstone import run as run_plan
 from touchstone.backends.docker import DockerBackend
@@ -140,9 +141,41 @@ def run_(
 
 
 @app.command()
-def estimate() -> None:
-    """Compute rates and intervals, by stratum."""
-    _pending("estimate")
+def estimate(
+    run_dir: Annotated[Path, typer.Argument(exists=True, file_okay=False)],
+    by: Annotated[
+        list[str] | None,
+        typer.Option("--by", "-b", help="Stratum key to group by. Repeat to cross keys"),
+    ] = None,
+    calibrate: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--calibrate",
+            "-c",
+            help="Outcome the reported confidence is a claim about. Repeat for more. "
+            "Nothing is calibrated unless named, because an ECE against an unrelated "
+            "boolean is a meaningless number that reads as an authoritative one",
+        ),
+    ] = None,
+    seed: Annotated[
+        int, typer.Option("--seed", help="Seed for the bootstrap, so its interval reproduces")
+    ] = 0,
+    resamples: Annotated[
+        int, typer.Option("--resamples", help="Bootstrap resamples for continuous scores")
+    ] = estimate_items.RESAMPLES,
+) -> None:
+    """Compute rates and intervals, by stratum. Offline, no Docker."""
+    try:
+        items = estimate_items.load_items(run_dir)
+        estimates = estimate_items.estimate(items, by, calibrate, seed=seed, resamples=resamples)
+        path = estimate_items.write_estimates(estimates, run_dir)
+    except TouchstoneError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+    typer.echo(f"{path}: {len(estimates.estimates)} estimate(s) from {estimates.items} item(s)")
+    for line in estimate_items.lines(estimates):
+        typer.echo(line)
 
 
 @app.command()

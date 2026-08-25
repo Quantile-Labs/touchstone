@@ -17,3 +17,7 @@ class AnchorError(TouchstoneError):
 class BackendError(TouchstoneError):
     """The runtime could not execute the pack. A pack that runs and exits non-zero is not
     this: that is a result, and it is reported in RunResult.exit_code."""
+
+
+class EstimateError(TouchstoneError):
+    """The item records could not be read, or could not support the estimate asked for."""
