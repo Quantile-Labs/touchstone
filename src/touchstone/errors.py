@@ -21,3 +21,8 @@ class BackendError(TouchstoneError):
 
 class EstimateError(TouchstoneError):
     """The item records could not be read, or could not support the estimate asked for."""
+
+
+class ScoreCardError(TouchstoneError):
+    """The score card is malformed, names something the bundle does not hold, or asks for
+    a condition the evidence cannot answer."""
