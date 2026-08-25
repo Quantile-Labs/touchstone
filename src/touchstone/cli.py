@@ -8,7 +8,7 @@ from touchstone.errors import TouchstoneError
 
 app = typer.Typer(add_completion=False, help="Evaluation runs that produce verifiable evidence.")
 
-NOT_YET = "not implemented yet, see the roadmap in README.md"
+NOT_YET = "not implemented yet, see the pipeline table in README.md"
 
 
 @app.command()
