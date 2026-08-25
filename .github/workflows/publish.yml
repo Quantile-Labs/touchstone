@@ -4,16 +4,9 @@ on:
   release:
     types: [published]
   workflow_dispatch:
-    inputs:
-      package:
-        description: "Which package to publish"
-        required: true
-        type: choice
-        options: [touchstone-dqi, dqi]
 
 jobs:
   touchstone:
-    if: github.event_name == 'release' || inputs.package == 'touchstone-dqi'
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -25,19 +18,4 @@ jobs:
           python-version: "3.12"
       - run: pip install build
       - run: python -m build
-      - uses: pypa/gh-action-pypi-publish@release/v1
-
-  dqi:
-    if: inputs.package == 'dqi'
-    runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
-      - run: pip install build
-      - run: python -m build packaging/dqi --outdir dist
       - uses: pypa/gh-action-pypi-publish@release/v1

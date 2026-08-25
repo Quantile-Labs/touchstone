@@ -16,16 +16,30 @@ not a prerequisite for holding the name.
 
 ## One-time setup on PyPI
 
-For each package name, add a pending trusted publisher at
-https://pypi.org/manage/account/publishing/ with these values.
+`touchstone-dqi` is the only package. Its trusted publisher is configured and it is
+published; this section is here for the day it has to be set up again.
 
-| Field | touchstone-dqi | dqi |
-|---|---|---|
-| PyPI project name | `touchstone-dqi` | `dqi` |
-| Owner | `Quantile-Labs` | `Quantile-Labs` |
-| Repository | `touchstone` | `touchstone` |
-| Workflow | `publish.yml` | `publish.yml` |
-| Environment | `pypi` | `pypi` |
+| Field | Value |
+|---|---|
+| PyPI project name | `touchstone-dqi` |
+| Owner | `Quantile-Labs` |
+| Repository | `touchstone` |
+| Workflow | `publish.yml` |
+| Environment | `pypi` |
+
+Type these into the form rather than pasting. A leading space copied out of a table cell
+is rejected as `Environment name may not start with whitespace`.
+
+## There is no `dqi` package
+
+`dqi` cannot be registered on PyPI. It is confusable with `dql`, an unrelated DynamoDB
+package, under PyPI's ultranormalization, which treats `i` and `l` as the same character.
+The rule is automatic and `dql` is a legitimate project, so there is nothing to appeal.
+
+**It is blocked for everyone, so there is nothing to lose by not holding it.** An alias
+package existed only so `pip install dqi` would work. Since it cannot, the alias was
+removed rather than published under a name no one would type. DQI is the name of the
+standard and the standard lives at a URL.
 
 The GitHub environment named `pypi` exists. It was created on 25 Aug 2026 and nothing
 needs doing there unless it is deleted.
@@ -33,21 +47,15 @@ needs doing there unless it is deleted.
 **It allows the branch `main` and the tag pattern `v*`, and it needs both.** A release
 event runs with the ref `refs/tags/v0.0.1`, not a branch, so an environment restricted to
 `main` alone blocks the publish job before its first step, with no log and no steps in the
-run. `main` is still needed for the manual `dqi` dispatch.
+run. `main` is still needed for a manual `workflow_dispatch`.
 
 ## Publishing
 
-`touchstone-dqi` publishes on every GitHub release:
+Publishing happens on every GitHub release:
 
 ```bash
-git tag v0.0.1 && git push origin v0.0.1
-gh release create v0.0.1 --generate-notes
-```
-
-`dqi` is an alias package and changes rarely. Publish it by hand:
-
-```bash
-gh workflow run publish.yml -f package=dqi
+git tag v0.1.0 && git push origin v0.1.0
+gh release create v0.1.0 --generate-notes
 ```
 
 ## Version numbers
