@@ -9,6 +9,14 @@ A pack is a container image that evaluates a system and reports what happened.
 3. Write one JSON Lines record per item to `/output/items.jsonl`.
 4. Exit 0 on a completed run. A non-zero exit means the run failed, not that the
    system under test scored badly.
+5. Accept `--output-dir`, defaulting to `/output`. This is what lets a pack author run
+   the pack outside a container while writing it.
+
+**Results go in `/output`, never to stdout.** Stdout is logs, it is not captured into the
+bundle, and a pack that prints a request prints the credential with it.
+
+`packs/example_pack/` is a working pack that follows all of this in about seventy lines of
+standard library. Copy it.
 
 ## Manifest
 

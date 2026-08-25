@@ -1,6 +1,6 @@
 name: "example_pack"
 version: "1.0"
-description: "Minimal pack used by the test suite and as a template."
+description: "Minimal pack used by the test suite and as a template. Emits ten records."
 
 input_systems:
   - name: "system_under_test"
@@ -11,11 +11,19 @@ input_schema:
   - name: "max_items"
     type: "integer"
     required: false
+    description: "How many records to emit. Ten by default."
+  - name: "seed"
+    type: "integer"
+    required: false
+    description: "Same seed, same records. Zero by default."
 
 emits_items: true
 
 strata:
   - name: "language"
+    values: ["en", "pcm", "ha", "yo", "ig"]
+  - name: "difficulty"
+    values: ["single_step", "multi_step"]
 
 network:
   egress: []
