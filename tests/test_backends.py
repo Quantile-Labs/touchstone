@@ -115,6 +115,23 @@ def test_the_result_carries_what_the_bundle_has_to_record(tmp_path):
     assert result.image_digest.startswith("example/example_pack@sha256:")
 
 
+def test_a_pack_that_exits_on_its_own_records_no_termination(tmp_path):
+    result = FakeBackend().run(spec(tmp_path))
+    assert result.termination is None
+
+
+def test_a_timeout_is_distinguishable_from_the_pack_exiting_137(tmp_path):
+    """Both ASQI backends report a timeout as exit 137, which is also SIGKILL. The exit
+    code cannot carry the difference, and reporting a harness timeout as the pack's own
+    failure is a false claim about the system under test."""
+    killed = FakeBackend().run(spec(tmp_path, run_id="slow"))
+    killed = killed.model_copy(update={"exit_code": 137, "termination": "timeout"})
+    its_own = killed.model_copy(update={"termination": None})
+
+    assert killed.exit_code == its_own.exit_code
+    assert killed.termination != its_own.termination
+
+
 def test_stdout_is_not_captured_by_default(tmp_path):
     assert spec(tmp_path).capture_stdout is False
 

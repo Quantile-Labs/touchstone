@@ -64,6 +64,16 @@ class RunResult(BaseModel):
     isolation: str
     """Carried into the bundle so a reader can see the runtime was weaker than a container."""
 
+    termination: str | None = None
+    """Set when the runtime ended the pack rather than the pack exiting on its own:
+    timeout, out_of_memory, cancelled. Both ASQI backends report a timeout as exit 137,
+    which is also SIGKILL, so an exit code alone cannot carry this. A non-zero exit_code
+    with no termination is the pack's own verdict and is a result, not a harness failure."""
+
+    native_id: str | None = None
+    """The runtime's own handle for the unit, a container id or a job name. For operators
+    reading logs after the fact. Nothing in the evidence path may depend on it."""
+
     started_utc: str
     finished_utc: str
 
