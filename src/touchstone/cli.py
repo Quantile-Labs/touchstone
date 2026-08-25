@@ -5,6 +5,7 @@ import typer
 
 from touchstone import __version__, bundle, plan_check
 from touchstone import freeze as freeze_plan
+from touchstone import run as run_plan
 from touchstone.backends.docker import DockerBackend
 from touchstone.errors import TouchstoneError
 
@@ -94,10 +95,25 @@ def freeze(
     typer.echo(f"check it with: shasum -a 256 -c {out / freeze_plan.HASH_NAME}")
 
 
-@app.command()
-def run() -> None:
-    """Execute packs and collect per-item observations."""
-    _pending("run")
+@app.command(name="run")
+def run_(
+    lock_dir: Annotated[Path, typer.Argument(exists=True, file_okay=False)],
+    out: Annotated[Path, typer.Option("--out", "-o", help="Where to write the run")],
+) -> None:
+    """Execute a frozen plan. Refuses one that was never frozen or has been edited."""
+    try:
+        failures = run_plan.run(lock_dir, out, DockerBackend())
+    except TouchstoneError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+    if failures:
+        typer.echo(f"{out}: {len(failures)} unit(s) failed", err=True)
+        for failure in failures:
+            typer.echo(f"  {failure}", err=True)
+        raise typer.Exit(1)
+
+    typer.echo(f"{out}: ok")
 
 
 @app.command()

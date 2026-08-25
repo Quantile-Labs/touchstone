@@ -6,8 +6,8 @@ without this tool and without trusting whoever produced it.
 
 ## Status
 
-Early. Three of the seven pipeline commands work and the rest are stubs that exit 2.
-Version 0.0.1 is a placeholder release that claims the name.
+Early. Five of the seven pipeline commands work and the rest are stubs that exit 2.
+Version 0.0.1 on PyPI is a placeholder release that predates most of this.
 
 ## Requirements
 
@@ -44,6 +44,42 @@ broken.yaml: 1 problem(s)
 
 It resolves packs from `./packs`. Pass `--manifests` to point somewhere else. No
 container runs, and it exits 1 if anything is wrong.
+
+## Freeze a plan before running it
+
+`freeze` resolves every image tag to the digest it points at, derives a seed for each pack
+and replicate from the plan's root seed, and hashes the result:
+
+```console
+$ touchstone freeze plan.yaml -o ./run-004
+./run-004/plan.lock.json: 1 pack(s) pinned
+sha256 2005a468dbe221c062965302d052b5c3c4253c4266c9c66b3c5011bc4bbf2e6b
+check it with: shasum -a 256 -c run-004/PLAN.sha256
+```
+
+The lock is canonical JSON and `PLAN.sha256` is in shasum's own format, so anyone can
+check it without installing anything:
+
+```console
+$ shasum -a 256 -c PLAN.sha256
+plan.lock.json: OK
+```
+
+`run` executes a frozen plan and refuses one that was never frozen or has been edited
+since. Not a warning, a non-zero exit:
+
+```console
+$ touchstone run ./run-004 -o ./bundle
+./bundle: ok
+
+$ touchstone run ./edited -o ./bundle
+plan.lock.json has changed since it was frozen.
+  frozen:  2005a468dbe221c062965302d052b5c3c4253c4266c9c66b3c5011bc4bbf2e6b
+  on disk: f55de7788a0d2b2cfcc69029f62dbfa9d5955f61415136050c095b1f6e1fd29b
+```
+
+Every run writes `ledger/RUNLOG.jsonl` as it goes, opening with the plan hash it ran
+against. The tool writes it, not a person, and not afterwards.
 
 ## Seal and verify a bundle
 
@@ -101,8 +137,8 @@ validate -> freeze -> run -> estimate -> grade -> bundle -> verify
 | Command | Does | State |
 |---|---|---|
 | `validate` | check a plan against the manifests of the packs it names | works |
-| `freeze` | pin image digests, hash the plan, fix seeds and thresholds | exits 2 |
-| `run` | execute packs, write per-item observations | exits 2 |
+| `freeze` | pin image digests, derive seeds, hash the result | works |
+| `run` | execute a frozen plan, write per-item observations | works |
 | `estimate` | compute rates and intervals, by stratum | exits 2 |
 | `grade` | apply a score card, produce DQI indicators | exits 2 |
 | `bundle` | hash every file in a directory, write `MANIFEST.json` | works |
