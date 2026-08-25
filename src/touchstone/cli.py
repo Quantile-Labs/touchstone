@@ -93,3 +93,9 @@ def estimate() -> None:
 def grade() -> None:
     """Apply a score card and produce DQI indicators."""
     _pending("grade")
+
+
+@app.command(name="bundle")
+def bundle_() -> None:
+    """Seal a run into an evidence bundle and hash every file."""
+    _pending("bundle")
