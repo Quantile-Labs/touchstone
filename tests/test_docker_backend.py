@@ -13,6 +13,7 @@ import pytest
 
 from touchstone.backends import DockerBackend, RunSpec
 from touchstone.contracts import ItemRecord
+from touchstone.contracts.manifest import Resources
 from touchstone.errors import BackendError
 
 PACK = Path(__file__).resolve().parents[1] / "packs" / "example_pack"
@@ -194,6 +195,68 @@ def test_the_override_grants_the_whole_network_and_says_so(backend, image, tmp_p
         spec(tmp_path, image, egress=["api.openai.com"], allow_unenforced_egress=True)
     )
     assert result.egress_enforced is False
+
+
+def test_a_pack_that_exceeds_its_memory_is_killed_and_named_as_such(backend, tmp_path):
+    """Docker reports an out of memory kill as exit 137, and so does a timeout. Recording
+    both the same way would put a pack that was too big into the bundle as a pack that was
+    too slow, and the remediation for those is not the same."""
+    result = backend.run(
+        spec(
+            tmp_path,
+            "python:3.12-slim",
+            run_id="touchstone-test-oom",
+            args=["python", "-c", "b = bytearray(400 * 1024 * 1024); print(len(b))"],
+            timeout_seconds=90,
+            resources=Resources(memory_mb=64),
+        )
+    )
+    assert result.exit_code == 137
+    assert result.termination == "out_of_memory"
+    assert result.termination != "timeout"
+
+
+def test_a_pack_that_stays_inside_its_memory_is_not_marked(backend, tmp_path):
+    result = backend.run(
+        spec(
+            tmp_path,
+            "python:3.12-slim",
+            run_id="touchstone-test-within",
+            args=["python", "-c", "b = bytearray(8 * 1024 * 1024); print(len(b))"],
+            timeout_seconds=90,
+            resources=Resources(memory_mb=256),
+        )
+    )
+    assert result.exit_code == 0
+    assert result.termination is None
+
+
+def test_a_pack_cannot_fork_its_way_past_the_process_limit(backend, tmp_path):
+    """ASQI caps neither processes nor swap, so a pack that forks in a loop takes the host
+    down without ever exceeding its memory limit."""
+    forker = (
+        "import os\n"
+        "n = 0\n"
+        "try:\n"
+        "    while n < 400:\n"
+        "        if os.fork() == 0: os._exit(0)\n"
+        "        n += 1\n"
+        "except BlockingIOError:\n"
+        "    pass\n"
+        "open('/output/forks.txt','w').write(str(n))\n"
+    )
+    backend.run(
+        spec(
+            tmp_path,
+            "python:3.12-slim",
+            run_id="touchstone-test-pids",
+            args=["python", "-c", forker],
+            timeout_seconds=90,
+            resources=Resources(memory_mb=256, pids=32),
+        )
+    )
+    forks = int((tmp_path / "out" / "forks.txt").read_text())
+    assert forks < 400, "the pack forked as much as it liked"
 
 
 def test_stdout_is_not_written_unless_asked(backend, image, tmp_path):

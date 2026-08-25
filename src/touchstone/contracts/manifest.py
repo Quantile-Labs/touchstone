@@ -27,6 +27,28 @@ class Network(BaseModel):
     """Hosts this pack may reach. Empty means no egress."""
 
 
+class Resources(BaseModel):
+    """The blast radius of one pack, declared by the pack.
+
+    ASQI caps memory at 2g and CPU at two cores, and does it as a global default a pack
+    cannot express a need for: a pack that genuinely wants 8g has nowhere to say so, and
+    the operator raises the cap for every pack at once or not at all. Declaring it here
+    makes the ceiling per pack, reviewable in the frozen plan, and the defaults below match
+    ASQI's so a pack that says nothing behaves the same under both.
+    """
+
+    memory_mb: int = Field(default=2048, ge=64)
+    """Swap is pinned to this same figure at run time. A memory cap that leaves swap open
+    is a cap the container walks straight through."""
+
+    cpus: float = Field(default=2.0, gt=0)
+    pids: int = Field(default=512, ge=16)
+    """Processes. ASQI caps neither, so a pack that forks in a loop takes the host down
+    while staying inside its memory limit."""
+
+    model_config = {"extra": "forbid"}
+
+
 class Manifest(BaseModel):
     name: str
     version: str
@@ -41,6 +63,7 @@ class Manifest(BaseModel):
 
     strata: list[Stratum] = Field(default_factory=list)
     network: Network = Field(default_factory=Network)
+    resources: Resources = Field(default_factory=Resources)
 
     calibrates: str | None = None
     """Which outcome the `confidence` on an item record is a claim about.

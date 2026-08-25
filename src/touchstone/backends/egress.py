@@ -39,6 +39,12 @@ boundary rather than part of the experiment, and the digest that actually ran is
 in `environment.json`."""
 
 PROXY_PORT = 3128
+
+PROXY_MEMORY_MB = 512
+PROXY_PIDS = 128
+"""The sidecar is a container this tool starts, so it runs under a ceiling like any
+other. Squid with caching denied needs very little; 512 is chosen to leave room for the
+image's own startup rather than because squid asks for it."""
 PROXY_ALIAS = "egress"
 """What the pack resolves. Docker's embedded DNS answers it on the internal network, which
 is the only name resolution a contained pack gets."""

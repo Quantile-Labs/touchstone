@@ -15,6 +15,7 @@ from typing import Protocol, runtime_checkable
 from pydantic import BaseModel, Field
 
 from touchstone.contracts import Manifest
+from touchstone.contracts.manifest import Resources
 
 MANIFEST_PATH = "/app/manifest.yaml"
 """Where a pack declares itself, inside the image. See docs/packs.md."""
@@ -57,6 +58,10 @@ class RunSpec(BaseModel):
     built against an API it has not finished declaring needs a way to run."""
 
     timeout_seconds: int | None = Field(default=None, gt=0)
+
+    resources: Resources = Field(default_factory=Resources)
+    """The ceiling this unit runs under, from the pack's manifest by way of the lock.
+    Always set, because a default that caps is safer than a default that does not."""
 
     model_config = {"extra": "forbid"}
 

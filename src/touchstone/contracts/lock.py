@@ -2,6 +2,7 @@
 
 from pydantic import BaseModel, Field
 
+from touchstone.contracts.manifest import Resources
 from touchstone.contracts.plan import System
 
 DIGEST_PINNED = r"^[^\s]+@sha256:[0-9a-f]{64}$"
@@ -30,6 +31,11 @@ class LockedPack(BaseModel):
     from items apart from one a container asserted, and `grade` caps the second. See
     02-DESIGN.md section 3.4."""
 
+    resources: Resources = Field(default_factory=Resources)
+    """What the pack declared it needs, read from its manifest at freeze time. Pinned here
+    for the same reason as `egress`: a reviewer reads the ceiling off the frozen plan
+    rather than off an image they would have to pull."""
+
     seeds: list[int]
     """One per replicate, derived from the root seed and recorded so a rerun matches."""
 
@@ -41,9 +47,9 @@ class PlanLock(BaseModel):
     twice produces the same bytes and therefore the same hash. When it was frozen is an
     event, and events belong in the ledger."""
 
-    lock_format: int = Field(default=3, ge=1)
-    """2 added `calibrates` to every pack, 3 added `emits_items`. A format bump changes the
-    bytes and therefore the hash of an unchanged plan, which is what the field is for."""
+    lock_format: int = Field(default=4, ge=1)
+    """2 added `calibrates`, 3 added `emits_items`, 4 added `resources`. A format bump
+    changes the bytes and therefore the hash of an unchanged plan, which is the point."""
 
     plan_name: str
     access_tier: str

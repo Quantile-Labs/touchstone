@@ -107,6 +107,12 @@ class DockerBackend(ContainerBackend):
                 network,
                 "--network-alias",
                 egress.PROXY_ALIAS,
+                "--memory",
+                f"{egress.PROXY_MEMORY_MB}m",
+                "--memory-swap",
+                f"{egress.PROXY_MEMORY_MB}m",
+                "--pids-limit",
+                str(egress.PROXY_PIDS),
                 "--entrypoint",
                 "sh",
                 egress.PROXY_IMAGE,
@@ -160,13 +166,24 @@ class DockerBackend(ContainerBackend):
 
     def _run(self, spec: RunSpec, network: str, egress_enforced: bool | None) -> RunResult:
         spec.output_dir.mkdir(parents=True, exist_ok=True)
+        limits = spec.resources
         args = [
             "run",
-            "--rm",
             "--name",
             spec.run_id,
             "--network",
             network,
+            "--memory",
+            f"{limits.memory_mb}m",
+            # Swap pinned to the same figure, which is what actually caps memory. Docker
+            # defaults --memory-swap to twice --memory, so a container given 2g can reach
+            # 4g through swap and the limit reads as enforced while it is not.
+            "--memory-swap",
+            f"{limits.memory_mb}m",
+            "--cpus",
+            str(limits.cpus),
+            "--pids-limit",
+            str(limits.pids),
             "--read-only",
             "--cap-drop",
             "ALL",
@@ -194,12 +211,18 @@ class DockerBackend(ContainerBackend):
 
         started = _now()
         try:
+            # Not --rm. The container has to survive long enough to be asked why it
+            # stopped: docker reports an out of memory kill as exit 137, which is also
+            # what a timeout reports, so the exit code alone cannot tell them apart and a
+            # bundle would record a pack that was too big as a pack that was too slow.
             done = self._cli(*args, timeout=spec.timeout_seconds)
-            exit_code, termination = done.returncode, None
-            stdout = done.stdout
+            exit_code, stdout = done.returncode, done.stdout
+            termination = "out_of_memory" if self._out_of_memory(spec.run_id) else None
         except subprocess.TimeoutExpired:
-            self.shutdown([spec.run_id])
+            self._cli("kill", spec.run_id)
             exit_code, termination, stdout = TIMEOUT_EXIT, "timeout", ""
+        finally:
+            self._cli("rm", "--force", spec.run_id)
 
         stdout_path = None
         if spec.capture_stdout:
@@ -219,6 +242,11 @@ class DockerBackend(ContainerBackend):
             egress_enforced=egress_enforced,
             native_id=spec.run_id,
         )
+
+    def _out_of_memory(self, run_id: str) -> bool:
+        """Whether the kernel killed the container for exceeding its memory limit."""
+        done = self._cli("inspect", "--format", "{{.State.OOMKilled}}", run_id)
+        return done.stdout.strip() == "true"
 
     def shutdown(self, run_ids: list[str]) -> None:
         for run_id in run_ids:

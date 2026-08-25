@@ -8,7 +8,7 @@ import pytest
 from touchstone import freeze as freeze_plan
 from touchstone.backends.base import RunResult, RunSpec
 from touchstone.contracts import Manifest, Plan
-from touchstone.contracts.manifest import Network
+from touchstone.contracts.manifest import Network, Resources
 
 DIGEST = "example/example_pack@sha256:" + "c" * 64
 
@@ -33,10 +33,13 @@ class StubBackend:
     name = "stub"
     isolation = "none"
 
-    def __init__(self, exit_code: int = 0, termination: str | None = None, egress=()):
+    def __init__(
+        self, exit_code: int = 0, termination: str | None = None, egress=(), resources=None
+    ):
         self.exit_code = exit_code
         self.termination = termination
         self.egress = list(egress)
+        self.resources = resources or Resources()
         self.seen: list[RunSpec] = []
 
     def run(self, spec: RunSpec) -> RunResult:
@@ -59,7 +62,12 @@ class StubBackend:
     def check_images(self, images): ...
     def pull_images(self, images): ...
     def extract_manifest(self, image, manifest_path=""):
-        return Manifest(name="example_pack", version="1.0", network=Network(egress=self.egress))
+        return Manifest(
+            name="example_pack",
+            version="1.0",
+            network=Network(egress=self.egress),
+            resources=self.resources,
+        )
 
     def resolve_digest(self, image: str) -> str:
         return DIGEST

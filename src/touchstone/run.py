@@ -18,6 +18,7 @@ from touchstone import __version__
 from touchstone.backends.base import ContainerBackend, RunResult, RunSpec
 from touchstone.contracts import Environment
 from touchstone.contracts.lock import PlanLock
+from touchstone.contracts.manifest import Resources
 from touchstone.errors import TouchstoneError
 from touchstone.freeze import HASH_NAME, LOCK_NAME, check_frozen, load_lock, recorded_hash
 
@@ -57,6 +58,7 @@ class Unit:
     params: dict[str, Any]
     systems: dict[str, str]
     egress: list[str]
+    resources: Resources
 
     @property
     def run_id(self) -> str:
@@ -65,7 +67,16 @@ class Unit:
 
 def units(lock: PlanLock) -> list[Unit]:
     return [
-        Unit(pack.id, replicate, pack.image, seed, pack.params, pack.systems, pack.egress)
+        Unit(
+            pack.id,
+            replicate,
+            pack.image,
+            seed,
+            pack.params,
+            pack.systems,
+            pack.egress,
+            pack.resources,
+        )
         for pack in lock.packs
         for replicate, seed in enumerate(pack.seeds)
     ]
@@ -182,6 +193,7 @@ def run(
             args=_args(unit, lock),
             output_dir=out_dir / RUNS_DIR / unit.run_id,
             egress=unit.egress,
+            resources=unit.resources,
             allow_unenforced_egress=allow_unenforced_egress,
         )
         try:

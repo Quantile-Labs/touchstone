@@ -112,6 +112,12 @@ Containment does not depend on the pack co-operating. It is told about the proxy
 run such a pack: it grants the whole network instead of the declared hosts, and
 `environment.json` records that no pack in the run can be claimed to have been contained.
 
+Every pack also runs under a ceiling it declares in its manifest, pinned into the frozen
+plan and defaulting to 2048 MB, two CPUs and 512 processes. Swap is pinned to the memory
+figure, because Docker otherwise allows twice the limit through swap. A pack killed for
+exceeding its memory is recorded as `out_of_memory` rather than as a timeout: both exit
+137, and a pack that was too big is not a pack that was too slow.
+
 ## Estimate
 
 `estimate` reads the per-item observations and computes the statistics itself. Packs
