@@ -139,6 +139,10 @@ uv run pytest
 uv run python scripts/check_commit_msg.py .git/COMMIT_EDITMSG
 ```
 
+`uv` is the only thing you need installed. It fetches the interpreter and the
+dependencies itself, and CI runs these same four commands, so a green run here is a
+green run there. Install it with `brew install uv` or from https://docs.astral.sh/uv/.
+
 Install the hooks once and the last one runs itself:
 
 ```bash
