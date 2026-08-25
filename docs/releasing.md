@@ -27,8 +27,13 @@ https://pypi.org/manage/account/publishing/ with these values.
 | Workflow | `publish.yml` | `publish.yml` |
 | Environment | `pypi` | `pypi` |
 
-The GitHub environment named `pypi` exists and is restricted to `main`. It was created
-on 25 Aug 2026; nothing needs doing there unless it is deleted.
+The GitHub environment named `pypi` exists. It was created on 25 Aug 2026 and nothing
+needs doing there unless it is deleted.
+
+**It allows the branch `main` and the tag pattern `v*`, and it needs both.** A release
+event runs with the ref `refs/tags/v0.0.1`, not a branch, so an environment restricted to
+`main` alone blocks the publish job before its first step, with no log and no steps in the
+run. `main` is still needed for the manual `dqi` dispatch.
 
 ## Publishing
 
