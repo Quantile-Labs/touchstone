@@ -44,6 +44,15 @@ Check a plan without running anything:
 touchstone validate plan.yaml
 ```
 
+Seal a directory of run output into a bundle:
+
+```bash
+touchstone bundle ./bundle
+```
+
+It hashes every file under the directory, writes `MANIFEST.json` and prints the hash
+over that file list. Sealing a bundle that already carries a manifest is an error.
+
 Verify a bundle someone sent you. No network, no Docker, no config:
 
 ```bash
@@ -90,11 +99,11 @@ Touchstone does the rest. See [docs/packs.md](docs/packs.md).
 
 | Milestone | State |
 |---|---|
-| Contracts, `validate`, `verify` | in progress |
-| `freeze`: digest pinning, plan hash, seeds | next |
+| Contracts, `validate`, `bundle`, `verify` | in progress |
 | `run`: Docker backend, resumable journal | next |
+| `freeze`: digest pinning, plan hash, seeds | next |
 | `estimate`: Wilson intervals, stratified rollup | after that |
-| `grade`, `bundle`, report rendering | after that |
+| `grade`, report rendering | after that |
 
 ## Licence
 

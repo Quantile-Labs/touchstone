@@ -96,6 +96,15 @@ def grade() -> None:
 
 
 @app.command(name="bundle")
-def bundle_() -> None:
+def bundle_(
+    bundle_dir: Annotated[Path, typer.Argument(exists=True, file_okay=False)],
+) -> None:
     """Seal a run into an evidence bundle and hash every file."""
-    _pending("bundle")
+    try:
+        manifest = bundle.seal(bundle_dir)
+    except TouchstoneError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+    typer.echo(f"{bundle_dir}: sealed {len(manifest.files)} file(s)")
+    typer.echo(f"sha256 {manifest.sha256}")
