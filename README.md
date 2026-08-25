@@ -6,14 +6,20 @@ without this tool and without trusting whoever produced it.
 
 ## Status
 
-Early. Three of the seven pipeline commands work. The rest are stubs that exit 2, and
-nothing is published to PyPI yet.
+Early. Three of the seven pipeline commands work and the rest are stubs that exit 2.
+Version 0.0.1 is a placeholder release that claims the name.
 
 ## Requirements
 
 Python 3.12 or later. `run` will need Docker once it exists; nothing today does.
 
 ## Install
+
+```bash
+pip install touchstone-dqi
+```
+
+The command is `touchstone`. To work on it instead:
 
 ```bash
 git clone https://github.com/Quantile-Labs/touchstone
