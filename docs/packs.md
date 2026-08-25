@@ -83,6 +83,13 @@ market works without a change to the engine.
 
 Emit the observation, not the average. Touchstone computes every statistic from these
 records so that a reader can recompute them from the bundle without trusting the pack.
+`touchstone estimate` turns booleans into rates with a Wilson interval and scores into
+means with a BCa bootstrap interval, grouped by whichever `stratum` keys are asked for.
+
+A `confidence` is a claim about one particular outcome, and only the pack knows which,
+so `estimate --calibrate <outcome>` names it. Nothing is calibrated unless it is named:
+an ECE binned against an unrelated boolean is a meaningless number that reads as an
+authoritative one.
 
 ## Summary-only packs
 

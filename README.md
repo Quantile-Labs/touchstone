@@ -6,12 +6,13 @@ without this tool and without trusting whoever produced it.
 
 ## Status
 
-Early. Five of the seven pipeline commands work and the rest are stubs that exit 2.
+Early. Six of the seven pipeline commands work and `grade` is a stub that exits 2.
 Version 0.0.1 on PyPI is a placeholder release that predates most of this.
 
 ## Requirements
 
-Python 3.12 or later. `run` will need Docker once it exists; nothing today does.
+Python 3.12 or later. `freeze` and `run` need the Docker daemon. Nothing else does:
+`estimate`, `bundle` and `verify` are functions over files.
 
 ## Install
 
@@ -92,6 +93,28 @@ A pack that declares no egress runs with no network. A pack that declares an all
 refused, because Docker cannot enforce one without a proxy that does not exist yet.
 `--allow-unenforced-egress` runs it with the whole network and records that it did.
 
+## Estimate
+
+`estimate` reads the per-item observations and computes the statistics itself. Packs
+report what happened; they never report a rate. Every number comes back with an interval
+and a denominator, and a bare proportion is not representable:
+
+```console
+$ touchstone estimate run-004 --by rung
+run-004/estimates.json: 3 estimate(s) from 6772 item(s)
+  evidenced [overall]: 3.6% (95% CI 3.2-4.0%, n=6772)
+  evidenced [rung=hybas_entry]: 0.0% (95% CI 0.0-0.1%, n=3682)
+  evidenced [rung=real_gauge]: 7.8% (95% CI 6.9-8.8%, n=3090)
+```
+
+Booleans become rates with a Wilson interval, continuous scores become means with a BCa
+bootstrap interval, and `--by` groups by any stratum key the pack declared. `estimates.json`
+names the estimator and its parameters beside every number, so the arithmetic can be redone
+in R, in a spreadsheet, or by hand without this tool.
+
+Nothing here needs Docker, a database or a network. It is a function of the item records,
+which means the numbers in a bundle can be recomputed from the bundle years later.
+
 ## Seal and verify a bundle
 
 `bundle` hashes every file under a directory and writes `MANIFEST.json`:
@@ -137,7 +160,9 @@ f57c02f1af4a277d404c29af41cb8953a513a1b0ca38884fcacaf0cbf3359d19  -
 ```
 
 That hash detects a file edited after sealing. It does not detect a forger who reseals
-the whole bundle, which is what external anchoring is for. Anchoring is not built yet.
+the whole bundle, which is what external anchoring is for. `freeze --anchor` stamps the
+plan hash with OpenTimestamps; see `anchors/README.md` in a stamped run for what a fresh
+receipt does and does not yet prove.
 
 ## The pipeline
 
@@ -150,7 +175,7 @@ validate -> freeze -> run -> estimate -> grade -> bundle -> verify
 | `validate` | check a plan against the manifests of the packs it names | works |
 | `freeze` | pin image digests, derive seeds, hash the result | works |
 | `run` | execute a frozen plan, write per-item observations | works |
-| `estimate` | compute rates and intervals, by stratum | exits 2 |
+| `estimate` | compute rates and intervals, by stratum | works |
 | `grade` | apply a score card, produce DQI indicators | exits 2 |
 | `bundle` | hash every file in a directory, write `MANIFEST.json` | works |
 | `verify` | re-check a bundle against its manifest, offline | works |
