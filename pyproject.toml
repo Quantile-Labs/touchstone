@@ -31,7 +31,7 @@ Source = "https://github.com/Quantile-Labs/touchstone"
 touchstone = "touchstone.cli:app"
 
 [dependency-groups]
-dev = ["pytest>=8.0", "ruff>=0.12"]
+dev = ["pytest>=8.0", "ruff>=0.12", "mypy>=1.15", "types-PyYAML>=6.0"]
 
 [build-system]
 requires = ["hatchling"]
@@ -45,6 +45,15 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.mypy]
+files = ["src/touchstone"]
+python_version = "3.12"
+strict = true
+
+# The Protocol in backends/base.py is the reason this runs. runtime_checkable was
+# measured: isinstance passes a backend whose signatures are wrong, and only a missing
+# method or a missing isolation attribute fails it. mypy is what makes it a contract.
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

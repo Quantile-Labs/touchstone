@@ -12,6 +12,7 @@ import os
 import subprocess
 import tarfile
 from datetime import UTC, datetime
+from typing import Any
 
 import yaml
 
@@ -36,7 +37,7 @@ class DockerBackend(ContainerBackend):
     def __init__(self, binary: str = "docker"):
         self.binary = binary
 
-    def _cli(self, *args: str, timeout: int | None = None) -> subprocess.CompletedProcess:
+    def _cli(self, *args: str, timeout: int | None = None) -> subprocess.CompletedProcess[str]:
         try:
             return subprocess.run(
                 [self.binary, *args], capture_output=True, text=True, timeout=timeout
@@ -54,7 +55,7 @@ class DockerBackend(ContainerBackend):
         """What actually ran. A locally built image has no RepoDigests, so fall back to
         the image id, which is still a content hash of exactly what executed."""
         fmt = "{{json .RepoDigests}}"
-        digests = json.loads(self._require("image", "inspect", "--format", fmt, image))
+        digests: list[str] = json.loads(self._require("image", "inspect", "--format", fmt, image))
         if digests:
             return digests[0]
         return self._require("image", "inspect", "--format", "{{.Id}}", image)
@@ -152,7 +153,7 @@ class DockerBackend(ContainerBackend):
             self._cli("rm", "--force", container)
 
 
-def _untar_one(payload: bytes) -> dict:
+def _untar_one(payload: bytes) -> dict[str, Any]:
     """Read the single file docker cp wrote into its tar stream."""
     with tarfile.open(fileobj=io.BytesIO(payload)) as archive:
         member = archive.next()
@@ -161,4 +162,5 @@ def _untar_one(payload: bytes) -> dict:
         extracted = archive.extractfile(member)
         if extracted is None:
             raise BackendError(f"{member.name} is not a regular file")
-        return yaml.safe_load(extracted.read())
+        loaded: dict[str, Any] = yaml.safe_load(extracted.read())
+        return loaded

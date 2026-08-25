@@ -47,7 +47,7 @@ def _percentile(ordered: Sequence[float], alpha: float) -> float:
 def _acceleration(sample: Sequence[float], statistic: Callable[[Sequence[float]], float]) -> float:
     """Jackknife acceleration. Zero when the leave-one-out values do not vary, which is
     the degenerate case rather than a skew of zero."""
-    jackknife = [statistic(sample[:index] + sample[index + 1 :]) for index in range(len(sample))]
+    jackknife = [statistic([*sample[:index], *sample[index + 1 :]]) for index in range(len(sample))]
     centre = fmean(jackknife)
     deviations = [centre - value for value in jackknife]
     numerator = sum(deviation**3 for deviation in deviations)

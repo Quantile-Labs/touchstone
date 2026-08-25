@@ -12,6 +12,7 @@ import sys
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from touchstone import __version__
 from touchstone.backends.base import ContainerBackend, RunResult, RunSpec
@@ -38,7 +39,7 @@ class Ledger:
         path.parent.mkdir(parents=True, exist_ok=True)
         self.path = path
 
-    def record(self, event: str, **fields) -> None:
+    def record(self, event: str, **fields: Any) -> None:
         line = json.dumps({"utc": _now(), "event": event, **fields}, sort_keys=True)
         with self.path.open("a") as handle:
             handle.write(line + "\n")
@@ -53,7 +54,7 @@ class Unit:
     replicate: int
     image: str
     seed: int
-    params: dict
+    params: dict[str, Any]
     systems: dict[str, str]
     egress: list[str]
 

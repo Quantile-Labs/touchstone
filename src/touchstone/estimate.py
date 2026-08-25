@@ -6,6 +6,7 @@ bundle can be recomputed from the bundle years after the run that produced it, b
 
 import json
 from pathlib import Path
+from typing import Any
 
 from pydantic import ValidationError
 
@@ -51,7 +52,7 @@ def load_items(path: Path) -> list[ItemRecord]:
 
 
 def _proportion(
-    metric: str, where: Cell, k: int, n: int, pack_id: str | None = None, **parameters
+    metric: str, where: Cell, k: int, n: int, pack_id: str | None = None, **parameters: Any
 ) -> Estimate:
     point, low, high = wilson(k, n)
     return Estimate(
@@ -196,11 +197,11 @@ def estimate(
 
     if not calibrate:
         for pack in packs:
-            metric = declared.get(pack)
-            if metric is None:
+            outcome = declared.get(pack)
+            if outcome is None:
                 continue
             subset = [item for item in items if item.pack_id == pack]
-            curve, rate = _calibrate(subset, metric, pack, confident)
+            curve, rate = _calibrate(subset, outcome, pack, confident)
             curves.append(curve)
             computed.append(rate)
 
@@ -244,18 +245,17 @@ def worst_stratum(
         raise EstimateError(f"min_n has to be at least 1, got {min_n}")
 
     cells = [entry for entry in estimates.estimates if entry.metric == metric and entry.stratum]
-    eligible = [entry for entry in cells if entry.n >= min_n and entry.point is not None]
+    ranked = [
+        (entry.point, sorted(entry.stratum.items()), entry)
+        for entry in cells
+        if entry.n >= min_n and entry.point is not None
+    ]
     excluded = [entry for entry in cells if entry.n < min_n]
 
     worst = None
-    if eligible:
-        worst = min(
-            eligible,
-            key=lambda entry: (
-                entry.point if higher_is_better else -entry.point,
-                sorted(entry.stratum.items()),
-            ),
-        )
+    if ranked:
+        sign = 1.0 if higher_is_better else -1.0
+        _, _, worst = min(ranked, key=lambda row: (sign * row[0], row[1]))
 
     return WorstStratum(
         metric=metric,

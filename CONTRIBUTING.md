@@ -71,6 +71,10 @@ Same principle. Clarity first, volume last.
    evidence, and evidence that degraded quietly is worse than no evidence.
 8. **No country, language or regulator logic in `src/`.** All of it belongs in packs
    and in `mappings/`. CI fails the build on a two-letter country code in `src/`.
+9. **`src/` type checks under `mypy --strict`.** The package ships `py.typed`, so the
+   annotations are a promise to whoever imports it, not a note to the next reader.
+   Where a value genuinely arrives untyped, from `json.loads` or `yaml.safe_load`,
+   annotate it at that boundary rather than letting `Any` spread inward.
 
 ### Bad
 
@@ -135,6 +139,7 @@ The instrument is **Touchstone**. The index it computes is **DQI**.
 
 ```bash
 uv run ruff check . && uv run ruff format --check .
+uv run mypy
 uv run pytest
 uv run python scripts/check_commit_msg.py .git/COMMIT_EDITMSG
 ```
