@@ -19,6 +19,11 @@ class LockedPack(BaseModel):
     """Hosts this pack declared, read from its manifest at freeze time and pinned here so
     a security review reads the frozen plan rather than the image. Empty means no network."""
 
+    calibrates: str | None = None
+    """The outcome this pack's `confidence` is a claim about, read from its manifest at
+    freeze time and pinned here, so what was calibrated is part of the frozen plan rather
+    than a flag somebody typed."""
+
     seeds: list[int]
     """One per replicate, derived from the root seed and recorded so a rerun matches."""
 
@@ -30,7 +35,10 @@ class PlanLock(BaseModel):
     twice produces the same bytes and therefore the same hash. When it was frozen is an
     event, and events belong in the ledger."""
 
-    lock_format: int = Field(default=1, ge=1)
+    lock_format: int = Field(default=2, ge=1)
+    """2 added `calibrates` to every pack. A format bump changes the bytes and therefore
+    the hash of an unchanged plan, which is what the field is for."""
+
     plan_name: str
     access_tier: str
     root_seed: int

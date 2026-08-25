@@ -16,6 +16,11 @@ class Estimate(BaseModel):
     stratum: dict[str, str] = Field(default_factory=dict)
     """Which cell of the rollup. Empty is the whole sample."""
 
+    pack_id: str | None = None
+    """Which pack this was computed over. None means it pools every pack that ran, which
+    is only meaningful where they measure the same thing. Kept off `stratum` so that
+    field stays what the pack declared and cannot collide with a key of the same name."""
+
     n: int = Field(ge=0)
     """The denominator. Printed beside the point estimate, always."""
 
@@ -78,6 +83,9 @@ class Calibration(BaseModel):
     """Whether a stated confidence means what it says."""
 
     metric: str = Field(min_length=1)
+    pack_id: str | None = None
+    """Which pack declared this outcome as the one its confidence is a claim about."""
+
     n: int = Field(ge=0)
     ece: float | None = None
     """None when nothing was scored. Expected calibration error, sample weighted."""
@@ -99,6 +107,8 @@ class ReplicateVariance(BaseModel):
     """How much of a result is the system and how much is the run."""
 
     metric: str = Field(min_length=1)
+    pack_id: str | None = None
+
     rates: dict[int, tuple[int, int]] = Field(default_factory=dict)
     """replicate -> (successes, observations). Each carries its own denominator."""
 
@@ -128,6 +138,14 @@ class Estimates(BaseModel):
 
     grouped_by: list[str] = Field(default_factory=list)
     """The stratum keys the rollup used, in the order they were requested."""
+
+    packs: list[str] = Field(default_factory=list)
+    """Which packs contributed records. More than one and every estimate carrying a null
+    `pack_id` pools them, which a reader has to be told rather than left to notice."""
+
+    pooled: bool = False
+    """True when more than one pack contributed. Set so the flag survives into the bundle
+    rather than living only in what the command printed."""
 
     estimates: list[Estimate] = Field(default_factory=list)
 

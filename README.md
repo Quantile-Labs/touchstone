@@ -35,8 +35,8 @@ A plan names the packs to run and the systems to run them against. `validate` re
 against each pack's `manifest.yaml` and reports what does not line up:
 
 ```console
-$ touchstone validate plan.yaml
-plan.yaml: ok, 1 pack(s)
+$ touchstone validate examples/plan.yaml
+examples/plan.yaml: ok, 1 pack(s)
 
 $ touchstone validate broken.yaml
 broken.yaml: 1 problem(s)
@@ -52,11 +52,15 @@ container runs, and it exits 1 if anything is wrong.
 and replicate from the plan's root seed, and hashes the result:
 
 ```console
-$ touchstone freeze plan.yaml -o ./run-004
+$ touchstone freeze examples/plan.yaml -o ./run-004
 ./run-004/plan.lock.json: 1 pack(s) pinned
-sha256 2005a468dbe221c062965302d052b5c3c4253c4266c9c66b3c5011bc4bbf2e6b
+sha256 d1f2714d732b1392cca83a1e36e7bca683da6cd1557a112c823183f6a093b9c7
 check it with: shasum -a 256 -c run-004/PLAN.sha256
 ```
+
+That hash covers the plan after every tag is resolved, so it changes when the image does.
+Building `packs/example_pack` yourself gives a different digest and therefore a different
+hash from the one above; what has to match is the hash beside the lock you were handed.
 
 The lock is canonical JSON and `PLAN.sha256` is in shasum's own format, so anyone can
 check it without installing anything:
@@ -80,12 +84,13 @@ $ touchstone run ./run-004 -o ./bundle
 
 $ touchstone run ./edited -o ./bundle
 plan.lock.json has changed since it was frozen.
-  frozen:  2005a468dbe221c062965302d052b5c3c4253c4266c9c66b3c5011bc4bbf2e6b
-  on disk: f55de7788a0d2b2cfcc69029f62dbfa9d5955f61415136050c095b1f6e1fd29b
+  frozen:  d1f2714d732b1392cca83a1e36e7bca683da6cd1557a112c823183f6a093b9c7
+  on disk: 03564c2a8c26a0b63d97a98451037f910be3f6b7ba7192b0c52aee668b9791ad
 ```
 
-Every run writes `ledger/RUNLOG.jsonl` as it goes, opening with the plan hash it ran
-against. The tool writes it, not a person, and not afterwards. It also writes
+A run copies the frozen plan and its hash into its own output, so the sealed bundle holds
+the plan it ran. Every run writes `ledger/RUNLOG.jsonl` as it goes, opening with the plan
+hash it ran against. The tool writes it, not a person, and not afterwards. It also writes
 `environment.json`: the backend, the digests that actually ran, and whether each pack was
 held to the network it declared.
 
@@ -112,6 +117,16 @@ bootstrap interval, and `--by` groups by any stratum key the pack declared. `est
 names the estimator and its parameters beside every number, so the arithmetic can be redone
 in R, in a spreadsheet, or by hand without this tool.
 
+Every estimate says which pack it came from. Where a plan ran more than one, each is
+estimated separately and the pooled figure is marked, because two packs reporting the same
+outcome are not measuring the same thing. Provenance is stamped by the harness when it
+merges the per-unit files, never by the pack.
+
+Calibration is not computed unless a pack declared, in its manifest, which outcome its
+`confidence` is a claim about. `freeze` pins that declaration into the lock, so what was
+calibrated is part of the frozen plan rather than a flag somebody typed. `--calibrate`
+overrides it, which is what re-analysing an old bundle under a corrected definition needs.
+
 Nothing here needs Docker, a database or a network. It is a function of the item records,
 which means the numbers in a bundle can be recomputed from the bundle years later.
 
@@ -121,12 +136,30 @@ which means the numbers in a bundle can be recomputed from the bundle years late
 
 ```console
 $ touchstone bundle run-004
-run-004: sealed 3 file(s)
-sha256 f57c02f1af4a277d404c29af41cb8953a513a1b0ca38884fcacaf0cbf3359d19
+run-004: sealed 8 file(s)
+sha256 4c5cf2df7b1ad389d199650325dcde421490caa6c431b4d8819054f0fec0e772
 ```
 
-The printed hash covers the file list, so identical content seals to the same value on
-any machine. Sealing a directory that already has a manifest is an error.
+The printed hash covers the file list, so identical content seals to the same value on any
+machine. The content is not identical between machines here: `environment.json` records the
+Python and platform that ran, and the lock carries the image digest that resolved, so the
+run above seals to a different value than yours will. What has to match is the manifest
+shipped beside the bundle. Sealing a directory that already has a manifest is an error.
+
+A sealed run holds the frozen plan, its hash, the per-item observations both merged and
+per unit, the estimates, the environment and the ledger:
+
+```console
+$ jq -r '.files[].path' run-004/MANIFEST.json
+PLAN.sha256
+environment.json
+estimates.json
+items.jsonl
+ledger/RUNLOG.jsonl
+plan.lock.json
+runs/example_pack-0/items.jsonl
+runs/example_pack-1/items.jsonl
+```
 
 `verify` re-checks the bundle and names what moved:
 
@@ -149,14 +182,14 @@ file against its recorded hash:
 
 ```console
 $ shasum -a 256 run-004/items.jsonl
-63a6e0f7ba35198b686265cab8c8b389599c8bb6c3fcff06234d5b68cda0d82f  run-004/items.jsonl
+69ea741b6e119ebbea72743a32de7636b24cd7975db524b835357466bb8ed667  run-004/items.jsonl
 ```
 
 Recompute the bundle hash from the manifest alone:
 
 ```console
 $ jq -cS '.files' run-004/MANIFEST.json | tr -d '\n' | shasum -a 256
-f57c02f1af4a277d404c29af41cb8953a513a1b0ca38884fcacaf0cbf3359d19  -
+4c5cf2df7b1ad389d199650325dcde421490caa6c431b4d8819054f0fec0e772  -
 ```
 
 That hash detects a file edited after sealing. It does not detect a forger who reseals

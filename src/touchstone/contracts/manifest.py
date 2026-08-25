@@ -42,4 +42,12 @@ class Manifest(BaseModel):
     strata: list[Stratum] = Field(default_factory=list)
     network: Network = Field(default_factory=Network)
 
+    calibrates: str | None = None
+    """Which outcome the `confidence` on an item record is a claim about.
+
+    An item carries one confidence, so it is a claim about one outcome, and only the pack
+    knows which. Declared here rather than passed at analysis time because it is a fact
+    about the pack's schema, not a choice a reader makes. Binning a confidence against an
+    unrelated boolean gives an ECE that reads as authoritative and means nothing."""
+
     model_config = {"extra": "forbid"}

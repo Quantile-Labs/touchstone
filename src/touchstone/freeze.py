@@ -47,6 +47,7 @@ def freeze(plan: Plan, backend: ContainerBackend) -> PlanLock:
                 systems=pack.systems,
                 params=pack.params,
                 egress=manifest.network.egress,
+                calibrates=manifest.calibrates,
                 seeds=[derive_seed(root_seed, pack.id, n) for n in range(pack.replicates)],
             )
         )

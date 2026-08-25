@@ -32,4 +32,15 @@ class ItemRecord(BaseModel):
     replicate: int = Field(default=0, ge=0)
     """Which repeat this is. Between-replicate variance needs it."""
 
+    pack_id: str | None = None
+    """Which pack produced this observation.
+
+    Written by the harness when it merges the per-unit files, never by the pack, and a
+    value a pack writes for itself is overwritten. A pack that could name itself could
+    name another one, and every rate computed downstream is grouped by this field.
+
+    None only in records that never went through a run, which is to say a hand-built
+    sample. Two packs both reporting `correct` are not measuring the same thing, so
+    pooling them into one denominator is the aggregate this tool exists to prevent."""
+
     model_config = {"extra": "forbid"}

@@ -7,6 +7,7 @@ and the discipline failed twice.
 
 import json
 import platform
+import shutil
 import sys
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -17,7 +18,7 @@ from touchstone.backends.base import ContainerBackend, RunResult, RunSpec
 from touchstone.contracts import Environment
 from touchstone.contracts.lock import PlanLock
 from touchstone.errors import TouchstoneError
-from touchstone.freeze import LOCK_NAME, check_frozen, load_lock, recorded_hash
+from touchstone.freeze import HASH_NAME, LOCK_NAME, check_frozen, load_lock, recorded_hash
 
 ENVIRONMENT_NAME = "environment.json"
 ITEMS_NAME = "items.jsonl"
@@ -81,13 +82,39 @@ def _args(unit: Unit, lock: PlanLock) -> list[str]:
     ]
 
 
-def collect_items(out_dir: Path) -> int:
-    """Concatenate every unit's records into one items.jsonl. Returns the line count."""
+def collect_items(out_dir: Path, owners: dict[str, str]) -> tuple[int, int]:
+    """Merge every unit's records into one items.jsonl, stamping which pack wrote each.
+
+    Returns (records, overwritten). `owners` maps a run id to the pack that produced it,
+    so provenance comes from the harness rather than from a directory name a pack could
+    influence. A pack that stamped the field itself has its value replaced: one that could
+    name itself could name another, and every rate downstream is grouped by this field.
+    """
     lines = []
+    overwritten = 0
     for path in sorted((out_dir / RUNS_DIR).glob(f"*/{ITEMS_NAME}")):
-        lines.extend(path.read_text().splitlines())
+        pack_id = owners.get(path.parent.name)
+        for line in path.read_text().splitlines():
+            if not line.strip():
+                continue
+            record = json.loads(line)
+            if record.get("pack_id") not in (None, pack_id):
+                overwritten += 1
+            record["pack_id"] = pack_id
+            lines.append(json.dumps(record, sort_keys=True))
     (out_dir / ITEMS_NAME).write_text("".join(line + "\n" for line in lines))
-    return len(lines)
+    return len(lines), overwritten
+
+
+def copy_plan(lock_dir: Path, out_dir: Path) -> None:
+    """Put the frozen plan and its hash in the run, because the bundle has to hold them.
+
+    02-DESIGN.md section 6: the bundle is a directory readable in 2035 by someone without
+    the tool. A run whose plan lives somewhere else is not that.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for name in (LOCK_NAME, HASH_NAME):
+        shutil.copyfile(lock_dir / name, out_dir / name)
 
 
 def _overall_egress(results: list[RunResult]) -> bool | None:
@@ -176,7 +203,11 @@ def run(
             reason = result.termination or f"exit {result.exit_code}"
             failures.append(f"{unit.run_id}: {reason}")
 
-    count = collect_items(out_dir)
+    owners = {unit.run_id: unit.pack_id for unit in todo}
+    count, overwritten = collect_items(out_dir, owners)
+    if overwritten:
+        ledger.record("pack_id_overwritten", records=overwritten)
+    copy_plan(lock_dir, out_dir)
     write_environment(out_dir, backend, plan_hash, results)
     ledger.record(
         "run_finished",

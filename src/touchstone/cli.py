@@ -152,9 +152,9 @@ def estimate(
         typer.Option(
             "--calibrate",
             "-c",
-            help="Outcome the reported confidence is a claim about. Repeat for more. "
-            "Nothing is calibrated unless named, because an ECE against an unrelated "
-            "boolean is a meaningless number that reads as an authoritative one",
+            help="Override the outcome each pack declared its confidence is a claim "
+            "about. Repeat for more. Without this the frozen plan decides, and a pack "
+            "that declared nothing is not calibrated at all",
         ),
     ] = None,
     seed: Annotated[
@@ -167,7 +167,10 @@ def estimate(
     """Compute rates and intervals, by stratum. Offline, no Docker."""
     try:
         items = estimate_items.load_items(run_dir)
-        estimates = estimate_items.estimate(items, by, calibrate, seed=seed, resamples=resamples)
+        declared = estimate_items.declared_calibration(run_dir)
+        estimates = estimate_items.estimate(
+            items, by, calibrate, declared, seed=seed, resamples=resamples
+        )
         path = estimate_items.write_estimates(estimates, run_dir)
     except TouchstoneError as exc:
         typer.echo(str(exc), err=True)
@@ -176,6 +179,14 @@ def estimate(
     typer.echo(f"{path}: {len(estimates.estimates)} estimate(s) from {estimates.items} item(s)")
     for line in estimate_items.lines(estimates):
         typer.echo(line)
+
+    if estimates.pooled:
+        typer.echo(
+            f"{len(estimates.packs)} packs contributed: {', '.join(estimates.packs)}. Lines "
+            "without a pack pool them, and packs reporting the same outcome are not "
+            "measuring the same thing. Quote the per-pack lines",
+            err=True,
+        )
 
 
 @app.command()

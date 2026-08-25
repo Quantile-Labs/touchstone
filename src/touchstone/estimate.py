@@ -11,8 +11,9 @@ from pydantic import ValidationError
 
 from touchstone import __version__
 from touchstone.contracts import ItemRecord
-from touchstone.contracts.estimates import Estimate, Estimates, WorstStratum
+from touchstone.contracts.estimates import Calibration, Estimate, Estimates, WorstStratum
 from touchstone.errors import EstimateError
+from touchstone.freeze import LOCK_NAME, load_lock
 from touchstone.run import ITEMS_NAME
 from touchstone.stats.bootstrap import BCA_REFERENCE, RESAMPLES, bootstrap_bca
 
@@ -49,11 +50,14 @@ def load_items(path: Path) -> list[ItemRecord]:
     return items
 
 
-def _proportion(metric: str, where: Cell, k: int, n: int, **parameters) -> Estimate:
+def _proportion(
+    metric: str, where: Cell, k: int, n: int, pack_id: str | None = None, **parameters
+) -> Estimate:
     point, low, high = wilson(k, n)
     return Estimate(
         metric=metric,
         stratum=dict(where),
+        pack_id=pack_id,
         n=n,
         k=k,
         point=point if n else None,
@@ -65,11 +69,19 @@ def _proportion(metric: str, where: Cell, k: int, n: int, **parameters) -> Estim
     )
 
 
-def _mean(metric: str, where: Cell, sample: list[float], seed: int, resamples: int) -> Estimate:
+def _mean(
+    metric: str,
+    where: Cell,
+    sample: list[float],
+    seed: int,
+    resamples: int,
+    pack_id: str | None = None,
+) -> Estimate:
     point, low, high = bootstrap_bca(sample, resamples=resamples, seed=seed)
     return Estimate(
         metric=metric,
         stratum=dict(where),
+        pack_id=pack_id,
         n=len(sample),
         k=None,
         point=point,
@@ -81,10 +93,70 @@ def _mean(metric: str, where: Cell, sample: list[float], seed: int, resamples: i
     )
 
 
+def declared_calibration(run_dir: Path) -> dict[str, str]:
+    """What each pack declared its confidence to be a claim about, from the frozen plan.
+
+    Read from the lock the run copied beside its records, so the answer is part of the
+    frozen plan a reviewer checks rather than a flag somebody typed. A run directory
+    without a lock is a hand-built sample and simply declares nothing.
+    """
+    path = run_dir / LOCK_NAME
+    if not path.is_file():
+        return {}
+    lock = load_lock(path)
+    return {pack.id: pack.calibrates for pack in lock.packs if pack.calibrates}
+
+
+def _estimates_for(
+    items: list[ItemRecord],
+    groupings: list[list[str]],
+    pack_id: str | None,
+    seed: int,
+    resamples: int,
+) -> list[Estimate]:
+    computed = []
+    for metric in metrics(items):
+        for grouping in groupings:
+            for where, (k, n) in sorted(tally(items, metric, grouping).items()):
+                computed.append(_proportion(metric, where, k, n, pack_id=pack_id))
+    for metric in scores(items):
+        for grouping in groupings:
+            for where, sample in sorted(values(items, metric, grouping).items()):
+                computed.append(_mean(metric, where, sample, seed, resamples, pack_id=pack_id))
+    return computed
+
+
+def _calibrate(
+    items: list[ItemRecord],
+    metric: str,
+    pack_id: str | None,
+    confident: float,
+) -> tuple[Calibration, Estimate]:
+    known = set(metrics(items))
+    where = f" for pack {pack_id}" if pack_id else ""
+    if metric not in known:
+        raise EstimateError(
+            f"cannot calibrate {metric!r}{where}: no item reports it as an outcome. "
+            f"Outcomes present: {', '.join(sorted(known)) or 'none'}"
+        )
+    curve = calibration(items, metric)
+    if curve.n == 0:
+        raise EstimateError(
+            f"cannot calibrate {metric!r}{where}: no item carrying it reports a confidence"
+        )
+    curve.pack_id = pack_id
+    wrong, scored = confident_and_wrong(items, metric, confident)
+    rate = _proportion(
+        f"confident_and_wrong({metric})", (), wrong, scored, pack_id=pack_id, threshold=confident
+    )
+    return curve, rate
+
+
 def estimate(
     items: list[ItemRecord],
     keys: list[str] | None = None,
     calibrate: list[str] | None = None,
+    declared: dict[str, str] | None = None,
     seed: int = 0,
     resamples: int = RESAMPLES,
     confident: float = CONFIDENT,
@@ -94,52 +166,61 @@ def estimate(
     Booleans become rates with a Wilson interval, continuous scores become means with a
     BCa interval, and each carries the denominator it was computed over.
 
-    `calibrate` names the outcomes a confidence is a claim about, and nothing is
-    calibrated unless it is asked for. A stated confidence is a claim about whether the
-    answer is right, so binning it against an unrelated boolean produces an ECE that
-    reads as authoritative and means nothing. The engine cannot tell which outcome is the
-    one, so the caller says.
+    Where more than one pack contributed, every metric is also computed per pack. Two
+    packs both reporting `correct` are not measuring the same thing, so the pooled figure
+    is kept but marked, and the per-pack figures are what a reader should quote.
+
+    `declared` is what each pack said its confidence is a claim about, read from the
+    frozen plan. `calibrate` overrides it for every pack, which is what re-analysing an
+    old bundle under a corrected definition needs.
     """
     keys = list(keys or [])
+    declared = dict(declared or {})
     groupings: list[list[str]] = [[]] + ([keys] if keys else [])
-    computed = []
 
-    for metric in metrics(items):
-        for grouping in groupings:
-            for where, (k, n) in sorted(tally(items, metric, grouping).items()):
-                computed.append(_proportion(metric, where, k, n))
+    packs = sorted({item.pack_id for item in items if item.pack_id is not None})
+    pooled = len(packs) > 1
+    sole = packs[0] if len(packs) == 1 else None
 
-    for metric in scores(items):
-        for grouping in groupings:
-            for where, sample in sorted(values(items, metric, grouping).items()):
-                computed.append(_mean(metric, where, sample, seed, resamples))
-
-    known = set(metrics(items))
+    computed = _estimates_for(items, groupings, sole, seed, resamples)
     curves = []
-    for metric in calibrate or []:
-        if metric not in known:
-            raise EstimateError(
-                f"cannot calibrate {metric!r}: no item reports it as an outcome. "
-                f"Outcomes present: {', '.join(sorted(known)) or 'none'}"
-            )
-        curve = calibration(items, metric)
-        if curve.n == 0:
-            raise EstimateError(
-                f"cannot calibrate {metric!r}: no item carrying it reports a confidence"
-            )
-        curves.append(curve)
-        wrong, scored = confident_and_wrong(items, metric, confident)
-        computed.append(
-            _proportion(f"confident_and_wrong({metric})", (), wrong, scored, threshold=confident)
-        )
 
-    spreads = [between_replicate(items, metric) for metric in metrics(items)]
-    spreads = [spread for spread in spreads if len(spread.rates) > 1]
+    for metric in calibrate or []:
+        curve, rate = _calibrate(items, metric, sole, confident)
+        curves.append(curve)
+        computed.append(rate)
+
+    for pack in packs if pooled else []:
+        subset = [item for item in items if item.pack_id == pack]
+        computed.extend(_estimates_for(subset, groupings, pack, seed, resamples))
+
+    if not calibrate:
+        for pack in packs:
+            metric = declared.get(pack)
+            if metric is None:
+                continue
+            subset = [item for item in items if item.pack_id == pack]
+            curve, rate = _calibrate(subset, metric, pack, confident)
+            curves.append(curve)
+            computed.append(rate)
+
+    spreads = []
+    for scope, subset in [(sole, items)] + [
+        (pack, [item for item in items if item.pack_id == pack])
+        for pack in (packs if pooled else [])
+    ]:
+        for metric in metrics(subset):
+            spread = between_replicate(subset, metric)
+            if len(spread.rates) > 1:
+                spread.pack_id = scope
+                spreads.append(spread)
 
     return Estimates(
         touchstone_version=__version__,
         items=len(items),
         grouped_by=keys,
+        packs=packs,
+        pooled=pooled,
         estimates=computed,
         calibration=curves,
         replicate_variance=spreads,
@@ -193,9 +274,10 @@ def write_estimates(estimates: Estimates, out_dir: Path) -> Path:
 
 
 def _where(entry: Estimate) -> str:
-    if not entry.stratum:
-        return "overall"
-    return ", ".join(f"{key}={value}" for key, value in sorted(entry.stratum.items()))
+    parts = [f"{key}={value}" for key, value in sorted(entry.stratum.items())]
+    if entry.pack_id:
+        parts.insert(0, entry.pack_id)
+    return ", ".join(parts) if parts else "overall"
 
 
 def lines(estimates: Estimates) -> list[str]:
@@ -212,10 +294,14 @@ def lines(estimates: Estimates) -> list[str]:
         rendered.append(f"  {entry.metric} [{_where(entry)}]: {body}")
 
     for curve in estimates.calibration:
-        rendered.append(f"  {curve.metric} calibration: ECE {curve.ece:.3f} over n={curve.n}")
-    for spread in estimates.replicate_variance:
+        scope = f"{curve.pack_id} " if curve.pack_id else ""
         rendered.append(
-            f"  {spread.metric} across {len(spread.rates)} replicate(s): "
+            f"  {scope}{curve.metric} calibration: ECE {curve.ece:.3f} over n={curve.n}"
+        )
+    for spread in estimates.replicate_variance:
+        scope = f"{spread.pack_id} " if spread.pack_id else ""
+        rendered.append(
+            f"  {scope}{spread.metric} across {len(spread.rates)} replicate(s): "
             f"spread {spread.spread:.3f}, {spread.unstable_items} of "
             f"{spread.repeated_items} item(s) unstable"
         )

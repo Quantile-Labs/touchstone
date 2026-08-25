@@ -1,0 +1,20 @@
+# The plan the README walks through. Build the image it names first:
+#
+#     docker build -t example_pack:1.0 packs/example_pack
+#
+plan_name: "demo"
+access_tier: "black_box"
+seed: 7
+
+systems:
+  chatbot:
+    type: "llm_api"
+
+packs:
+  - id: "example_pack"
+    image: "example_pack:1.0"
+    systems:
+      system_under_test: "chatbot"
+    params:
+      max_items: 10
+    replicates: 2

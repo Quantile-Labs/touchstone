@@ -19,6 +19,10 @@ input_schema:
 
 emits_items: true
 
+# Which outcome the confidence on each item record is a claim about. An item carries one
+# confidence, so it is a claim about one outcome, and only this pack knows which.
+calibrates: "correct"
+
 strata:
   - name: "language"
     values: ["en", "pcm", "ha", "yo", "ig"]

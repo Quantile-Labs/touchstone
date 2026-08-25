@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 
 from touchstone.contracts import ItemRecord
-from touchstone.plan_check import load_manifest
+from touchstone.plan_check import check, load_manifest, load_plan
 
 PACK = Path(__file__).resolve().parents[1] / "packs" / "example_pack"
 ENTRYPOINT = PACK / "entrypoint.py"
@@ -98,3 +98,27 @@ def test_fails_closed_on_bad_systems_params(tmp_path, systems):
     result = run(tmp_path, systems=systems)
     assert result.returncode != 0
     assert not (tmp_path / "items.jsonl").exists()
+
+
+def test_the_manifest_declares_what_its_confidence_is_a_claim_about():
+    """Every record the pack emits carries a confidence, so the manifest has to say which
+    outcome that confidence is about, or nothing downstream may calibrate it."""
+    manifest = load_manifest(PACK / "manifest.yaml")
+    assert manifest.calibrates == "correct"
+
+
+def test_the_pack_does_not_stamp_its_own_provenance(tmp_path):
+    """`pack_id` is the harness's to write. See tests/test_pack_provenance.py."""
+    assert run(tmp_path).returncode == 0
+    assert all(record.pack_id is None for record in records(tmp_path))
+
+
+def test_the_readme_example_plan_validates_against_the_packs_in_this_repository():
+    """The README tells a reader to run this file. It has to be a file that works."""
+    root = Path(__file__).resolve().parents[1]
+    plan = load_plan(root / "examples" / "plan.yaml")
+    manifests = {
+        path.parent.name: load_manifest(path)
+        for path in sorted((root / "packs").glob("*/manifest.yaml"))
+    }
+    assert check(plan, manifests) == []

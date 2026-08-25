@@ -86,10 +86,21 @@ records so that a reader can recompute them from the bundle without trusting the
 `touchstone estimate` turns booleans into rates with a Wilson interval and scores into
 means with a BCa bootstrap interval, grouped by whichever `stratum` keys are asked for.
 
-A `confidence` is a claim about one particular outcome, and only the pack knows which,
-so `estimate --calibrate <outcome>` names it. Nothing is calibrated unless it is named:
-an ECE binned against an unrelated boolean is a meaningless number that reads as an
-authoritative one.
+A `confidence` is a claim about one particular outcome, and only the pack knows which, so
+the manifest names it:
+
+```yaml
+calibrates: "correct"
+```
+
+`freeze` reads that from the image and pins it into the lock, so what was calibrated is
+part of the frozen plan. A pack that declares nothing is never calibrated, because an ECE
+binned against an unrelated boolean is a meaningless number that reads as an authoritative
+one. `estimate --calibrate <outcome>` overrides the declaration for re-analysis.
+
+Do not emit `pack_id` on a record. The harness stamps it when it merges the per-unit files
+and overwrites anything found there: a pack that could name itself could name another one,
+and every rate downstream is grouped by that field.
 
 ## Summary-only packs
 
