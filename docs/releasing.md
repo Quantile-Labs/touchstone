@@ -3,6 +3,17 @@
 Both packages publish from CI using PyPI trusted publishing. No API token is stored
 anywhere, and the publishing identity is this repository rather than a person.
 
+## What claims a name
+
+**A pending trusted publisher does not reserve anything.** PyPI's own documentation is
+explicit: a pending publisher "does not create a project or reserve a project's name until
+it is actually used to publish", and if someone else registers the name first, the pending
+publisher is invalidated. Only an upload claims a name.
+
+Claiming under a personal account is not a dead end. PyPI supports transferring a project
+owned by an individual into an organization later, so waiting for organization approval is
+not a prerequisite for holding the name.
+
 ## One-time setup on PyPI
 
 For each package name, add a pending trusted publisher at
@@ -16,8 +27,8 @@ https://pypi.org/manage/account/publishing/ with these values.
 | Workflow | `publish.yml` | `publish.yml` |
 | Environment | `pypi` | `pypi` |
 
-Then create a GitHub environment named `pypi` in repository settings and restrict it
-to the `main` branch.
+The GitHub environment named `pypi` exists and is restricted to `main`. It was created
+on 25 Aug 2026; nothing needs doing there unless it is deleted.
 
 ## Publishing
 
@@ -37,3 +48,13 @@ gh workflow run publish.yml -f package=dqi
 ## Version numbers
 
 A version on PyPI cannot be replaced or reused. Bump, do not overwrite.
+
+Check what is about to become permanent before the first upload of any version:
+
+```bash
+.venv/bin/pyproject-build && .venv/bin/twine check dist/*
+tar -tzf dist/touchstone_dqi-*.tar.gz | grep -iE "CONTEXT|NIGERIA|ASQI|DESIGN|BUILD-PLAN"
+```
+
+The sdist is built from the git tree, so a planning document that reached the repository
+would ship. The second command is the check that it did not.
