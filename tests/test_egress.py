@@ -1,9 +1,10 @@
-"""Declared egress: refused by default, grantable on purpose, recorded either way.
+"""Declared egress, as it travels from a manifest to the bundle's own record of it.
 
-The backend cannot restrict a container to a host list without a proxy that does not exist
-yet. The safe reading of an unenforceable allowlist is no, so no is the default. The
-override exists because a pack that cannot reach an API cannot be built against one, and
-its whole job is to leave a mark in the bundle that a grader can read.
+These are the plumbing tests and they use a stub backend: what a manifest declares reaches
+the lock, what the lock declares reaches the spec, and what a unit reports reaches
+`environment.json`. **Whether the allowlist is actually enforced is not testable here**,
+because a stub cannot contain anything. That lives in `tests/test_docker_backend.py`
+against a real daemon, which is the only place the claim means anything.
 """
 
 import json

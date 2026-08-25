@@ -48,9 +48,13 @@ class RunSpec(BaseModel):
     """Off by default. A pack that logs a request logs the key with it."""
 
     allow_unenforced_egress: bool = False
-    """Run a pack that declares egress on a backend that cannot enforce its allowlist.
-    The pack gets the whole network, not the hosts it asked for, and the bundle records
-    that. Off by default, because the safe reading of an unenforceable allowlist is no."""
+    """Run a pack that declares egress without enforcing its allowlist. The pack gets the
+    whole network, not the hosts it asked for, and the bundle records that.
+
+    Off by default. The docker backend enforces an allowlist with a proxy sidecar, so on
+    that backend this is a downgrade rather than a way to run at all. It stays because a
+    backend that cannot contain a pack has to be able to say so, and because a pack being
+    built against an API it has not finished declaring needs a way to run."""
 
     timeout_seconds: int | None = Field(default=None, gt=0)
 

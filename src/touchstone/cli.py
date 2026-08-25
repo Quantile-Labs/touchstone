@@ -113,8 +113,10 @@ def run_(
         bool,
         typer.Option(
             "--allow-unenforced-egress",
-            help="Run packs that declare egress on a backend that cannot enforce it. "
-            "They get the whole network and the bundle records that they did",
+            help="Downgrade: run packs that declare egress with the whole network "
+            "instead of the allowlist they asked for. The docker backend enforces the "
+            "allowlist without this, so passing it gives a pack more than it declared "
+            "and the bundle records that it did",
         ),
     ] = False,
 ) -> None:

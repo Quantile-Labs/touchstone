@@ -93,11 +93,107 @@ def test_a_timeout_is_labelled_as_one(backend, tmp_path):
     assert result.termination == "timeout"
 
 
-def test_declared_egress_is_refused_rather_than_granted(backend, image, tmp_path):
-    """No host allowlist is enforceable here yet, and silently giving a pack the whole
-    network because it asked for one host is how a bank finds out the hard way."""
-    with pytest.raises(BackendError, match="allowlist"):
-        backend.run(spec(tmp_path, image, egress=["api.openai.com"]))
+REACH = """
+import json, sys, urllib.request
+out = {}
+for name, url in [("declared", "https://example.com"), ("undeclared", "https://api.github.com")]:
+    try:
+        urllib.request.urlopen(url, timeout=20)
+        out[name] = "reached"
+    except Exception as exc:
+        out[name] = type(exc).__name__
+direct = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+try:
+    direct.open("https://example.com", timeout=15)
+    out["bypass"] = "reached"
+except Exception as exc:
+    out["bypass"] = type(exc).__name__
+open("/output/reach.json", "w").write(json.dumps(out))
+"""
+"""Three questions asked from inside the container: the host the pack declared, one it did
+not, and the declared host again with the proxy variables deliberately ignored."""
+
+
+def test_a_declared_allowlist_is_enforced_and_cannot_be_bypassed(backend, tmp_path):
+    """The whole control, in one run against a real daemon.
+
+    The third answer is the one that matters. A pack is not asked to route through the
+    proxy, it is put on a network with no route anywhere else, so a pack that ignores
+    HTTPS_PROXY reaches nothing rather than reaching everything.
+    """
+    result = backend.run(
+        spec(
+            tmp_path,
+            "python:3.12-slim",
+            run_id="touchstone-test-egress",
+            args=["python", "-c", REACH],
+            egress=["example.com"],
+        )
+    )
+    assert result.egress_enforced is True
+
+    reach = json.loads((tmp_path / "out" / "reach.json").read_text())
+    assert reach["declared"] == "reached", reach
+    assert reach["undeclared"] != "reached", reach
+    assert reach["bypass"] != "reached", reach
+
+
+def test_the_proxy_log_of_what_was_attempted_lands_in_the_output(backend, tmp_path):
+    """A denial in here is a finding, not an error. It records that the pack tried."""
+    backend.run(
+        spec(
+            tmp_path,
+            "python:3.12-slim",
+            run_id="touchstone-test-egress-log",
+            args=["python", "-c", REACH],
+            egress=["example.com"],
+        )
+    )
+    log = (tmp_path / "out" / "touchstone-test-egress-log.egress.log").read_text()
+    assert "example.com" in log
+    assert "TCP_DENIED" in log, log
+
+
+def test_the_proxy_and_its_network_do_not_outlive_the_run(backend, tmp_path):
+    run_id = "touchstone-test-egress-teardown"
+    backend.run(
+        spec(
+            tmp_path,
+            "python:3.12-slim",
+            run_id=run_id,
+            args=["python", "-c", "pass"],
+            egress=["example.com"],
+        )
+    )
+    left = subprocess.run(
+        ["docker", "ps", "-a", "--format", "{{.Names}}"], capture_output=True, text=True
+    )
+    assert f"{run_id}-proxy" not in left.stdout
+    networks = subprocess.run(
+        ["docker", "network", "ls", "--format", "{{.Name}}"], capture_output=True, text=True
+    )
+    assert f"{run_id}-net" not in networks.stdout
+
+
+def test_a_declared_host_that_is_not_a_hostname_is_refused(backend, tmp_path):
+    """The allowlist is written into a proxy configuration file, so a host carrying a
+    newline would append a rule. It is refused rather than escaped."""
+    with pytest.raises(BackendError, match="not a hostname"):
+        backend.run(
+            spec(
+                tmp_path,
+                "python:3.12-slim",
+                egress=["example.com\nhttp_access allow all"],
+            )
+        )
+
+
+def test_the_override_grants_the_whole_network_and_says_so(backend, image, tmp_path):
+    """Still available, still a downgrade, and still the thing that marks the bundle."""
+    result = backend.run(
+        spec(tmp_path, image, egress=["api.openai.com"], allow_unenforced_egress=True)
+    )
+    assert result.egress_enforced is False
 
 
 def test_stdout_is_not_written_unless_asked(backend, image, tmp_path):

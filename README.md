@@ -94,9 +94,23 @@ hash it ran against. The tool writes it, not a person, and not afterwards. It al
 `environment.json`: the backend, the digests that actually ran, and whether each pack was
 held to the network it declared.
 
-A pack that declares no egress runs with no network. A pack that declares an allowlist is
-refused, because Docker cannot enforce one without a proxy that does not exist yet.
-`--allow-unenforced-egress` runs it with the whole network and records that it did.
+A pack that declares no egress runs with no network. A pack that declares an allowlist gets
+that allowlist and nothing else: the pack runs on a Docker network created `--internal`,
+which has no route off the host, and a squid sidecar attached to both that network and the
+outside is the only way through. It allows `CONNECT` to the declared hosts and denies
+everything else.
+
+**The proxy never terminates TLS.** It reads the hostname in the `CONNECT` line and the
+bytes stay opaque, so it is never trusted with the credentials the pack is using. A
+security review can read the allowlist in the frozen plan and the proxy's own log of what
+was attempted, which the run writes into the bundle.
+
+Containment does not depend on the pack co-operating. It is told about the proxy through
+`HTTPS_PROXY`, and a pack that ignores that variable is on a network with nowhere to go.
+
+`--allow-unenforced-egress` remains, and is now a downgrade rather than the only way to
+run such a pack: it grants the whole network instead of the declared hosts, and
+`environment.json` records that no pack in the run can be claimed to have been contained.
 
 ## Estimate
 
