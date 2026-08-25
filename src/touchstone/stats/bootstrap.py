@@ -10,8 +10,15 @@ the bias and the skew.
   Chapman and Hall.
 
 Stdlib only, and seeded, so an interval in a bundle is reproducible byte for byte by
-anyone holding the bundle. `random.Random` is specified by the Python documentation as a
-Mersenne Twister, which makes the resamples portable across versions and platforms.
+anyone holding the bundle.
+
+Resampling draws through `random()` rather than `randrange()` on purpose. The Python
+documentation guarantees the seeded sequence of `random()` and undertakes to keep it
+across versions; `randrange()` reaches it through `_randbelow`, which is an implementation
+detail and has changed before. An interval that quietly moved on a Python upgrade would
+be the worst kind of defect here, because the number it moved is already sealed in
+somebody's bundle. tests/test_stats_bootstrap.py pins the arithmetic to fixed values so
+a change fails the build rather than the client.
 """
 
 from collections.abc import Callable, Sequence
@@ -75,8 +82,10 @@ def bootstrap_bca(
 
     rng = Random(seed)
     size = len(sample)
+    # int(random() * size) is uniform to within the granularity of a 53 bit float, which
+    # is nowhere near the precision any bootstrap interval is quoted to.
     replicates = sorted(
-        statistic([sample[rng.randrange(size)] for _ in range(size)]) for _ in range(resamples)
+        statistic([sample[int(rng.random() * size)] for _ in range(size)]) for _ in range(resamples)
     )
 
     below = sum(1 for value in replicates if value < point)

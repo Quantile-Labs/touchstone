@@ -1,6 +1,7 @@
 """BCa. The interval for anything continuous, and it has to reproduce."""
 
 import random
+from pathlib import Path
 
 import pytest
 
@@ -10,6 +11,30 @@ from touchstone.stats.bootstrap import bootstrap_bca
 def _normal_sample(n=400, mu=3.0, sigma=1.0, seed=11):
     rng = random.Random(seed)
     return [rng.gauss(mu, sigma) for _ in range(n)]
+
+
+def test_the_arithmetic_is_pinned_to_fixed_values():
+    """A bootstrap interval is sealed into a bundle the day it is computed, so it must not
+    move when Python does. Every other test here checks a property, which would let a
+    changed resampling path through silently. These are the numbers themselves.
+
+    If this fails and the code was not touched, the draw sequence changed underneath it.
+    That is a finding about the bundle format, not a test to update.
+    """
+    even = [float(value % 7) for value in range(50)]
+    assert bootstrap_bca(even, seed=11, resamples=500) == (2.94, 2.36, 3.52)
+
+    skewed = [1.0, 2.0, 3.0, 10.0]
+    assert bootstrap_bca(skewed, seed=3, resamples=200) == (4.0, 1.25, 8.25)
+
+
+def test_resampling_uses_the_documented_primitive():
+    """`random()` is the sequence the Python documentation undertakes to keep stable.
+    `randrange()` reaches it through `_randbelow`, which is an implementation detail."""
+    source = Path(bootstrap_bca.__module__.replace(".", "/") + ".py")
+    text = (Path(__file__).resolve().parents[1] / "src" / source).read_text()
+    assert "rng.random()" in text
+    assert "rng.randrange" not in text
 
 
 def test_the_same_seed_gives_the_same_interval():
