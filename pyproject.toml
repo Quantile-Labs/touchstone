@@ -1,13 +1,22 @@
 [project]
 name = "touchstone-dqi"
 version = "0.0.1"
-description = "Run an AI evaluation and get a sealed evidence bundle anyone can re-check offline."
+description = "Seal evaluation output into an evidence bundle anyone can re-check offline."
 readme = "README.md"
 requires-python = ">=3.12"
 license = "Apache-2.0"
 authors = [{ name = "Quantile Labs" }]
 maintainers = [{ name = "Quantile Labs" }]
 keywords = ["evaluation", "ai-assurance", "audit", "reproducibility"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Testing",
+]
 dependencies = [
     "pydantic>=2.11",
     "pyyaml>=6.0",

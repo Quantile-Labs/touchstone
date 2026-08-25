@@ -2,6 +2,7 @@
 name = "dqi"
 version = "0.0.1"
 description = "Deployment Quality Index. Installs Touchstone, which computes it."
+classifiers = ["Development Status :: 2 - Pre-Alpha"]
 readme = "README.md"
 requires-python = ">=3.12"
 license = "Apache-2.0"
