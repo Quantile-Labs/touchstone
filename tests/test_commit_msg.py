@@ -43,3 +43,23 @@ def test_rejects_a_long_subject(tmp_path):
     result = run("add " + "x" * 80 + "\n", tmp_path)
     assert result.returncode == 1
     assert "hard limit" in result.stderr
+
+
+def test_rejects_an_x_not_y_subject(tmp_path):
+    result = run("put trust at the front, not the sceptic\n", tmp_path)
+    assert result.returncode == 1
+    assert "slogan" in result.stderr
+
+
+def test_accepts_a_comma_that_is_not_a_slogan(tmp_path):
+    assert run("pin seeds, digests and the plan hash\n", tmp_path).returncode == 0
+
+
+def test_allows_not_in_the_body(tmp_path):
+    message = (
+        "add per-indicator tier ceilings\n"
+        "\n"
+        "A tier mapped to null marks the indicator unassessable there,\n"
+        "not failing, so the grade names the tier instead of erroring.\n"
+    )
+    assert run(message, tmp_path).returncode == 0
