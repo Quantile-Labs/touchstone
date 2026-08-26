@@ -32,10 +32,10 @@ pip install touchstone-dqi
 
 Python 3.12 or later. `freeze` and `run` need Docker; nothing else does.
 
-> **Note.** `touchstone-dqi` 0.0.1 on PyPI is a placeholder older than this document, so
-> install from source for the behaviour below. `example_pack` is not published to a
-> registry yet, so the image digest, and every hash after it, will differ on your machine.
-> The commands themselves run.
+> **Note.** The hashes below came from a real run and are specific to the machine that
+> made them. `example_pack` is not published to a registry yet, so the image digest, and
+> every hash that follows it, will differ on yours until it is. The commands themselves
+> run.
 
 ## The 94% problem
 
@@ -249,9 +249,11 @@ says what the evidence supports; nothing in it amounts to an approval.
 
 ## Status
 
-Early. All seven commands work and are tested doing it. What is not settled is the score
-card format, so `grade` applies whatever ladder the card gives it rather than one built
-in. The package is `touchstone-dqi` because `touchstone` was taken on PyPI; DQI is the
+Early, and saying so. 0.1.0 is the first release that is the code this document
+describes, and all seven commands work and are tested doing it. What is not settled is the
+score card format, so `grade` applies whatever ladder the card gives it rather than one
+built in, and `examples/scorecard.yaml` shows the shape rather than a rubric anyone should
+adopt. The package is `touchstone-dqi` because `touchstone` was taken on PyPI. DQI is the
 deployment quality index this is being built to carry, which is separate work and is not
 published, so nothing here grades against it.
 
