@@ -12,7 +12,9 @@ fix digest resolution for multi-arch images
 drop unused seed parameter from plan loader
 ```
 
-**Rules, all enforced by `scripts/check_commit_msg.py`:**
+**Rules 1 to 8 are enforced by `scripts/check_commit_msg.py`. Rules 9 and 10 are not,
+and are marked so, because a rule that claims enforcement it does not have teaches people
+to stop believing the list.**
 
 1. Subject is 50 characters or fewer. Hard limit 72.
 2. Imperative mood. `add`, not `added` or `adds`.
@@ -25,12 +27,33 @@ drop unused seed parameter from plan loader
    utilise, holistic, streamline, unlock, empower.
 7. No AI attribution. No `Co-Authored-By` for a tool, no `Generated with`, no emoji.
 8. No issue-tracker noise in the subject. Put refs in the body.
+9. **Describe the change, do not editorialise it.** *(not enforced)* The subject is a verb
+   and the thing it acts on. No rhetorical shapes, and in particular no `X, not Y`, which
+   reads as a slogan and says half as much as a plain description would.
+10. **The body is prose.** *(not enforced)* Sentences that join with a comma and carry a
+    clause. Short declaratives stacked one after another read as though nobody wrote them,
+    which is a bad look on a repository about evidence.
 
 **Why 50 characters.** `git log --oneline` is how the history gets read. A subject
 that wraps is a subject nobody reads.
 
 **Why the adjective list.** Those words carry no information about the change. If a
 commit needs to say the work is good, the work is not good enough.
+
+**Why the subject is boring on purpose.** Every one of these is real, from this
+repository, and each one wasted the reader's attention on a shape instead of spending it
+on a fact:
+
+| Written | Should have been |
+|---|---|
+| `put trust at the front, not the sceptic` | `reframe readme around trust` |
+| `cap and search per indicator, not per card` | `add per-indicator ceilings and stratum keys` |
+| `lead the readme with what it is for` | `reorder readme around the argument` |
+
+The pattern in the first column is a subject that wants to be quoted. A subject's whole
+job is to tell somebody scanning `git log --oneline` whether this is the commit they are
+looking for, and a slogan is worse at that than a description. The same instinct produces
+a body made of five-word sentences, each landing like a conclusion, which is rule 10.
 
 ### Bad, and why
 
