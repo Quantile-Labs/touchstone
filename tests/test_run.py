@@ -111,3 +111,27 @@ def test_nothing_runs_when_the_lock_is_refused(frozen, tmp_path):
     with pytest.raises(PlanError):
         run_plan.run(frozen, tmp_path / "out", backend)
     assert backend.seen == []
+
+
+def test_freezing_and_running_into_one_directory_keeps_the_plan(tmp_path):
+    """The README's own sequence. The plan is already in place, so there is nothing to
+    copy, and raising here discarded a run whose packs had already finished."""
+    (tmp_path / run_plan.LOCK_NAME).write_text('{"lock_format": 1}')
+    (tmp_path / run_plan.HASH_NAME).write_text("hash\n")
+
+    run_plan.copy_plan(tmp_path, tmp_path)
+
+    assert (tmp_path / run_plan.LOCK_NAME).read_text() == '{"lock_format": 1}'
+    assert (tmp_path / run_plan.HASH_NAME).read_text() == "hash\n"
+
+
+def test_the_plan_is_copied_when_the_run_lands_elsewhere(tmp_path):
+    lock_dir, out_dir = tmp_path / "lock", tmp_path / "out"
+    lock_dir.mkdir()
+    (lock_dir / run_plan.LOCK_NAME).write_text('{"lock_format": 1}')
+    (lock_dir / run_plan.HASH_NAME).write_text("hash\n")
+
+    run_plan.copy_plan(lock_dir, out_dir)
+
+    assert (out_dir / run_plan.LOCK_NAME).read_text() == '{"lock_format": 1}'
+    assert (out_dir / run_plan.HASH_NAME).read_text() == "hash\n"
