@@ -1,128 +1,78 @@
 # Touchstone
 
-Touchstone seals evaluation output into an evidence bundle: the plan, the per-item
-observations, and a SHA-256 over every file. Anyone can re-check that bundle offline,
-without this tool and without trusting whoever produced it.
+**Evaluation runs that produce evidence a stranger can re-check.**
 
-## Status
+Touchstone runs your evaluation packs in containers, computes the statistics itself, and
+seals everything into a bundle: the frozen plan, every per-item observation, and a SHA-256
+over every file. Anyone can re-check that bundle offline, without this tool, and without
+trusting whoever produced it.
 
-Early. All seven pipeline commands work. The score card format is not fixed yet, so `grade` reads a ladder the score card declares rather than one this tool defines.
-Version 0.0.1 on PyPI is a placeholder release that predates most of this.
+## Why
 
-## Requirements
+Most evaluation tooling reports a rate. A rate on its own cannot be checked.
 
-Python 3.12 or later. `freeze` and `run` need the Docker daemon. Nothing else does:
-`estimate`, `bundle` and `verify` are functions over files.
+```
+47 of 50    →  94%
+940 of 1000 →  94%
+```
 
-## Install
+Same number, and only one of them supports a claim about a 90% bar. Touchstone cannot
+print a bare proportion, because the type that carries a result has nowhere to put one:
+
+```
+94.0%  (95% CI 83.5-98.8%, n=50)     ← cannot support the claim
+94.0%  (95% CI 92.4-95.4%, n=1000)   ← can
+```
+
+The same idea decides grades. A score card asserts a level when a metric clears a
+threshold, and where the interval spans that threshold the honest answer is not the better
+level:
+
+```console
+headline_accuracy: indeterminate, A or C  [0.91, 0.8783 to 0.9345, n=400]
+    the interval spans the A boundary of 0.9, so the grade is A or C and the evidence does not say which
+worst_stratum: indeterminate, A or B  [0.861, 0.803 to 0.905, n=180, language=pcm]
+```
+
+Grading the point estimate would have printed two confident letters. Both are better than
+this evaluation can support.
+
+## Quickstart
 
 ```bash
 pip install touchstone-dqi
 ```
 
-The command is `touchstone`. To work on it instead:
-
-```bash
-git clone https://github.com/Quantile-Labs/touchstone
-cd touchstone
-python3 -m venv .venv
-.venv/bin/pip install -e .
-```
-
-## Check a plan
-
-A plan names the packs to run and the systems to run them against. `validate` reads it
-against each pack's `manifest.yaml` and reports what does not line up:
-
 ```console
 $ touchstone validate examples/plan.yaml
 examples/plan.yaml: ok, 1 pack(s)
 
-$ touchstone validate broken.yaml
-broken.yaml: 1 problem(s)
-  example_pack: pack does not accept parameter 'max_itemz'
-```
-
-It resolves packs from `./packs`. Pass `--manifests` to point somewhere else. No
-container runs, and it exits 1 if anything is wrong.
-
-## Freeze a plan before running it
-
-`freeze` resolves every image tag to the digest it points at, derives a seed for each pack
-and replicate from the plan's root seed, and hashes the result:
-
-```console
 $ touchstone freeze examples/plan.yaml -o ./run-004
 ./run-004/plan.lock.json: 1 pack(s) pinned
 sha256 d1f2714d732b1392cca83a1e36e7bca683da6cd1557a112c823183f6a093b9c7
 check it with: shasum -a 256 -c run-004/PLAN.sha256
+
+$ touchstone run ./run-004 -o ./run-004
+$ touchstone estimate ./run-004 --by language
+$ touchstone grade ./run-004 --score-card card.yaml
+$ touchstone bundle ./run-004
+./run-004: sealed 8 file(s)
+sha256 4c5cf2df7b1ad389d199650325dcde421490caa6c431b4d8819054f0fec0e772
+
+$ touchstone verify ./run-004
+./run-004: verified
 ```
 
-That hash covers the plan after every tag is resolved, so it changes when the image does.
-Building `packs/example_pack` yourself gives a different digest and therefore a different
-hash from the one above; what has to match is the hash beside the lock you were handed.
+`freeze` pins every image tag to the digest it points at, derives a seed per pack per
+replicate, and hashes the result. After that, changing a threshold produces a different
+plan hash, so a grade boundary cannot be moved after seeing a result without the artefact
+recording that it was.
 
-The lock is canonical JSON and `PLAN.sha256` is in shasum's own format, so anyone can
-check it without installing anything:
+## Every rate carries its interval
 
-```console
-$ shasum -a 256 -c PLAN.sha256
-plan.lock.json: OK
-```
-
-Add `--anchor` to timestamp the hash with OpenTimestamps. That step needs the network and
-the `ots` client, so it is opt-in; everything else in `freeze` works offline. The receipt
-lands in `anchors/` next to a copy of the file it covers, with a note saying what it does
-and does not yet prove.
-
-`run` executes a frozen plan and refuses one that was never frozen or has been edited
-since. Not a warning, a non-zero exit:
-
-```console
-$ touchstone run ./run-004 -o ./bundle
-./bundle: ok
-
-$ touchstone run ./edited -o ./bundle
-plan.lock.json has changed since it was frozen.
-  frozen:  d1f2714d732b1392cca83a1e36e7bca683da6cd1557a112c823183f6a093b9c7
-  on disk: 03564c2a8c26a0b63d97a98451037f910be3f6b7ba7192b0c52aee668b9791ad
-```
-
-A run copies the frozen plan and its hash into its own output, so the sealed bundle holds
-the plan it ran. Every run writes `ledger/RUNLOG.jsonl` as it goes, opening with the plan
-hash it ran against. The tool writes it, not a person, and not afterwards. It also writes
-`environment.json`: the backend, the digests that actually ran, and whether each pack was
-held to the network it declared.
-
-A pack that declares no egress runs with no network. A pack that declares an allowlist gets
-that allowlist and nothing else: the pack runs on a Docker network created `--internal`,
-which has no route off the host, and a squid sidecar attached to both that network and the
-outside is the only way through. It allows `CONNECT` to the declared hosts and denies
-everything else.
-
-**The proxy never terminates TLS.** It reads the hostname in the `CONNECT` line and the
-bytes stay opaque, so it is never trusted with the credentials the pack is using. A
-security review can read the allowlist in the frozen plan and the proxy's own log of what
-was attempted, which the run writes into the bundle.
-
-Containment does not depend on the pack co-operating. It is told about the proxy through
-`HTTPS_PROXY`, and a pack that ignores that variable is on a network with nowhere to go.
-
-`--allow-unenforced-egress` remains, and is now a downgrade rather than the only way to
-run such a pack: it grants the whole network instead of the declared hosts, and
-`environment.json` records that no pack in the run can be claimed to have been contained.
-
-Every pack also runs under a ceiling it declares in its manifest, pinned into the frozen
-plan and defaulting to 2048 MB, two CPUs and 512 processes. Swap is pinned to the memory
-figure, because Docker otherwise allows twice the limit through swap. A pack killed for
-exceeding its memory is recorded as `out_of_memory` rather than as a timeout: both exit
-137, and a pack that was too big is not a pack that was too slow.
-
-## Estimate
-
-`estimate` reads the per-item observations and computes the statistics itself. Packs
-report what happened; they never report a rate. Every number comes back with an interval
-and a denominator, and a bare proportion is not representable:
+Packs report what happened, one record per item. They never report a rate. The harness
+computes every statistic, which is what makes the aggregate re-checkable from a sample
+that travels inside the bundle:
 
 ```console
 $ touchstone estimate run-004 --by rung
@@ -132,73 +82,18 @@ run-004/estimates.json: 3 estimate(s) from 6772 item(s)
   evidenced [rung=real_gauge]: 7.8% (95% CI 6.9-8.8%, n=3090)
 ```
 
-Booleans become rates with a Wilson interval, continuous scores become means with a BCa
-bootstrap interval, and `--by` groups by any stratum key the pack declared. `estimates.json`
-names the estimator and its parameters beside every number, so the arithmetic can be redone
-in R, in a spreadsheet, or by hand without this tool.
+Booleans become rates with a Wilson interval, continuous scores become means with a seeded
+BCa bootstrap interval, and `--by` groups by any stratum key the pack declared.
+`estimates.json` names the estimator and its parameters beside every number, so the
+arithmetic can be redone in R, in a spreadsheet, or by hand.
 
-Every estimate says which pack it came from. Where a plan ran more than one, each is
-estimated separately and the pooled figure is marked, because two packs reporting the same
-outcome are not measuring the same thing. Provenance is stamped by the harness when it
-merges the per-unit files, never by the pack.
-
-Calibration is not computed unless a pack declared, in its manifest, which outcome its
-`confidence` is a claim about. `freeze` pins that declaration into the lock, so what was
-calibrated is part of the frozen plan rather than a flag somebody typed. `--calibrate`
-overrides it, which is what re-analysing an old bundle under a corrected definition needs.
-
-Nothing here needs Docker, a database or a network. It is a function of the item records,
-which means the numbers in a bundle can be recomputed from the bundle years later.
-
-## Seal and verify a bundle
-
-`bundle` hashes every file under a directory and writes `MANIFEST.json`:
-
-```console
-$ touchstone bundle run-004
-run-004: sealed 8 file(s)
-sha256 4c5cf2df7b1ad389d199650325dcde421490caa6c431b4d8819054f0fec0e772
-```
-
-The printed hash covers the file list, so identical content seals to the same value on any
-machine. The content is not identical between machines here: `environment.json` records the
-Python and platform that ran, and the lock carries the image digest that resolved, so the
-run above seals to a different value than yours will. What has to match is the manifest
-shipped beside the bundle. Sealing a directory that already has a manifest is an error.
-
-A sealed run holds the frozen plan, its hash, the per-item observations both merged and
-per unit, the estimates, the environment and the ledger:
-
-```console
-$ jq -r '.files[].path' run-004/MANIFEST.json
-PLAN.sha256
-environment.json
-estimates.json
-items.jsonl
-ledger/RUNLOG.jsonl
-plan.lock.json
-runs/example_pack-0/items.jsonl
-runs/example_pack-1/items.jsonl
-```
-
-`verify` re-checks the bundle and names what moved:
-
-```console
-$ touchstone verify run-004
-run-004: verified
-
-$ touchstone verify tampered
-tampered: 1 failure(s)
-  hash mismatch: items.jsonl
-```
-
-Exit 0 means every file matches its recorded hash and no unrecorded file is present.
-Exit 1 means it does not. There is no network call, no database and no config file.
+No Docker, no database, no network. It is a function of the item records, so the numbers
+in a bundle can be recomputed from the bundle years later.
 
 ## Verify without Touchstone
 
-The bundle outlives the tool, so nothing in it needs the tool to read. Check any single
-file against its recorded hash:
+The bundle outlives the tool, so nothing in it needs the tool to read. Check any file
+against its recorded hash:
 
 ```console
 $ shasum -a 256 run-004/items.jsonl
@@ -212,10 +107,26 @@ $ jq -cS '.files' run-004/MANIFEST.json | tr -d '\n' | shasum -a 256
 4c5cf2df7b1ad389d199650325dcde421490caa6c431b4d8819054f0fec0e772  -
 ```
 
-That hash detects a file edited after sealing. It does not detect a forger who reseals
-the whole bundle, which is what external anchoring is for. `freeze --anchor` stamps the
-plan hash with OpenTimestamps; see `anchors/README.md` in a stamped run for what a fresh
-receipt does and does not yet prove.
+That detects a file edited after sealing. It does not detect a forger who reseals the whole
+bundle, which is what external anchoring is for: `freeze --anchor` stamps the plan hash
+with OpenTimestamps.
+
+## Containment
+
+A pack that declares no egress runs with no network. A pack that declares an allowlist gets
+that allowlist and nothing else: it runs on a Docker network created `--internal`, which
+has no route off the host, and a squid sidecar attached to both that network and the
+outside is the only way through.
+
+**The proxy never terminates TLS.** It reads the hostname in the `CONNECT` line and the
+bytes stay opaque, so it is never trusted with the credentials the pack is using.
+Containment does not depend on the pack co-operating either: it is told about the proxy
+through `HTTPS_PROXY`, and a pack that ignores that variable is on a network with nowhere
+to go.
+
+Every pack also runs under a ceiling it declares in its manifest and `freeze` pins into the
+plan: memory, CPUs and processes, with swap pinned to the memory figure. A pack killed for
+exceeding its memory is recorded as `out_of_memory` rather than as a timeout.
 
 ## The pipeline
 
@@ -233,28 +144,39 @@ validate -> freeze -> run -> estimate -> grade -> bundle -> verify
 | `bundle` | hash every file in a directory, write `MANIFEST.json` | works |
 | `verify` | re-check a bundle against its manifest, offline | works |
 
-Only `run` needs a container. Everything after it is a function over files.
+**Only `run` needs a container.** Everything after it is a function over files, which is
+what lets `verify` run on a plane, in a bank basement, with the wifi off.
 
-## Design
+## Status
 
-Three choices shape the rest:
+Early, and honest about it. All seven pipeline commands work. The score card format is not
+fixed, so `grade` reads a ladder the score card declares rather than one this tool defines.
+Version 0.0.1 on PyPI is a placeholder release that predates most of this.
 
-- Packs emit one observation per item, not a summary. Touchstone computes the rates and
-  intervals, so a reader can recompute them from the sample in the bundle.
-- Runs are pinned before they start. `freeze` resolves image tags to digests and hashes
-  the plan; `run` refuses a plan that has changed since.
-- A missing file, an unresolvable digest or a stale hash is an error with a non-zero
-  exit, never a warning.
+The hashes quoted above are from a real run and are **machine specific**: the lock hash
+follows the image digest and the bundle hash follows `environment.json`. They will not
+match yours until `example_pack` is published to a registry.
 
-To write a pack, see [docs/packs.md](docs/packs.md).
+## Requirements
 
-## Licence
+Python 3.12 or later. `freeze` and `run` need the Docker daemon. Nothing else does.
 
-Apache 2.0. See [LICENSE](LICENSE).
+Three runtime dependencies: `pydantic`, `pyyaml`, `typer`. The `offline-install` CI job
+builds a wheel, vendors them, installs with `--no-index` and runs it, so the air-gap claim
+is tested rather than asserted.
 
 ## Contributing
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) first. The commit message and code style rules
-are enforced by CI.
+```bash
+git clone https://github.com/Quantile-Labs/touchstone
+cd touchstone
+uv sync --all-extras --dev
+uv run pytest -q
+```
 
-Maintained by [Quantile Labs](https://quantilelabs.com).
+Read [CONTRIBUTING.md](CONTRIBUTING.md) first. Commit messages are linted, `main` is
+protected, and work lands through a pull request.
+
+## Licence
+
+Apache 2.0.
