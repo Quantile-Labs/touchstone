@@ -123,10 +123,18 @@ def copy_plan(lock_dir: Path, out_dir: Path) -> None:
 
     02-DESIGN.md section 6: the bundle is a directory readable in 2035 by someone without
     the tool. A run whose plan lives somewhere else is not that.
+
+    Freezing and running into one directory is the sequence the README walks through, and
+    there the plan is already where it has to be. Copying a file onto itself raises, and
+    this runs after the packs have, so the failure landed on a directory holding a
+    finished run and cost the whole thing.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     for name in (LOCK_NAME, HASH_NAME):
-        shutil.copyfile(lock_dir / name, out_dir / name)
+        source, destination = lock_dir / name, out_dir / name
+        if source.resolve() == destination.resolve():
+            continue
+        shutil.copyfile(source, destination)
 
 
 def _overall_egress(results: list[RunResult]) -> bool | None:
