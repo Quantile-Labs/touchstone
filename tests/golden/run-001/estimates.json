@@ -1,0 +1,462 @@
+{
+  "calibration": [
+    {
+      "bins": [
+        {
+          "accuracy": 0.0,
+          "high": 0.6,
+          "low": 0.5,
+          "mean_confidence": 0.55,
+          "n": 14
+        },
+        {
+          "accuracy": 1.0,
+          "high": 0.7,
+          "low": 0.6,
+          "mean_confidence": 0.625,
+          "n": 28
+        },
+        {
+          "accuracy": 0.5,
+          "high": 0.8,
+          "low": 0.7,
+          "mean_confidence": 0.7249999999999999,
+          "n": 26
+        },
+        {
+          "accuracy": 0.5,
+          "high": 0.9,
+          "low": 0.8,
+          "mean_confidence": 0.825,
+          "n": 26
+        },
+        {
+          "accuracy": 1.0,
+          "high": 1.0,
+          "low": 0.9,
+          "mean_confidence": 0.925,
+          "n": 26
+        }
+      ],
+      "ece": 0.28708333333333325,
+      "estimator": "ece_equal_width",
+      "metric": "correct",
+      "n": 120,
+      "pack_id": null,
+      "parameters": {
+        "bins": 10
+      },
+      "reference": "Naeini, M. P., Cooper, G. F., Hauskrecht, M. (2015). Obtaining well calibrated probabilities using Bayesian binning. AAAI 2015, 2901-2907. Equal-width binning as used by Guo et al. (2017), ICML, 1321-1330.",
+      "unscored": 0
+    }
+  ],
+  "estimates": [
+    {
+      "estimator": "wilson",
+      "high": 0.744683897772007,
+      "k": 80,
+      "low": 0.5783093452093498,
+      "metric": "correct",
+      "n": 120,
+      "pack_id": null,
+      "parameters": {
+        "confidence": 0.95,
+        "z": 1.96
+      },
+      "point": 0.6666666666666666,
+      "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22(158), 209-212.",
+      "stratum": {}
+    },
+    {
+      "estimator": "wilson",
+      "high": 0.7727090578407216,
+      "k": 40,
+      "low": 0.540566298666634,
+      "metric": "correct",
+      "n": 60,
+      "pack_id": null,
+      "parameters": {
+        "confidence": 0.95,
+        "z": 1.96
+      },
+      "point": 0.6666666666666666,
+      "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22(158), 209-212.",
+      "stratum": {
+        "language": "en"
+      }
+    },
+    {
+      "estimator": "wilson",
+      "high": 0.7727090578407216,
+      "k": 40,
+      "low": 0.540566298666634,
+      "metric": "correct",
+      "n": 60,
+      "pack_id": null,
+      "parameters": {
+        "confidence": 0.95,
+        "z": 1.96
+      },
+      "point": 0.6666666666666666,
+      "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22(158), 209-212.",
+      "stratum": {
+        "language": "pcm"
+      }
+    },
+    {
+      "estimator": "bootstrap_bca",
+      "high": 0.7308333333333333,
+      "k": null,
+      "low": 0.6625,
+      "metric": "quality",
+      "n": 120,
+      "pack_id": null,
+      "parameters": {
+        "confidence": 0.95,
+        "resamples": 2000,
+        "seed": 7
+      },
+      "point": 0.6975,
+      "reference": "Efron, B. (1987). Better bootstrap confidence intervals. Journal of the American Statistical Association 82(397), 171-185.",
+      "stratum": {}
+    },
+    {
+      "estimator": "bootstrap_bca",
+      "high": 0.745,
+      "k": null,
+      "low": 0.6433333333333333,
+      "metric": "quality",
+      "n": 60,
+      "pack_id": null,
+      "parameters": {
+        "confidence": 0.95,
+        "resamples": 2000,
+        "seed": 7
+      },
+      "point": 0.6966666666666667,
+      "reference": "Efron, B. (1987). Better bootstrap confidence intervals. Journal of the American Statistical Association 82(397), 171-185.",
+      "stratum": {
+        "language": "en"
+      }
+    },
+    {
+      "estimator": "bootstrap_bca",
+      "high": 0.7466666666666666,
+      "k": null,
+      "low": 0.6466666666666666,
+      "metric": "quality",
+      "n": 60,
+      "pack_id": null,
+      "parameters": {
+        "confidence": 0.95,
+        "resamples": 2000,
+        "seed": 7
+      },
+      "point": 0.6983333333333334,
+      "reference": "Efron, B. (1987). Better bootstrap confidence intervals. Journal of the American Statistical Association 82(397), 171-185.",
+      "stratum": {
+        "language": "pcm"
+      }
+    },
+    {
+      "estimator": "wilson",
+      "high": 0.031020271055929513,
+      "k": 0,
+      "low": 0.0,
+      "metric": "confident_and_wrong(correct)",
+      "n": 120,
+      "pack_id": null,
+      "parameters": {
+        "confidence": 0.95,
+        "threshold": 0.9,
+        "z": 1.96
+      },
+      "point": 0.0,
+      "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22(158), 209-212.",
+      "stratum": {}
+    },
+    {
+      "estimator": "wilson",
+      "high": 0.7727090578407216,
+      "k": 40,
+      "low": 0.540566298666634,
+      "metric": "correct",
+      "n": 60,
+      "pack_id": "credit_pack",
+      "parameters": {
+        "confidence": 0.95,
+        "z": 1.96
+      },
+      "point": 0.6666666666666666,
+      "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22(158), 209-212.",
+      "stratum": {}
+    },
+    {
+      "estimator": "wilson",
+      "high": 0.807697044731538,
+      "k": 20,
+      "low": 0.48779725813830266,
+      "metric": "correct",
+      "n": 30,
+      "pack_id": "credit_pack",
+      "parameters": {
+        "confidence": 0.95,
+        "z": 1.96
+      },
+      "point": 0.6666666666666666,
+      "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22(158), 209-212.",
+      "stratum": {
+        "language": "en"
+      }
+    },
+    {
+      "estimator": "wilson",
+      "high": 0.807697044731538,
+      "k": 20,
+      "low": 0.48779725813830266,
+      "metric": "correct",
+      "n": 30,
+      "pack_id": "credit_pack",
+      "parameters": {
+        "confidence": 0.95,
+        "z": 1.96
+      },
+      "point": 0.6666666666666666,
+      "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22(158), 209-212.",
+      "stratum": {
+        "language": "pcm"
+      }
+    },
+    {
+      "estimator": "bootstrap_bca",
+      "high": 0.74,
+      "k": null,
+      "low": 0.6416666666666667,
+      "metric": "quality",
+      "n": 60,
+      "pack_id": "credit_pack",
+      "parameters": {
+        "confidence": 0.95,
+        "resamples": 2000,
+        "seed": 7
+      },
+      "point": 0.6950000000000001,
+      "reference": "Efron, B. (1987). Better bootstrap confidence intervals. Journal of the American Statistical Association 82(397), 171-185.",
+      "stratum": {}
+    },
+    {
+      "estimator": "bootstrap_bca",
+      "high": 0.7666666666666667,
+      "k": null,
+      "low": 0.6233333333333333,
+      "metric": "quality",
+      "n": 30,
+      "pack_id": "credit_pack",
+      "parameters": {
+        "confidence": 0.95,
+        "resamples": 2000,
+        "seed": 7
+      },
+      "point": 0.7,
+      "reference": "Efron, B. (1987). Better bootstrap confidence intervals. Journal of the American Statistical Association 82(397), 171-185.",
+      "stratum": {
+        "language": "en"
+      }
+    },
+    {
+      "estimator": "bootstrap_bca",
+      "high": 0.7566666666666666,
+      "k": null,
+      "low": 0.6133333333333333,
+      "metric": "quality",
+      "n": 30,
+      "pack_id": "credit_pack",
+      "parameters": {
+        "confidence": 0.95,
+        "resamples": 2000,
+        "seed": 7
+      },
+      "point": 0.69,
+      "reference": "Efron, B. (1987). Better bootstrap confidence intervals. Journal of the American Statistical Association 82(397), 171-185.",
+      "stratum": {
+        "language": "pcm"
+      }
+    },
+    {
+      "estimator": "wilson",
+      "high": 0.7727090578407216,
+      "k": 40,
+      "low": 0.540566298666634,
+      "metric": "correct",
+      "n": 60,
+      "pack_id": "flood_pack",
+      "parameters": {
+        "confidence": 0.95,
+        "z": 1.96
+      },
+      "point": 0.6666666666666666,
+      "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22(158), 209-212.",
+      "stratum": {}
+    },
+    {
+      "estimator": "wilson",
+      "high": 0.807697044731538,
+      "k": 20,
+      "low": 0.48779725813830266,
+      "metric": "correct",
+      "n": 30,
+      "pack_id": "flood_pack",
+      "parameters": {
+        "confidence": 0.95,
+        "z": 1.96
+      },
+      "point": 0.6666666666666666,
+      "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22(158), 209-212.",
+      "stratum": {
+        "language": "en"
+      }
+    },
+    {
+      "estimator": "wilson",
+      "high": 0.807697044731538,
+      "k": 20,
+      "low": 0.48779725813830266,
+      "metric": "correct",
+      "n": 30,
+      "pack_id": "flood_pack",
+      "parameters": {
+        "confidence": 0.95,
+        "z": 1.96
+      },
+      "point": 0.6666666666666666,
+      "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22(158), 209-212.",
+      "stratum": {
+        "language": "pcm"
+      }
+    },
+    {
+      "estimator": "bootstrap_bca",
+      "high": 0.7483333333333333,
+      "k": null,
+      "low": 0.65,
+      "metric": "quality",
+      "n": 60,
+      "pack_id": "flood_pack",
+      "parameters": {
+        "confidence": 0.95,
+        "resamples": 2000,
+        "seed": 7
+      },
+      "point": 0.7,
+      "reference": "Efron, B. (1987). Better bootstrap confidence intervals. Journal of the American Statistical Association 82(397), 171-185.",
+      "stratum": {}
+    },
+    {
+      "estimator": "bootstrap_bca",
+      "high": 0.7633333333333333,
+      "k": null,
+      "low": 0.62,
+      "metric": "quality",
+      "n": 30,
+      "pack_id": "flood_pack",
+      "parameters": {
+        "confidence": 0.95,
+        "resamples": 2000,
+        "seed": 7
+      },
+      "point": 0.6933333333333334,
+      "reference": "Efron, B. (1987). Better bootstrap confidence intervals. Journal of the American Statistical Association 82(397), 171-185.",
+      "stratum": {
+        "language": "en"
+      }
+    },
+    {
+      "estimator": "bootstrap_bca",
+      "high": 0.7733333333333333,
+      "k": null,
+      "low": 0.6333333333333333,
+      "metric": "quality",
+      "n": 30,
+      "pack_id": "flood_pack",
+      "parameters": {
+        "confidence": 0.95,
+        "resamples": 2000,
+        "seed": 7
+      },
+      "point": 0.7066666666666667,
+      "reference": "Efron, B. (1987). Better bootstrap confidence intervals. Journal of the American Statistical Association 82(397), 171-185.",
+      "stratum": {
+        "language": "pcm"
+      }
+    }
+  ],
+  "grouped_by": [
+    "language"
+  ],
+  "items": 120,
+  "packs": [
+    "credit_pack",
+    "flood_pack"
+  ],
+  "pooled": true,
+  "replicate_variance": [
+    {
+      "mean": 0.6666666666666666,
+      "metric": "correct",
+      "pack_id": null,
+      "rates": {
+        "0": [
+          40,
+          60
+        ],
+        "1": [
+          40,
+          60
+        ]
+      },
+      "repeated_items": 60,
+      "sd": 0.0,
+      "spread": 0.0,
+      "unstable_items": 0
+    },
+    {
+      "mean": 0.6666666666666666,
+      "metric": "correct",
+      "pack_id": "credit_pack",
+      "rates": {
+        "0": [
+          20,
+          30
+        ],
+        "1": [
+          20,
+          30
+        ]
+      },
+      "repeated_items": 30,
+      "sd": 0.0,
+      "spread": 0.0,
+      "unstable_items": 0
+    },
+    {
+      "mean": 0.6666666666666666,
+      "metric": "correct",
+      "pack_id": "flood_pack",
+      "rates": {
+        "0": [
+          20,
+          30
+        ],
+        "1": [
+          20,
+          30
+        ]
+      },
+      "repeated_items": 30,
+      "sd": 0.0,
+      "spread": 0.0,
+      "unstable_items": 0
+    }
+  ],
+  "touchstone_version": "0.0.1"
+}
