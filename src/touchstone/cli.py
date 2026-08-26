@@ -218,15 +218,36 @@ def grade(
             "Without this those indicators are ungraded, which is a true statement",
         ),
     ] = None,
+    prior: Annotated[
+        Path | None,
+        typer.Option(
+            "--prior",
+            "-p",
+            exists=True,
+            file_okay=False,
+            help="The bundle from the evaluation before this one, for indicators that "
+            "grade movement. Without it those indicators are ungraded, which is what a "
+            "first evaluation of a system honestly is",
+        ),
+    ] = None,
 ) -> None:
     """Apply a score card and produce DQI indicators. Offline, no Docker."""
     try:
+        if prior is not None and prior.resolve() == run_dir.resolve():
+            typer.echo(
+                f"{prior} is the bundle being graded. Movement measured against itself is "
+                "zero by construction, which would read as a system that has not drifted",
+                err=True,
+            )
+            raise typer.Exit(1)
+
         card = grade_run.load_scorecard(score_card)
         estimates = grade_run.load_estimates(run_dir)
         tier = grade_run.access_tier(run_dir)
         responses = grade_run.load_audit(audit) if audit else None
+        before = grade_run.load_prior(prior) if prior else None
 
-        problems = grade_run.check(card, estimates, tier, responses)
+        problems = grade_run.check(card, estimates, tier, responses, before)
         if problems:
             for problem in problems:
                 typer.echo(problem, err=True)
@@ -244,6 +265,7 @@ def grade(
             grade_run.plan_hash(run_dir),
             responses,
             audit_sha256,
+            before,
         )
         path = grade_run.write_scorecard(scorecard, run_dir)
     except TouchstoneError as exc:
@@ -256,6 +278,11 @@ def grade(
     )
     if scorecard.audit_name:
         typer.echo(f"audit {scorecard.audit_name}, sha256 {scorecard.audit_sha256}")
+    if scorecard.prior_plan_sha256 is not None:
+        typer.echo(
+            f"compared against {prior}, plan {scorecard.prior_plan_sha256[:8]} "
+            f"against this run's {(scorecard.plan_sha256 or 'unknown')[:8]}"
+        )
     for line in grade_run.lines(scorecard):
         typer.echo(line)
 
