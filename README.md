@@ -1,54 +1,51 @@
 # Touchstone
 
-**An AI evaluation harness that makes results trustworthy by making them checkable.**
+Touchstone is an AI evaluation harness that produces results you can check yourself. It
+runs your tests against an AI system inside containers, works out every number itself, and
+seals the whole run into one folder holding the plan, one row per test item, and a SHA-256
+of every file. The system under test can be an LLM, an LLM application, a classifier or a
+scoring model, and the harness treats them all the same way.
 
-Trust in an AI evaluation normally rests on who ran it. Touchstone moves it onto the
-evidence.
+Anyone can re-check that folder offline with `shasum`, which means you do not have to
+trust whoever ran it. Most evaluation tools hand you a score and ask you to believe it,
+whereas this one hands you the working alongside the answer.
 
-It evaluates AI systems (LLMs and LLM applications, classifiers, decisioning models) by
-running evaluation packs against them in containers, computes every statistic itself, and
-seals the result into an evidence bundle: the frozen plan, every per-item observation, and
-a SHA-256 over every file.
+- **Every number carries an interval**: 47 of 50 and 940 of 1000 are both 94%, and only
+  one of them backs a claim about a 90% bar. A bare percentage is not representable here.
+- **Grades can say "I don't know"**: when the interval crosses a grade boundary, the answer
+  is `indeterminate` and names the two grades it sits between, instead of rounding up.
+- **Packs report facts, not scores**: a pack writes one row per item saying what happened.
+  Touchstone computes every rate. The rows ship inside the bundle, so anyone can redo it.
+- **Checkable without this tool**: `shasum -a 256 -c PLAN.sha256` verifies a run with
+  nothing of ours installed. Three dependencies, and it works with the wifi off.
+- **Contained**: a pack reaches the hosts it declared and nothing else, on a network with
+  no route out. The proxy never decrypts traffic, so it never sees your API keys.
 
-That bundle can be re-checked offline, by anyone, without this tool. **Trust in the result
-does not depend on trusting whoever produced it**, which is the difference between an AI
-evaluation and AI assurance.
+## The 94% problem
 
-## Why AI evaluation needs this
-
-An evaluation answers *how did the system score*. Assurance answers *what may be claimed
-about it, and why should anyone believe the claim*. The second is what a regulator, a
-bank's model risk function, or a procurement review actually needs, and almost no AI
-evaluation tooling produces it.
-
-Trust that rests on a reputation is not transferable: it has to be re-established with
-every new reader, and it cannot be audited. Trust that rests on evidence anyone can
-recompute transfers on its own. That is the whole design.
-
-Start with the smallest version of the problem. Most AI evaluation tooling reports a rate,
-and a rate on its own cannot be checked.
+Two AI systems are tested. Both get 94%. One was tested on 50 items, the other on 1,000:
 
 ```
-47 of 50    →  94%
-940 of 1000 →  94%
+47 of 50     ->  94%
+940 of 1000  ->  94%
 ```
 
-Same number, and only one of them supports a claim about a 90% bar. Touchstone cannot
-print a bare proportion, because the type that carries a result has nowhere to put one:
+Every evaluation tool reports those two the same way, even though only one of them backs a
+claim about a 90% bar. Touchstone prints the interval next to the rate so you can tell
+them apart:
 
 ```
-94.0%  (95% CI 83.5-98.8%, n=50)     ← cannot support the claim
-94.0%  (95% CI 92.4-95.4%, n=1000)   ← can
+94.0%  (95% CI 83.5-98.8%, n=50)     <- cannot back the claim
+94.0%  (95% CI 92.4-95.4%, n=1000)   <- can
 ```
 
-**A binary pass or fail over n test items is a proportion, and a proportion has a sampling
-distribution.** That is not an exotic statistical position; it is the first thing anyone
-learns about proportions. Yet the dominant scoring method in AI evaluation is exactly that
-binary, and the tooling around it almost never computes the interval it implies.
+A pass-or-fail test over 50 items is a percentage, and percentages have error bars, which
+is the first thing anyone learns about them. Most AI evaluation scores things pass or fail
+and then reports the percentage with no error bar at all, which is an odd place for the
+field to have ended up.
 
-The same idea decides grades. A score card asserts a level when a metric clears a
-threshold, and where the interval spans that threshold the honest answer is not the better
-level:
+Grades work the same way. A score card gives a grade when a number clears a threshold. If
+the error bar crosses that threshold, the honest answer is not the better grade:
 
 ```console
 headline_accuracy: indeterminate, A or C  [0.91, 0.8783 to 0.9345, n=400]
@@ -56,17 +53,14 @@ headline_accuracy: indeterminate, A or C  [0.91, 0.8783 to 0.9345, n=400]
 worst_stratum: indeterminate, A or B  [0.861, 0.803 to 0.905, n=180, language=pcm]
 ```
 
-Grading the point estimate would have printed two confident letters. Both are better than
-this evaluation can support. `indeterminate` is a finding, and the remedy it points at is
-more evidence.
+Grading the middle number on its own would have printed two confident letters, neither of
+which the evidence supports, so `indeterminate` is the answer that tells you to go and get
+more data.
 
-### What Touchstone is not
-
-- **Not a benchmark or a leaderboard.** It scores a *deployment*: this system, for this
-  purpose, on this population, with this evidence.
-- **Not a safety or capability evaluation.** It makes no claim about alignment or
-  catastrophic risk.
-- **Not a certification.** It says what the evidence supports. No level is an approval.
+**A few things Touchstone is not.** It is not a benchmark or a leaderboard, because it
+scores one system doing one job for one population rather than ranking models against each
+other. It is not a safety or capability test, and it is not a certificate: a grade says
+what the evidence supports, and nothing in it amounts to an approval.
 
 ## Quickstart
 
@@ -94,22 +88,19 @@ $ touchstone verify ./run-004
 ./run-004: verified
 ```
 
-`freeze` pins every image tag to the digest it points at, derives a seed per pack per
-replicate, and hashes the result. After that, changing a threshold produces a different
-plan hash, so a grade boundary cannot be moved after seeing a result without the artefact
-recording that it was.
+`freeze` locks each container image to an exact version, fixes the random seeds, and
+hashes the whole plan. After that, changing a pass mark changes the hash. So nobody can
+move a grade boundary after seeing the result without it showing.
 
-## Every rate carries its interval
+## Who does the maths
 
-**This is the trust boundary, and it is inverted from how AI evaluation usually works.**
-Whoever computes the statistic is who you have to trust. If a container reports *"94%
-accuracy"*, that trust goes to its author, who is often the party with an interest in the
-answer. Moving the computation into the harness moves the trust onto something a reader
-can check for themselves.
+**Whoever works out the score is who you end up trusting.** If the test container hands
+you "94% accuracy" then you are trusting whoever wrote that container, and often that is
+the same people who would like the number to look good.
 
-Touchstone packs report what happened, one record per item. They never report a rate. The
-harness computes every statistic, which is what makes the aggregate re-checkable from a
-sample that travels inside the bundle:
+So packs here do not work out scores at all. A pack writes one row per item saying what
+happened, Touchstone does the arithmetic, and the rows travel inside the bundle so that
+anyone can redo the sums:
 
 ```console
 $ touchstone estimate run-004 --by rung
@@ -119,51 +110,55 @@ run-004/estimates.json: 3 estimate(s) from 6772 item(s)
   evidenced [rung=real_gauge]: 7.8% (95% CI 6.9-8.8%, n=3090)
 ```
 
-Booleans become rates with a Wilson interval, continuous scores become means with a seeded
-BCa bootstrap interval, and `--by` groups by any stratum key the pack declared.
-`estimates.json` names the estimator and its parameters beside every number, so the
-arithmetic can be redone in R, in a spreadsheet, or by hand.
+True or false answers become rates with a Wilson interval. Scores become averages with a
+bootstrap interval, seeded so it comes out the same next time. `--by` splits the numbers
+by any group the pack declared: language, region, difficulty, whatever it tracks.
 
-No Docker, no database, no network. It is a function of the item records, so the numbers
-in a bundle can be recomputed from the bundle years later.
+`estimates.json` writes the method and its settings next to every number, so you can redo
+the sums in R, in a spreadsheet, or on paper.
+
+This step needs no Docker, no database and no network. It reads the rows and nothing else,
+so the numbers in a bundle can be worked out again years later.
 
 ## Verify without Touchstone
 
-The bundle outlives the tool, so nothing in it needs the tool to read. Check any file
-against its recorded hash:
+A bundle should still make sense after this tool is gone, so nothing in it needs this
+tool to read. Check any file against its recorded hash:
 
 ```console
 $ shasum -a 256 run-004/items.jsonl
 69ea741b6e119ebbea72743a32de7636b24cd7975db524b835357466bb8ed667  run-004/items.jsonl
 ```
 
-Recompute the bundle hash from the manifest alone:
+Work out the whole bundle's hash from the manifest:
 
 ```console
 $ jq -cS '.files' run-004/MANIFEST.json | tr -d '\n' | shasum -a 256
 4c5cf2df7b1ad389d199650325dcde421490caa6c431b4d8819054f0fec0e772  -
 ```
 
-That detects a file edited after sealing. It does not detect a forger who reseals the whole
-bundle, which is what external anchoring is for: `freeze --anchor` stamps the plan hash
-with OpenTimestamps.
+That catches a file changed after the bundle was sealed. It does not catch someone who
+re-seals the whole thing, because they could redo the hashes too. For that you need a
+timestamp from outside: `freeze --anchor` stamps the plan hash with OpenTimestamps, which
+proves the plan existed before the run.
 
 ## Containment
 
-A pack that declares no egress runs with no network. A pack that declares an allowlist gets
-that allowlist and nothing else: it runs on a Docker network created `--internal`, which
-has no route off the host, and a squid sidecar attached to both that network and the
-outside is the only way through.
+A pack that asks for no network gets none. A pack that lists the hosts it needs gets those
+hosts and nothing else. It runs on a Docker network with no route out, and a small proxy
+is the only door.
 
-**The proxy never terminates TLS.** It reads the hostname in the `CONNECT` line and the
-bytes stay opaque, so it is never trusted with the credentials the pack is using.
-Containment does not depend on the pack co-operating either: it is told about the proxy
-through `HTTPS_PROXY`, and a pack that ignores that variable is on a network with nowhere
-to go.
+**The proxy never decrypts anything.** It reads the hostname the pack asks for and passes
+the rest through untouched, so it never sees your API keys.
 
-Every pack also runs under a ceiling it declares in its manifest and `freeze` pins into the
-plan: memory, CPUs and processes, with swap pinned to the memory figure. A pack killed for
-exceeding its memory is recorded as `out_of_memory` rather than as a timeout.
+**A badly behaved pack cannot get around it.** Touchstone tells the pack where the proxy
+is, but that is only politeness. The pack is on a network with nowhere else to go, so
+ignoring the proxy gets it nothing.
+
+Each pack also says how much memory, CPU and how many processes it needs, and `freeze`
+writes those limits into the plan. Swap is capped too, or a pack given 2 GB could quietly
+use 4. A pack killed for using too much memory is recorded as `out_of_memory`, not as a
+timeout, because those are different problems.
 
 ## The pipeline
 
@@ -173,35 +168,33 @@ validate -> freeze -> run -> estimate -> grade -> bundle -> verify
 
 | Command | Does | State |
 |---|---|---|
-| `validate` | check a plan against the manifests of the packs it names | works |
-| `freeze` | pin image digests, derive seeds, hash the result | works |
-| `run` | execute a frozen plan, write per-item observations | works |
-| `estimate` | compute rates and intervals, by stratum | works |
-| `grade` | apply a score card, produce DQI indicators | works |
-| `bundle` | hash every file in a directory, write `MANIFEST.json` | works |
+| `validate` | check the plan against what each pack says it needs | works |
+| `freeze` | lock the image versions, fix the random seeds, hash the plan | works |
+| `run` | run the packs, write one row per test item | works |
+| `estimate` | work out the rates and their intervals, split by group | works |
+| `grade` | apply a score card and give each indicator a grade | works |
+| `bundle` | hash every file and write `MANIFEST.json` | works |
 | `verify` | re-check a bundle against its manifest, offline | works |
 
-**Only `run` needs a container.** Everything after it is a function over files, which is
-what lets `verify` run on a plane, in a bank basement, with the wifi off.
+**Only `run` needs a container.** Everything after it just reads files, so `verify` works
+on a plane, in a bank basement, with the wifi off.
 
 ## Status
 
-Early, and honest about it. Built for AI assurance work, where a result has to hold up for
-a reader who was not there when it was produced. All seven pipeline commands work. The score card format is not
-fixed, so `grade` reads a ladder the score card declares rather than one this tool defines.
-Version 0.0.1 on PyPI is a placeholder release that predates most of this.
+Early, and saying so. All seven commands work. The score card format is not settled yet,
+so `grade` uses whatever grade ladder the score card gives it rather than one built in.
+Version 0.0.1 on PyPI is a placeholder and is older than most of this.
 
-The hashes quoted above are from a real run and are **machine specific**: the lock hash
-follows the image digest and the bundle hash follows `environment.json`. They will not
-match yours until `example_pack` is published to a registry.
+The hashes above come from a real run, but they are **specific to that machine**. They
+will not match yours until `example_pack` is published somewhere you can pull it from.
 
 ## Requirements
 
-Python 3.12 or later. `freeze` and `run` need the Docker daemon. Nothing else does.
+Python 3.12 or later. `freeze` and `run` need Docker running. Nothing else does.
 
-Three runtime dependencies: `pydantic`, `pyyaml`, `typer`. The `offline-install` CI job
-builds a wheel, vendors them, installs with `--no-index` and runs it, so the air-gap claim
-is tested rather than asserted.
+Three dependencies: `pydantic`, `pyyaml`, `typer`. CI builds the package, downloads those
+three, installs everything with the network switched off and runs it. The offline claim is
+tested on every change, not just written down.
 
 ## Contributing
 
@@ -212,8 +205,8 @@ uv sync --all-extras --dev
 uv run pytest -q
 ```
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) first. Commit messages are linted, `main` is
-protected, and work lands through a pull request.
+Read [CONTRIBUTING.md](CONTRIBUTING.md) first. Commit messages are checked by a linter,
+`main` is protected, and changes go in through a pull request.
 
 ## Licence
 
