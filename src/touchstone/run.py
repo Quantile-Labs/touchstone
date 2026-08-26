@@ -17,6 +17,7 @@ from typing import Any
 from touchstone import __version__
 from touchstone.backends.base import ContainerBackend, RunResult, RunSpec
 from touchstone.contracts import Environment
+from touchstone.contracts.bundle import LEDGER_DIR, RUN_FINISHED, RUNLOG_NAME
 from touchstone.contracts.lock import PlanLock
 from touchstone.contracts.manifest import Resources
 from touchstone.errors import TouchstoneError
@@ -24,8 +25,6 @@ from touchstone.freeze import HASH_NAME, LOCK_NAME, check_frozen, load_lock, rec
 
 ENVIRONMENT_NAME = "environment.json"
 ITEMS_NAME = "items.jsonl"
-LEDGER_DIR = "ledger"
-RUNLOG_NAME = "RUNLOG.jsonl"
 RUNS_DIR = "runs"
 
 
@@ -231,7 +230,7 @@ def run(
     copy_plan(lock_dir, out_dir)
     write_environment(out_dir, backend, plan_hash, results)
     ledger.record(
-        "run_finished",
+        RUN_FINISHED,
         items=count,
         failures=len(failures),
         egress_enforced=_overall_egress(results),
