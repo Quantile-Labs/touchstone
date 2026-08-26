@@ -154,9 +154,32 @@ Install the hooks once and the last one runs itself:
 git config core.hooksPath .githooks
 ```
 
-## Pull requests
+## Branches and pull requests
+
+`main` is protected. Work happens on a branch and arrives through a pull request, which
+is also the only way the `commit-messages` job runs: it is skipped on a direct push, so a
+branch that never becomes a pull request has never had its commit messages checked.
+
+```bash
+git switch -c add-egress-proxy
+# ... commits ...
+git push -u origin add-egress-proxy
+gh pr create --fill
+```
+
+**Branch names** are the change, in the same voice as a commit subject: lowercase,
+hyphenated, imperative. `add-egress-proxy`, `fix-swap-limit`, `drop-dqi-alias`. No
+initials, no dates, no ticket numbers.
 
 - One change per pull request.
 - The description says what changed and why. Not how, the diff says how.
 - A pull request that changes a contract in `src/touchstone/contracts/` is a major
   version and needs a note saying what breaks.
+- Every commit in the pull request has to pass the message rules above, not just the
+  last one. Fix an earlier one with `git rebase -i` before asking for a merge.
+
+**Why protect `main` when one person is writing the code.** Because the checks that
+matter most only run on a pull request, and because a repository whose whole subject is
+evidence anyone can re-check should be able to show that its own changes were checked.
+Admins can still push directly when something has to land; the protection makes the
+reviewed path the default, not the only one.
