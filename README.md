@@ -1,32 +1,32 @@
 # Touchstone
 
+**Touchstone runs an evaluation and seals the result into a folder anyone can re-check
+with `shasum`.**
+
 Somebody hands you a number. This system is 94% accurate, here is the report, please sign
 off. You have to decide whether to act on it, and most of the time the only thing you can
 actually check is whether the report contradicts itself.
 
-Touchstone produces evidence for that situation. It runs an evaluation inside containers,
-works out every number itself rather than taking the system's word for any of them, and
-seals the run into one folder holding the plan it ran, one row per test item, and a
-SHA-256 of every file. Re-checking that folder takes `shasum` and nothing else, so the
-claim survives the tool that made it and can be checked by somebody who never installed
-it.
+Touchstone is built for that situation. It runs your tests inside containers, works out
+every number itself rather than taking the system's word for any of them, and writes the
+plan, one row per test item and a SHA-256 of every file into a single directory.
 
-The system under test can be an LLM, an LLM application, a classifier or a scoring model,
-and the harness treats them all the same way.
+The tests live in **packs**. A pack is a container that is handed a system, puts test
+items to it, and writes down what happened, one row per item. A pack never works out a
+score. The system it is handed can be an LLM, an LLM application, a classifier or a
+scoring model, and the harness treats them all the same way.
 
-- **Checkable without this tool**: `shasum -a 256 -c PLAN.sha256` verifies a run with
-  nothing of ours installed. Three dependencies, and it works with the wifi off.
-- **Every number carries an interval**: 47 of 50 and 940 of 1000 are both 94%, and only
-  one of them backs a claim about a 90% bar. A bare percentage is not representable here.
-- **Grades can say "I don't know"**: when the interval crosses a grade boundary, the answer
-  is `indeterminate` and names the two grades it sits between, instead of rounding up.
-- **Packs report facts, not scores**: a pack writes one row per item saying what happened.
-  Touchstone computes every rate. The rows ship inside the bundle, so anyone can redo it.
-- **Contained**: a pack reaches the hosts it declared and nothing else, on a network with
-  no route out. The proxy never decrypts traffic, so it never sees your API keys.
-
-What the bundle does and does not settle is in
-[what this does not prove](#what-this-does-not-prove). Read it before you rely on one.
+- **[Checkable without this tool](#checking-a-bundle-you-were-handed)**, with `shasum` and
+  the wifi off.
+- **[Every number carries an interval](#the-94-problem)**, and a bare percentage cannot be
+  represented at all.
+- **[Grades can say "I don't know"](#the-94-problem)** when the interval crosses the
+  boundary.
+- **[Packs report facts and never scores](#who-does-the-maths)**, so the arithmetic is
+  Touchstone's and anyone holding the bundle can redo it.
+- **[Contained](#containment)**: a pack reaches the hosts it declared and nothing else.
+- **[And what none of it proves](#what-this-does-not-prove)**, which is worth reading
+  before you rely on a bundle.
 
 ## Who this is for
 
@@ -100,7 +100,12 @@ confidence is scored against its outcomes as a calibration error and a confident
 rate.
 
 So read `94.0% (95% CI 92.4-95.4%, n=1000)` as a precise statement about one item set
-graded one way, which is what it is. It is precision, and it is not accuracy.
+graded one way, which is what it is.
+
+**It is precision, and it is not accuracy.**
+
+The other half of this, what a sealed bundle does and does not establish about the run
+that made it, is in [what this does not prove](#what-this-does-not-prove).
 
 **A few things Touchstone is not.** It is not a benchmark or a leaderboard, because it
 scores one system doing one job for one population rather than ranking models against each
@@ -112,18 +117,46 @@ what the evidence supports, and nothing in it amounts to an approval.
 A bundle is a folder. Somebody ran an evaluation, sealed the result and sent it to you,
 and this is what you can establish about it without taking their word for anything and
 without installing this tool. A bundle should still make sense after Touchstone is gone,
-so nothing in it needs Touchstone to read. Check any file against its recorded hash:
+so nothing in it needs Touchstone to read.
+
+This is the whole of one, 204 KB of it, from the run above:
+
+```
+run-004/
+├── MANIFEST.json                     every file below, with its SHA-256 and size
+├── PLAN.sha256                       the plan hash, checkable with shasum alone
+├── plan.lock.json                    the frozen plan: image digests, seeds, declared
+│                                     egress, resource ceilings
+├── environment.json                  what it ran on, and whether egress was enforced
+├── items.jsonl                       one row per test item, merged, each stamped with
+│                                     the pack that produced it
+├── estimates.json                    every rate with its interval, method, parameters
+│                                     and denominator
+├── scorecard.json                    the grade each indicator got, and what decided it
+├── ledger/
+│   └── RUNLOG.jsonl                  append-only, written as each event happened
+└── runs/
+    ├── example_pack-0/items.jsonl    the per-unit files, before merging
+    └── example_pack-1/items.jsonl
+```
+
+There is no database, no index and no proprietary format. Every file is JSON, JSON lines
+or a hash, and the two that carry the argument, `items.jsonl` and `estimates.json`, are
+the raw observations and the arithmetic done to them. You can recompute the second from
+the first without this tool.
+
+Check any file against its recorded hash:
 
 ```console
 $ shasum -a 256 run-004/items.jsonl
-69ea741b6e119ebbea72743a32de7636b24cd7975db524b835357466bb8ed667  run-004/items.jsonl
+fc127dc53abc97b4528d666a732707ca5b010dd108713ad830e540e0d3d932b0  run-004/items.jsonl
 ```
 
 Work out the whole bundle's hash from the manifest:
 
 ```console
 $ jq -cS '.files' run-004/MANIFEST.json | tr -d '\n' | shasum -a 256
-4c5cf2df7b1ad389d199650325dcde421490caa6c431b4d8819054f0fec0e772  -
+dd02c96f00ed44c64c2bd4867d86d03ae7155ddf720cb8e45c628409b4692bba  -
 ```
 
 That catches a file changed after the bundle was sealed. It does not catch someone who
@@ -142,21 +175,53 @@ for somebody who did not run the evaluation.
 pip install touchstone-dqi
 ```
 
+**Read this before following along.** `touchstone-dqi` 0.0.1 on PyPI is a placeholder and
+is older than this document, so install from source if you want the behaviour described
+here. The hashes below came from a real run and are **specific to the machine that made
+them**: `example_pack` is not published to any registry yet, so the image digest, and
+therefore every hash that follows it, will differ on yours until it is. The commands
+themselves run.
+
+A plan says what to run against what. This is `examples/plan.yaml`, whole:
+
+```yaml
+plan_name: "demo"
+access_tier: "black_box"
+seed: 7
+
+systems:
+  chatbot:
+    type: "llm_api"
+
+packs:
+  - id: "example_pack"
+    image: "example_pack:1.0"
+    systems:
+      system_under_test: "chatbot"
+    params:
+      max_items: 200
+    replicates: 2
+```
+
+`access_tier` is how much of the system the evaluation could see, and it caps what any
+grade may claim later. `replicates: 2` runs the whole thing twice, which is what makes
+run-to-run instability measurable rather than assumed.
+
 ```console
 $ touchstone validate examples/plan.yaml
 examples/plan.yaml: ok, 1 pack(s)
 
 $ touchstone freeze examples/plan.yaml -o ./run-004
 ./run-004/plan.lock.json: 1 pack(s) pinned
-sha256 d1f2714d732b1392cca83a1e36e7bca683da6cd1557a112c823183f6a093b9c7
+sha256 81c63db1ae445b9ebc6d4292a4784777884efeee2cbd28be60775e7f0fafbab9
 check it with: shasum -a 256 -c run-004/PLAN.sha256
 
 $ touchstone run ./run-004 -o ./run-004
 $ touchstone estimate ./run-004 --by language
-$ touchstone grade ./run-004 --score-card card.yaml
+$ touchstone grade ./run-004 --score-card examples/scorecard.yaml
 $ touchstone bundle ./run-004
-./run-004: sealed 8 file(s)
-sha256 4c5cf2df7b1ad389d199650325dcde421490caa6c431b4d8819054f0fec0e772
+./run-004: sealed 9 file(s)
+sha256 dd02c96f00ed44c64c2bd4867d86d03ae7155ddf720cb8e45c628409b4692bba
 
 $ touchstone verify ./run-004
 ./run-004: verified
@@ -166,6 +231,57 @@ $ touchstone verify ./run-004
 hashes the whole plan. After that, changing a pass mark changes the hash. So nobody can
 move a grade boundary after seeing the result without it showing.
 
+### The score card
+
+A score card is the rubric, as data. `examples/scorecard.yaml` is a runnable one, and the
+levels and thresholds in it are invented to show the shape of the file rather than to mean
+anything. One indicator of the four:
+
+```yaml
+levels: ["A", "B", "C", "unfit"]
+
+tier_ceilings:
+  black_box: "B"
+
+indicators:
+  - id: headline_accuracy
+    metric:
+      source: estimate
+      name: correct
+      pack_id: example_pack
+    assessment:
+      - level: "A"
+        condition: greater_equal_ci_lower
+        threshold: 0.9
+      - level: "B"
+        condition: greater_equal_ci_lower
+        threshold: 0.7
+```
+
+`greater_equal_ci_lower` reads the **bottom** of the interval, so a wide interval cannot
+buy a level the sample does not support. Nothing in the engine knows what `A` means, how
+many levels there are, or that `black_box` is a tier: all of it is read from this file,
+which is why a card with three levels and a card with eight both work.
+
+Running that card against the bundle above:
+
+```console
+$ touchstone grade ./run-004 --score-card examples/scorecard.yaml
+./run-004/scorecard.json: 4 indicator(s) at access tier black_box
+headline_accuracy: indeterminate, B or C  [0.7, 0.6534 to 0.7428, n=400]
+    the interval spans the B boundary of 0.7, so the grade is B or C and the evidence does not say which
+weakest_language: indeterminate, B or C  [0.6, 0.4566 to 0.7281, n=80, language=ig]
+    the interval spans the B boundary of 0.6, so the grade is B or C and the evidence does not say which
+run_to_run_stability: C  [0.09, n=400]
+calibration: C  [0.1498, n=400]
+2 indicator(s) indeterminate: the interval spans a grade boundary, so the evidence does not choose between the levels shown. Reporting the better one would be a claim this run cannot support
+```
+
+Two of the four came back `indeterminate` on a run of 400 items, which is the normal
+outcome and not a malfunction. `weakest_language` is the weakest of five language cells,
+and its interval is widened to hold across all five, because the weakest of five was
+chosen by looking rather than named in advance.
+
 ## Who does the maths
 
 **Whoever works out the score is who you end up trusting.** If the test container hands
@@ -174,7 +290,14 @@ the same people who would like the number to look good.
 
 So packs here do not work out scores at all. A pack writes one row per item saying what
 happened, Touchstone does the arithmetic, and the rows travel inside the bundle so that
-anyone can redo the sums:
+anyone can redo the sums.
+
+The run below is a real one, from published work rather than a demonstration: a flood
+warning system, asked for each of 6,772 river locations whether it could show evidence of
+coverage. `evidenced` is that question, `rung` splits the locations into the ones with a
+real gauge behind them and the ones inferred from a basin model, and low is the finding
+rather than a failure of the evaluation. `tests/test_estimate_credential.py` reproduces
+these numbers from the item records, to the last bit of both interval bounds.
 
 ```console
 $ touchstone estimate run-004 --by rung
@@ -196,7 +319,8 @@ so the numbers in a bundle can be worked out again years later.
 
 ## What this does not prove
 
-Two limits, both real, and neither fixable with a hash.
+Two limits, both real, and neither fixable with a hash. The third, what the interval
+itself covers, is under [the 94% problem](#the-94-problem).
 
 **Nothing stops someone running it ten times and sealing the run they liked.** Freezing
 the plan before the run means a grade boundary cannot be moved after seeing the result,
@@ -239,27 +363,31 @@ timeout, because those are different problems.
 validate -> freeze -> run -> estimate -> grade -> bundle -> verify
 ```
 
-| Command | Does | State |
+| Command | Does | Needs |
 |---|---|---|
-| `validate` | check the plan against what each pack says it needs | works |
-| `freeze` | lock the image versions, fix the random seeds, hash the plan | works |
-| `run` | run the packs, write one row per test item | works |
-| `estimate` | work out the rates and their intervals, split by group | works |
-| `grade` | apply a score card and give each indicator a grade | works |
-| `bundle` | hash every file and write `MANIFEST.json` | works |
-| `verify` | re-check a bundle against its manifest, offline | works |
+| `validate` | check the plan against what each pack says it needs | the plan and the packs |
+| `freeze` | lock the image versions, fix the random seeds, hash the plan | the Docker daemon |
+| `run` | run the packs, write one row per test item | the Docker daemon |
+| `estimate` | work out the rates and their intervals, split by group | the bundle |
+| `grade` | apply a score card and give each indicator a grade | the bundle and a card |
+| `bundle` | hash every file and write `MANIFEST.json` | the run directory |
+| `verify` | re-check a bundle against its manifest, offline | the bundle |
 
 **Only `run` needs a container.** Everything after it just reads files, so `verify` works
 on a plane, in a bank basement, with the wifi off.
 
 ## Status
 
-Early, and saying so. All seven commands work. The score card format is not settled yet,
-so `grade` uses whatever grade ladder the score card gives it rather than one built in.
-Version 0.0.1 on PyPI is a placeholder and is older than most of this.
+Early, and saying so. All seven commands work, which is what the table above means: each
+one does the job described and is tested doing it. What is not settled is the score card
+format, so `grade` uses whatever ladder the card gives it rather than one built in, and
+`examples/scorecard.yaml` is a demonstration of the shape rather than a rubric anyone
+should adopt.
 
-The hashes above come from a real run, but they are **specific to that machine**. They
-will not match yours until `example_pack` is published somewhere you can pull it from.
+Version 0.0.1 on PyPI is a placeholder and is older than most of this, and the hashes
+above will not reproduce until `example_pack` is published somewhere you can pull it from.
+Both are said again at the point where they would bite, under
+[producing a bundle](#producing-a-bundle).
 
 ## Requirements
 

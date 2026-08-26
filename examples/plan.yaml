@@ -2,6 +2,10 @@
 #
 #     docker build -t example_pack:1.0 packs/example_pack
 #
+# 200 items over two replicates is 400 records, which is enough for a language cell to
+# clear the minimum size a worst-stratum indicator should ever accept. The pack emits ten
+# by default; a demonstration that cannot fill a stratum demonstrates the wrong thing.
+#
 plan_name: "demo"
 access_tier: "black_box"
 seed: 7
@@ -16,5 +20,5 @@ packs:
     systems:
       system_under_test: "chatbot"
     params:
-      max_items: 10
+      max_items: 200
     replicates: 2

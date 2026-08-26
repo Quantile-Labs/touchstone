@@ -1,0 +1,112 @@
+# An example score card, and not a standard.
+#
+# The levels, the thresholds and the ceilings below are invented to show the shape of the
+# file and to make `touchstone grade` runnable against examples/plan.yaml. Do not cite
+# them and do not copy the numbers into anything real: what counts as fit for service is a
+# policy judgment about acceptable harm in a named use case, and a number invented in an
+# example becomes precedent the first time somebody quotes it.
+#
+# The engine knows none of this. The ladder, the thresholds and the ceilings are all data
+# read from this file, which is why a card with three levels and a card with eight both
+# work.
+score_card_name: "example"
+
+# Ordered best first. Nothing in the engine knows how many there are or what they mean.
+levels: ["A", "B", "C", "unfit"]
+
+# The best level an evaluation at a given access tier may reach, whatever it measured. A
+# claim cannot exceed the evidence the access allowed.
+tier_ceilings:
+  black_box: "B"
+  grey_box: "A"
+
+# The best level a metric from a pack that emitted no item records may reach.
+summary_only_ceiling: "C"
+
+indicators:
+  - id: headline_accuracy
+    name: "Correct answers over the whole sample"
+    metric:
+      source: estimate
+      name: correct
+      pack_id: example_pack
+    assessment:
+      # `_ci_lower` reads the bottom of the interval, so a wide interval cannot buy a
+      # level the sample does not support. This is the condition the whole tool is for.
+      - level: "A"
+        condition: greater_equal_ci_lower
+        threshold: 0.9
+        description: "the lower bound clears 0.9"
+      - level: "B"
+        condition: greater_equal_ci_lower
+        threshold: 0.7
+      - level: "C"
+        condition: greater_equal_ci_lower
+        threshold: 0.5
+      - level: "unfit"
+        condition: greater_equal
+        threshold: 0.0
+
+  - id: weakest_language
+    name: "The weakest language cell of at least thirty items"
+    metric:
+      source: worst_stratum
+      name: correct
+      pack_id: example_pack
+      keys: ["language"]
+      min_n: 30
+      higher_is_better: true
+    assessment:
+      - level: "A"
+        condition: greater_equal_ci_lower
+        threshold: 0.85
+      - level: "B"
+        condition: greater_equal_ci_lower
+        threshold: 0.6
+      - level: "C"
+        condition: greater_equal_ci_lower
+        threshold: 0.4
+      - level: "unfit"
+        condition: greater_equal
+        threshold: 0.0
+
+  - id: run_to_run_stability
+    name: "How far the rate moved between replicates"
+    metric:
+      source: replicate_variance
+      name: correct
+      pack_id: example_pack
+    assessment:
+      # A spread, so lower is better and there is no interval to read.
+      - level: "A"
+        condition: less_equal
+        threshold: 0.02
+      - level: "B"
+        condition: less_equal
+        threshold: 0.05
+      - level: "C"
+        condition: less_equal
+        threshold: 0.15
+      - level: "unfit"
+        condition: greater_equal
+        threshold: 0.0
+
+  - id: calibration
+    name: "Expected calibration error of the system's own confidence"
+    metric:
+      source: calibration
+      name: correct
+      pack_id: example_pack
+    assessment:
+      - level: "A"
+        condition: less_equal
+        threshold: 0.05
+      - level: "B"
+        condition: less_equal
+        threshold: 0.1
+      - level: "C"
+        condition: less_equal
+        threshold: 0.2
+      - level: "unfit"
+        condition: greater_equal
+        threshold: 0.0

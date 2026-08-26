@@ -12,6 +12,7 @@ import json
 import re
 from pathlib import Path
 
+import yaml
 from test_estimate_credential import EVIDENCED, HYBAS_ENTRIES, REAL_GAUGES
 from typer.testing import CliRunner
 
@@ -90,3 +91,34 @@ def test_the_readme_verify_line_is_what_the_command_prints(tmp_path):
 
     printed = result.output.replace(str(tmp_path), "./run-004").splitlines()
     assert printed == _quoted_output("touchstone verify ./run-004")
+
+
+YAML_BLOCK = re.compile(r"```yaml\n(.*?)```", re.DOTALL)
+EXAMPLES = README.parent / "examples"
+
+
+def _yaml_blocks() -> list[dict]:
+    return [yaml.safe_load(block) for block in YAML_BLOCK.findall(README.read_text())]
+
+
+def test_the_readme_quotes_the_example_plan_as_it_is():
+    """The plan in the README is the file, not a paraphrase of it."""
+    quoted = next(block for block in _yaml_blocks() if "plan_name" in block)
+    assert quoted == yaml.safe_load((EXAMPLES / "plan.yaml").read_text())
+
+
+def test_the_readme_score_card_excerpt_matches_the_example_card():
+    """An excerpt, so the levels and the one indicator it shows are what is checked."""
+    quoted = next(block for block in _yaml_blocks() if "indicators" in block)
+    card = yaml.safe_load((EXAMPLES / "scorecard.yaml").read_text())
+
+    assert quoted["levels"] == card["levels"]
+    assert quoted["tier_ceilings"]["black_box"] == card["tier_ceilings"]["black_box"]
+
+    shown = quoted["indicators"][0]
+    actual = next(item for item in card["indicators"] if item["id"] == shown["id"])
+    assert shown["metric"] == actual["metric"]
+
+    # An excerpt drops the optional prose, so every field it does show has to agree.
+    for quoted_rule, real_rule in zip(shown["assessment"], actual["assessment"], strict=False):
+        assert quoted_rule.items() <= real_rule.items()
