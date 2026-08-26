@@ -1,28 +1,50 @@
 # Touchstone
 
-Touchstone is an AI evaluation harness that produces results you can check yourself. It
-runs your tests against an AI system inside containers, works out every number itself, and
-seals the whole run into one folder holding the plan, one row per test item, and a SHA-256
-of every file. The system under test can be an LLM, an LLM application, a classifier or a
-scoring model, and the harness treats them all the same way.
+Somebody hands you a number. This system is 94% accurate, here is the report, please sign
+off. You have to decide whether to act on it, and most of the time the only thing you can
+actually check is whether the report contradicts itself.
 
-Anyone can re-check that folder offline with `shasum`, which means you do not have to
-trust whoever ran it to have done the arithmetic honestly. Most evaluation tools hand you
-a score and ask you to believe it, whereas this one hands you the working alongside the
-answer. What that does not settle is in
-[what this does not prove](#what-this-does-not-prove), which is worth reading before you
-rely on a bundle.
+Touchstone produces evidence for that situation. It runs an evaluation inside containers,
+works out every number itself rather than taking the system's word for any of them, and
+seals the run into one folder holding the plan it ran, one row per test item, and a
+SHA-256 of every file. Re-checking that folder takes `shasum` and nothing else, so the
+claim survives the tool that made it and can be checked by somebody who never installed
+it.
 
+The system under test can be an LLM, an LLM application, a classifier or a scoring model,
+and the harness treats them all the same way.
+
+- **Checkable without this tool**: `shasum -a 256 -c PLAN.sha256` verifies a run with
+  nothing of ours installed. Three dependencies, and it works with the wifi off.
 - **Every number carries an interval**: 47 of 50 and 940 of 1000 are both 94%, and only
   one of them backs a claim about a 90% bar. A bare percentage is not representable here.
 - **Grades can say "I don't know"**: when the interval crosses a grade boundary, the answer
   is `indeterminate` and names the two grades it sits between, instead of rounding up.
 - **Packs report facts, not scores**: a pack writes one row per item saying what happened.
   Touchstone computes every rate. The rows ship inside the bundle, so anyone can redo it.
-- **Checkable without this tool**: `shasum -a 256 -c PLAN.sha256` verifies a run with
-  nothing of ours installed. Three dependencies, and it works with the wifi off.
 - **Contained**: a pack reaches the hosts it declared and nothing else, on a network with
   no route out. The proxy never decrypts traffic, so it never sees your API keys.
+
+What the bundle does and does not settle is in
+[what this does not prove](#what-this-does-not-prove). Read it before you rely on one.
+
+## Who this is for
+
+**People who are handed an evaluation result and have to decide whether to act on it.**
+Auditors, procurement, risk functions, regulators, and the assurance team inside the
+organisation being assessed. The bundle is built for somebody who was not in the room when
+the evaluation ran, is not going to install this tool, and needs the claim to still check
+out in three years when the vendor, the model version and the harness have all moved on.
+
+**And the teams who have to produce evidence for those people.** If a number you publish
+is going to be re-checked by somebody who does not trust you yet, you are doing the same
+work from the other side.
+
+**It is not built for iterating on a prompt.** Freezing a plan, resolving digests and
+sealing a bundle are pure overhead in a loop where you change one line and rerun twenty
+times. Inspect, promptfoo and lm-eval-harness are better at that loop, and the sensible
+arrangement is to use one of them while you are exploring and this for the claim you
+eventually publish.
 
 ## The 94% problem
 
@@ -85,7 +107,36 @@ scores one system doing one job for one population rather than ranking models ag
 other. It is not a safety or capability test, and it is not a certificate: a grade says
 what the evidence supports, and nothing in it amounts to an approval.
 
-## Quickstart
+## Checking a bundle you were handed
+
+A bundle is a folder. Somebody ran an evaluation, sealed the result and sent it to you,
+and this is what you can establish about it without taking their word for anything and
+without installing this tool. A bundle should still make sense after Touchstone is gone,
+so nothing in it needs Touchstone to read. Check any file against its recorded hash:
+
+```console
+$ shasum -a 256 run-004/items.jsonl
+69ea741b6e119ebbea72743a32de7636b24cd7975db524b835357466bb8ed667  run-004/items.jsonl
+```
+
+Work out the whole bundle's hash from the manifest:
+
+```console
+$ jq -cS '.files' run-004/MANIFEST.json | tr -d '\n' | shasum -a 256
+4c5cf2df7b1ad389d199650325dcde421490caa6c431b4d8819054f0fec0e772  -
+```
+
+That catches a file changed after the bundle was sealed. It does not catch someone who
+re-seals the whole thing, because they could redo the hashes too. For that you need a
+timestamp from outside: `freeze --anchor` stamps the plan hash with OpenTimestamps, which
+proves the plan existed before the run.
+
+If you would rather install it than drive `shasum` by hand, `touchstone verify ./run-004`
+walks every file in the manifest in one command, offline, and exits non-zero on the first
+thing that does not match. It is the same check, and it is the one command here written
+for somebody who did not run the evaluation.
+
+## Producing a bundle
 
 ```bash
 pip install touchstone-dqi
@@ -142,28 +193,6 @@ the sums in R, in a spreadsheet, or on paper.
 
 This step needs no Docker, no database and no network. It reads the rows and nothing else,
 so the numbers in a bundle can be worked out again years later.
-
-## Verify without Touchstone
-
-A bundle should still make sense after this tool is gone, so nothing in it needs this
-tool to read. Check any file against its recorded hash:
-
-```console
-$ shasum -a 256 run-004/items.jsonl
-69ea741b6e119ebbea72743a32de7636b24cd7975db524b835357466bb8ed667  run-004/items.jsonl
-```
-
-Work out the whole bundle's hash from the manifest:
-
-```console
-$ jq -cS '.files' run-004/MANIFEST.json | tr -d '\n' | shasum -a 256
-4c5cf2df7b1ad389d199650325dcde421490caa6c431b4d8819054f0fec0e772  -
-```
-
-That catches a file changed after the bundle was sealed. It does not catch someone who
-re-seals the whole thing, because they could redo the hashes too. For that you need a
-timestamp from outside: `freeze --anchor` stamps the plan hash with OpenTimestamps, which
-proves the plan existed before the run.
 
 ## What this does not prove
 
