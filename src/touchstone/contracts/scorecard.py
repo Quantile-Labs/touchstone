@@ -43,6 +43,15 @@ numbers: neither has a sampling distribution this codebase is willing to assert.
 class MetricRef(BaseModel):
     """Which number in `estimates.json` an indicator is about."""
 
+    bundle: Literal["this", "prior"] = "this"
+    """Which evaluation to read it from.
+
+    `prior` reaches into the bundle before this one, which is how movement is graded: a
+    drift indicator is an expression over the same metric in both. Every other command
+    here is a pure function of one bundle and stays that way. This is the one reference
+    that is not, and it is explicit in the score card rather than implied by a flag, so a
+    reader can see which numbers came from where."""
+
     source: Source = "estimate"
     name: str = Field(min_length=1)
     """The metric key, as the pack reported it."""
@@ -295,6 +304,11 @@ class Scorecard(BaseModel):
     plan_sha256: str | None = None
     """The frozen plan these grades were asserted against. A grade is only meaningful
     beside the thresholds that were fixed before the run."""
+
+    prior_plan_sha256: str | None = None
+    """The plan behind the earlier bundle, where an indicator compared the two. Named
+    beside this run's, because movement between two evaluations run under different plans
+    is movement in the plan as much as in the system."""
 
     audit_name: str | None = None
     audit_assessor: str | None = None

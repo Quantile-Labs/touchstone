@@ -49,6 +49,15 @@ REFUSED = "refused"
 INDETERMINATE = "indeterminate"
 
 
+@dataclass(frozen=True)
+class Prior:
+    """The evaluation before this one, for the indicators that grade movement."""
+
+    estimates: Estimates
+    summary_only: frozenset[str] = frozenset()
+    plan_sha256: str | None = None
+
+
 def load_scorecard(path: Path) -> ScoreCard:
     """Read a score card and check it against itself. Raises on anything malformed."""
     try:
@@ -71,10 +80,11 @@ def grade(
     plan_sha256: str | None = None,
     audit: AuditResponses | None = None,
     audit_sha256: str | None = None,
+    prior: Prior | None = None,
 ) -> Scorecard:
     """Every indicator, decided against the estimates and capped by the access tier."""
     graded = [
-        _indicator(indicator, score_card, estimates, access_tier, summary_only, audit)
+        _indicator(indicator, score_card, estimates, access_tier, summary_only, audit, prior)
         for indicator in score_card.indicators
     ]
     return Scorecard(
@@ -83,6 +93,7 @@ def grade(
         access_tier=access_tier,
         levels=list(score_card.levels),
         plan_sha256=plan_sha256,
+        prior_plan_sha256=prior.plan_sha256 if prior else None,
         audit_name=audit.audit_name if audit else None,
         audit_assessor=audit.assessor if audit else None,
         audit_sha256=audit_sha256,
@@ -125,6 +136,7 @@ def _indicator(
     access_tier: str,
     summary_only: frozenset[str],
     audit: AuditResponses | None = None,
+    prior: Prior | None = None,
 ) -> GradedIndicator:
     ceiling = _tier_ceiling(indicator, score_card, access_tier)
     if ceiling is NOT_ASSESSABLE:
@@ -146,7 +158,21 @@ def _indicator(
     if isinstance(metric, AuditRef):
         return _audited(indicator, score_card, capped, audit)
 
-    measured, expression = _measure(metric, indicator.id, estimates, summary_only)
+    if prior is None and any(ref.bundle == "prior" for ref in _refs(metric)):
+        # Not an error and not a failing grade. A first evaluation of a system has nothing
+        # to have moved from, and saying so is the true statement.
+        return GradedIndicator(
+            id=indicator.id,
+            name=indicator.name,
+            verdict="ungraded",
+            reason=(
+                "compares this evaluation with the one before it and no prior bundle was "
+                "given. Pass --prior to grade it, and on a first evaluation there is "
+                "nothing to compare against"
+            ),
+        )
+
+    measured, expression = _measure(metric, indicator.id, estimates, summary_only, prior)
     value, low, high = _value_of(metric, measured)
     applied = _applied_ceiling(score_card, capped, measured)
 
@@ -408,18 +434,36 @@ def _applied_ceiling(
     return (binding, "access_tier" if binding == tier_ceiling else "summary_only")
 
 
+def _refs(metric: MetricRef | Expression) -> list[MetricRef]:
+    return list(metric.values.values()) if isinstance(metric, Expression) else [metric]
+
+
 def _measure(
     metric: MetricRef | Expression,
     indicator_id: str,
     estimates: Estimates,
     summary_only: frozenset[str],
+    prior: Prior | None = None,
 ) -> tuple[list[Measured], str | None]:
-    if isinstance(metric, Expression):
-        measured = [
-            _resolve(ref, estimates, summary_only, indicator_id) for ref in metric.values.values()
-        ]
-        return measured, metric.expression
-    return [_resolve(metric, estimates, summary_only, indicator_id)], None
+    measured = [
+        _resolve(ref, *_where(ref, estimates, summary_only, prior), indicator_id)
+        for ref in _refs(metric)
+    ]
+    return measured, metric.expression if isinstance(metric, Expression) else None
+
+
+def _where(
+    ref: MetricRef, estimates: Estimates, summary_only: frozenset[str], prior: Prior | None
+) -> tuple[Estimates, frozenset[str]]:
+    """Which bundle this reference reads, and which packs emitted no items in it.
+
+    The summary-only set travels with the bundle rather than with the run. A pack that was
+    summary only last time and emits items now would otherwise cap a grade on evidence
+    that no longer applies, or fail to cap one on evidence that does.
+    """
+    if ref.bundle == "prior" and prior is not None:
+        return prior.estimates, prior.summary_only
+    return estimates, summary_only
 
 
 def _value_of(
@@ -550,8 +594,9 @@ def _from_estimate(ref: MetricRef, entry: Estimate, contaminated: bool) -> Measu
 def _missing(indicator_id: str, ref: MetricRef, kind: str) -> str:
     where = f", stratum {ref.stratum}" if ref.stratum else ""
     pack = f" for pack {ref.pack_id!r}" if ref.pack_id else " pooled"
+    which = "the prior bundle" if ref.bundle == "prior" else "this bundle"
     return (
-        f"{indicator_id}: no {kind} named {ref.name!r}{pack}{where} in this bundle. "
+        f"{indicator_id}: no {kind} named {ref.name!r}{pack}{where} in {which}. "
         "An indicator naming a metric that was never computed is an error, not a zero"
     )
 
@@ -561,6 +606,7 @@ def check(
     estimates: Estimates,
     access_tier: str = "",
     audit: AuditResponses | None = None,
+    prior: Prior | None = None,
 ) -> list[str]:
     """Cross-check a score card against a bundle. Returns every problem, not the first.
 
@@ -618,9 +664,15 @@ def check(
             for name in sorted(declared - used):
                 problems.append(f"{indicator.id}: {name!r} is in values and not in the expression")
 
-        for ref in metric.values.values() if isinstance(metric, Expression) else [metric]:
+        for ref in _refs(metric):
+            if ref.bundle == "prior" and prior is None:
+                # Nothing to check against, and nothing wrong with the card. The indicator
+                # comes back ungraded rather than broken.
+                continue
             try:
-                _resolve(ref, estimates, frozenset(), indicator.id)
+                _resolve(
+                    ref, _where(ref, estimates, frozenset(), prior)[0], frozenset(), indicator.id
+                )
             except ScoreCardError as exc:
                 problems.append(str(exc))
     return problems
@@ -632,6 +684,15 @@ def summary_only_packs(run_dir: Path) -> frozenset[str]:
     if not path.exists():
         return frozenset()
     return frozenset(pack.id for pack in load_lock(path).packs if not pack.emits_items)
+
+
+def load_prior(run_dir: Path) -> Prior:
+    """The earlier evaluation, read the same way this one is. Offline, like everything here."""
+    return Prior(
+        estimates=load_estimates(run_dir),
+        summary_only=summary_only_packs(run_dir),
+        plan_sha256=plan_hash(run_dir),
+    )
 
 
 def access_tier(run_dir: Path) -> str:
