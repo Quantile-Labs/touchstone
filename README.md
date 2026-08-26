@@ -50,7 +50,7 @@ the error bar crosses that threshold, the honest answer is not the better grade:
 ```console
 headline_accuracy: indeterminate, A or C  [0.91, 0.8783 to 0.9345, n=400]
     the interval spans the A boundary of 0.9, so the grade is A or C and the evidence does not say which
-worst_stratum: indeterminate, A or B  [0.861, 0.803 to 0.905, n=180, language=pcm]
+worst_stratum: indeterminate, A or B  [0.8611, 0.7846 to 0.9135, n=180, language=pcm]
 ```
 
 Grading the middle number on its own would have printed two confident letters, neither of

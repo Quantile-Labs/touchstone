@@ -6,6 +6,7 @@ lost its denominator.
 """
 
 from math import nan, sqrt
+from statistics import NormalDist
 
 Z_95 = 1.96
 """Two-sided normal quantile for 95 percent. The only interval this tool prints."""
@@ -14,6 +15,28 @@ WILSON_REFERENCE = (
     "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical "
     "inference. Journal of the American Statistical Association 22(158), 209-212."
 )
+
+BONFERRONI_REFERENCE = (
+    "Miller, R. G. (1981). Simultaneous Statistical Inference, 2nd edition. Springer, "
+    "chapter 1. The Bonferroni inequality applied to k simultaneous intervals."
+)
+
+
+def bonferroni_z(comparisons: int, confidence: float = 0.95) -> float:
+    """The normal quantile for `confidence` held simultaneously over `comparisons` cells.
+
+    One comparison returns `Z_95` rather than the exact 1.959964, so a rollup with a
+    single eligible cell prints the same arithmetic as everywhere else in the tool and a
+    reader is not asked to account for a difference in the sixth decimal that means
+    nothing.
+    """
+    if comparisons < 1:
+        raise ValueError(f"cannot adjust for {comparisons} comparisons")
+    if not 0.0 < confidence < 1.0:
+        raise ValueError(f"confidence has to lie in (0, 1), got {confidence}")
+    if comparisons == 1 and confidence == 0.95:
+        return Z_95
+    return NormalDist().inv_cdf(1 - (1 - confidence) / (2 * comparisons))
 
 
 def wilson(k: int, n: int, z: float = Z_95) -> tuple[float, float, float]:
