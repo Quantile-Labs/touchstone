@@ -142,9 +142,13 @@ That catches a file changed after sealing, not someone who re-seals the whole th
 redoes the hashes. For that you need a timestamp from outside: `freeze --anchor` stamps
 the plan hash with OpenTimestamps, proving the plan existed before the run.
 
-`touchstone verify ./run-004` walks the whole manifest in one offline command and exits
-non-zero on the first mismatch. Same check, for people who would rather not drive `shasum`
-by hand.
+If you would rather install it than drive `shasum` by hand, one offline command walks
+every file in the manifest and exits non-zero on the first mismatch:
+
+```console
+$ touchstone verify ./run-004
+./run-004: verified
+```
 
 ## Who does the maths
 
