@@ -226,6 +226,14 @@ class GradedIndicator(BaseModel):
     measured: list[Measured] = Field(default_factory=list)
     """Every number read. More than one where the metric was an expression."""
 
+    value: float | None = None
+    """The number the ladder was actually walked against.
+
+    Equal to the single measured value for a plain reference, and the computed result for
+    an expression, where it is the only place that number appears. A report that grades a
+    difference between two rates and prints one of the rates beside the grade is showing a
+    number that did not decide anything."""
+
     expression: str | None = None
     """The formula, where one was used. It carries no interval, by design: combining two
     intervals needs their correlation, and a bundle does not record it."""

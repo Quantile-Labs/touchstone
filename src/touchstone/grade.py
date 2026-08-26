@@ -146,7 +146,7 @@ def _indicator(
         )
 
     decided = _walk(indicator.assessment, value, low, high)
-    return _cap(indicator, decided, score_card, applied, measured, expression)
+    return _cap(indicator, decided, score_card, applied, measured, expression, value)
 
 
 @dataclass(frozen=True)
@@ -242,6 +242,7 @@ def _cap(
     ceiling: tuple[str | None, str | None],
     measured: list[Measured],
     expression: str | None,
+    value: float,
 ) -> GradedIndicator:
     """Apply the claim ceiling and give the decision its identity.
 
@@ -259,6 +260,7 @@ def _cap(
         reason=decided.reason,
         uncapped_level=decided.level,
         measured=measured,
+        value=value,
         expression=expression,
     )
     if level is None:
@@ -571,18 +573,34 @@ def lines(scorecard: Scorecard) -> list[str]:
         else:
             head += "ungraded"
 
-        shown = indicator.measured[0] if indicator.measured else None
-        if shown is not None and shown.value is not None:
-            head += f"  [{shown.value:.4g}"
-            if shown.low is not None and shown.high is not None:
-                head += f", {shown.low:.4g} to {shown.high:.4g}"
-            head += f", n={shown.n}"
-            if shown.stratum:
-                head += ", " + ", ".join(
-                    f"{key}={value}" for key, value in sorted(shown.stratum.items())
-                )
-            head += "]"
-        rendered.append(head)
+        rendered.append(head + _working(indicator))
         if indicator.reason:
             rendered.append(f"    {indicator.reason}")
     return rendered
+
+
+def _working(indicator: GradedIndicator) -> str:
+    """What the level was decided on, in brackets after it.
+
+    An expression shows its own value and the formula that produced it, and no interval
+    and no denominator: it has neither. Its inputs are in `scorecard.json`, each with the
+    denominator it carried, and collapsing them onto one line would invent a shared one.
+    """
+    if indicator.value is None:
+        return ""
+    if indicator.expression is not None:
+        return f"  [{indicator.value:.4g} = {indicator.expression}]"
+
+    shown = indicator.measured[0] if indicator.measured else None
+    if shown is None:
+        return f"  [{indicator.value:.4g}]"
+
+    working = f"  [{indicator.value:.4g}"
+    if shown.low is not None and shown.high is not None:
+        working += f", {shown.low:.4g} to {shown.high:.4g}"
+    working += f", n={shown.n}"
+    if shown.stratum:
+        working += ", " + ", ".join(
+            f"{key}={value}" for key, value in sorted(shown.stratum.items())
+        )
+    return working + "]"

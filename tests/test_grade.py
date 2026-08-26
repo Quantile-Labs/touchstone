@@ -12,7 +12,7 @@ import pytest
 from touchstone.contracts.estimates import Calibration, Estimate, Estimates
 from touchstone.contracts.scorecard import ScoreCard
 from touchstone.errors import ScoreCardError
-from touchstone.grade import check, grade
+from touchstone.grade import check, grade, lines
 
 LEVELS = ["A", "B", "C", "D"]
 
@@ -194,6 +194,44 @@ def test_an_expression_grades_on_its_combined_value():
         "went in. It is the combined value that has none, which is why check() refuses an "
         "interval condition against an expression"
     )
+
+
+def test_an_expression_prints_its_own_value_and_not_its_first_input():
+    """The graded number and the printed number were different. `operational_degradation`
+    grades a drop between two rates and the line beside it showed the clean rate, which is
+    a report quoting a figure that decided nothing."""
+    scorecard = grade(
+        card(
+            {
+                "expression": "clean - operational",
+                "values": {
+                    "clean": {"name": "correct", "pack_id": "procedural_ng"},
+                    "operational": {"name": "correct_degraded", "pack_id": "procedural_ng"},
+                },
+            },
+            [{"level": "A", "condition": "less_equal", "threshold": 0.05}],
+        ),
+        bundle(rate("correct", 0.93, 0.89, 0.955), rate("correct_degraded", 0.9, 0.85, 0.93)),
+        "black_box",
+    )
+    scored = scorecard.indicators[0]
+
+    assert scored.value == pytest.approx(0.03)
+    printed = lines(scorecard)[0]
+    assert "0.03 = clean - operational" in printed
+    assert "0.93" not in printed, "the clean rate is an input, not the graded value"
+    assert "0.89 to 0.955" not in printed, "an expression carries no interval"
+
+
+def test_a_plain_reference_still_prints_its_interval_and_denominator():
+    scorecard = grade(
+        card({"name": "correct", "pack_id": "procedural_ng"}, PASSES),
+        bundle(rate("correct", 0.9, 0.85, 0.93)),
+        "black_box",
+    )
+
+    assert scorecard.indicators[0].value == pytest.approx(0.9)
+    assert lines(scorecard)[0].endswith("[0.9, 0.85 to 0.93, n=200]")
 
 
 def test_summary_only_evidence_is_capped():
