@@ -44,6 +44,8 @@ PAST_TENSE = re.compile(
     r"implemented|adds|fixes|updates|removes|changes|implements)\b"
 )
 
+SLOGAN = re.compile(r",\s+not\b")
+
 
 def check(message: str) -> list[str]:
     lines = message.rstrip().splitlines()
@@ -75,6 +77,9 @@ def check(message: str) -> list[str]:
     if PAST_TENSE.match(subject.lower()):
         word = subject.split()[0]
         errors.append(f"subject is not imperative, write 'add' not '{word}'")
+
+    if SLOGAN.search(subject):
+        errors.append("subject is an 'x, not y' slogan, describe the change")
 
     if len(lines) > 1 and lines[1].strip():
         errors.append("no blank line between subject and body")

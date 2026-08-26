@@ -12,9 +12,10 @@ fix digest resolution for multi-arch images
 drop unused seed parameter from plan loader
 ```
 
-**Rules 1 to 8 are enforced by `scripts/check_commit_msg.py`. Rules 9 and 10 are not,
-and are marked so, because a rule that claims enforcement it does not have teaches people
-to stop believing the list.**
+**Rules 1 to 8 are enforced by `scripts/check_commit_msg.py`, and so is the `X, not Y`
+half of rule 9. The rest of rule 9 and all of rule 10 are not, and are marked so, because
+a rule that claims enforcement it does not have teaches people to stop believing the
+list.**
 
 1. Subject is 50 characters or fewer. Hard limit 72.
 2. Imperative mood. `add`, not `added` or `adds`.
@@ -27,9 +28,11 @@ to stop believing the list.**
    utilise, holistic, streamline, unlock, empower.
 7. No AI attribution. No `Co-Authored-By` for a tool, no `Generated with`, no emoji.
 8. No issue-tracker noise in the subject. Put refs in the body.
-9. **Describe the change, do not editorialise it.** *(not enforced)* The subject is a verb
+9. **Describe the change, do not editorialise it.** *(half enforced)* The subject is a verb
    and the thing it acts on. No rhetorical shapes, and in particular no `X, not Y`, which
-   reads as a slogan and says half as much as a plain description would.
+   reads as a slogan and says half as much as a plain description would. The linter
+   rejects a subject with `, not` in it; whether the rest of a subject describes or
+   editorialises is a judgment no regular expression makes.
 10. **The body is prose.** *(not enforced)* Sentences that join with a comma and carry a
     clause. Short declaratives stacked one after another read as though nobody wrote them,
     which is a bad look on a repository about evidence.
