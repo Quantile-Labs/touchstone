@@ -175,6 +175,11 @@ for somebody who did not run the evaluation.
 pip install touchstone-dqi
 ```
 
+The package is `touchstone-dqi` because `touchstone` was already claimed on PyPI. DQI is
+the deployment quality index this harness is being built to carry, which is a separate
+piece of work and is not published, so nothing here grades against it. The engine does not
+know what DQI is: it applies whatever score card it is given.
+
 **Read this before following along.** `touchstone-dqi` 0.0.1 on PyPI is a placeholder and
 is older than this document, so install from source if you want the behaviour described
 here. The hashes below came from a real run and are **specific to the machine that made
