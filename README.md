@@ -1,21 +1,29 @@
 # Touchstone
 
-**An AI evaluation harness that produces evidence a sceptic can re-check.**
+**An AI evaluation harness that makes results trustworthy by making them checkable.**
 
-Touchstone evaluates AI systems (LLMs and LLM applications, classifiers, decisioning
-models) by running evaluation packs against them in containers. It computes every
-statistic itself and seals the result into an evidence bundle: the frozen plan, every
-per-item observation, and a SHA-256 over every file.
+Trust in an AI evaluation normally rests on who ran it. Touchstone moves it onto the
+evidence.
 
-Anyone can re-check that bundle offline, without this tool, and without trusting whoever
-produced it. That is the difference between an AI evaluation and AI assurance.
+It evaluates AI systems (LLMs and LLM applications, classifiers, decisioning models) by
+running evaluation packs against them in containers, computes every statistic itself, and
+seals the result into an evidence bundle: the frozen plan, every per-item observation, and
+a SHA-256 over every file.
+
+That bundle can be re-checked offline, by anyone, without this tool. **Trust in the result
+does not depend on trusting whoever produced it**, which is the difference between an AI
+evaluation and AI assurance.
 
 ## Why AI evaluation needs this
 
 An evaluation answers *how did the system score*. Assurance answers *what may be claimed
-about it, and how would a sceptic check*. The second is what a regulator, a bank's model
-risk function, or a procurement review actually needs, and almost no AI evaluation tooling
-produces it.
+about it, and why should anyone believe the claim*. The second is what a regulator, a
+bank's model risk function, or a procurement review actually needs, and almost no AI
+evaluation tooling produces it.
+
+Trust that rests on a reputation is not transferable: it has to be re-established with
+every new reader, and it cannot be audited. Trust that rests on evidence anyone can
+recompute transfers on its own. That is the whole design.
 
 Start with the smallest version of the problem. Most AI evaluation tooling reports a rate,
 and a rate on its own cannot be checked.
@@ -95,7 +103,9 @@ recording that it was.
 
 **This is the trust boundary, and it is inverted from how AI evaluation usually works.**
 Whoever computes the statistic is who you have to trust. If a container reports *"94%
-accuracy"*, you are trusting its author, who is often the party that wants a good score.
+accuracy"*, that trust goes to its author, who is often the party with an interest in the
+answer. Moving the computation into the harness moves the trust onto something a reader
+can check for themselves.
 
 Touchstone packs report what happened, one record per item. They never report a rate. The
 harness computes every statistic, which is what makes the aggregate re-checkable from a
@@ -176,8 +186,8 @@ what lets `verify` run on a plane, in a bank basement, with the wifi off.
 
 ## Status
 
-Early, and honest about it. Built for AI assurance work where the result has to survive
-someone who does not trust the party that produced it. All seven pipeline commands work. The score card format is not
+Early, and honest about it. Built for AI assurance work, where a result has to hold up for
+a reader who was not there when it was produced. All seven pipeline commands work. The score card format is not
 fixed, so `grade` reads a ladder the score card declares rather than one this tool defines.
 Version 0.0.1 on PyPI is a placeholder release that predates most of this.
 
