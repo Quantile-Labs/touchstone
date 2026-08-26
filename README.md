@@ -1,10 +1,10 @@
 # Touchstone
 
-**An open-source harness for evaluation results that survive scrutiny.**
+**An open-source harness for AI evaluations that seal into a checkable evidence bundle.**
 
-Touchstone runs an evaluation in containers, computes every number itself rather than
-taking the system's word for it, and seals the plan, the per-item records and a SHA-256
-of every file into a folder anyone can re-check with `shasum`. Core features:
+Touchstone runs an evaluation in containers, works out every number itself rather than
+taking the system's word for any of them, and writes the plan, one row per test item and a
+SHA-256 of every file into a folder anyone can re-check with `shasum`. Core features:
 
 - **Bundles checkable without this tool.** Every file is JSON, JSON lines or a hash. No
   database, no index, no proprietary format.
@@ -18,8 +18,8 @@ of every file into a folder anyone can re-check with `shasum`. Core features:
 - **A score card is data.** Levels, thresholds and access-tier ceilings are read from a
   YAML file, so a card with three levels and a card with eight both work.
 
-It is built for people handed a result who have to decide whether to act on it — auditors,
-procurement, risk, regulators — and for the teams producing evidence for them. It is not
+It is built for people handed a result who have to decide whether to act on it. Auditors,
+procurement, risk, regulators, and the teams producing evidence for them. It is not
 built for iterating on a prompt: freezing plans and sealing bundles are overhead in a loop
 where you change a line and rerun twenty times. Use Inspect, promptfoo or lm-eval-harness
 while exploring, and this for the claim you publish.
@@ -32,7 +32,7 @@ pip install touchstone-dqi
 
 Python 3.12 or later. `freeze` and `run` need Docker; nothing else does.
 
-> **Note.** `touchstone-dqi` 0.0.1 on PyPI is a placeholder older than this document —
+> **Note.** `touchstone-dqi` 0.0.1 on PyPI is a placeholder older than this document, so
 > install from source for the behaviour below. `example_pack` is not published to a
 > registry yet, so the image digest, and every hash after it, will differ on your machine.
 > The commands themselves run.
@@ -54,8 +54,8 @@ headline_accuracy: indeterminate, A or C  [0.91, 0.8783 to 0.9345, n=400]
     the interval spans the A boundary of 0.9, so the evidence does not say which
 ```
 
-**The interval is sampling error, and only that** — how far the number would move if you
-drew another set of items the same way. Three larger errors are not in it: your items are
+**The interval is sampling error, and only that.** It is how far the number would move if
+you drew another set of items the same way. Three larger errors are not in it: your items are
 not a random sample of deployment, whatever decided `correct` has its own error rate
 (correlated, not independent, when the judge is a model), and a leaked item set measures
 recall rather than ability. Two of the usual suspects *are* measured and reported next to
@@ -112,7 +112,7 @@ boundary cannot be moved after seeing the result without it showing.
 
 ## Checking a bundle you were handed
 
-A bundle is a folder — 204 KB for the run above — and it should still make sense after
+A bundle is a folder, 204 KB for the run above, and it should still make sense after
 Touchstone is gone:
 
 ```
@@ -153,8 +153,8 @@ $ touchstone verify ./run-004
 ## Who does the maths
 
 Whoever computes the score is who you end up trusting. If the container hands you "94%
-accuracy", you are trusting whoever wrote that container — often the people who would like
-the number to look good. So packs here emit one row per item and no scores at all.
+accuracy", you are trusting whoever wrote that container, and often that is the people who
+would like the number to look good. So packs here emit one row per item and no scores at all.
 
 A real run, from published work: a flood warning system asked, for each of 6,772 river
 locations, whether it could show evidence of coverage. `tests/test_estimate_credential.py`
@@ -226,7 +226,7 @@ plane with the wifi off.
 A pack that asks for no network gets none; a pack that lists hosts gets those and nothing
 else. It runs on a Docker network with no route out, and a small proxy is the only door.
 The proxy reads the hostname and passes the rest through untouched, so it never sees your
-API keys — and a pack that ignores it gets nowhere, because there is nowhere else to go.
+API keys. A pack that ignores it gets nowhere, because there is nowhere else to go.
 
 Each pack declares memory, CPU and process limits, which `freeze` writes into the plan.
 Swap is capped too. A pack killed for memory is recorded as `out_of_memory`, not as a
@@ -236,8 +236,8 @@ timeout.
 
 **Nothing stops someone running it ten times and sealing the run they liked.** Run
 selection leaves no trace in any artefact the tool produces. Closing it takes a commitment
-made in advance to publish every run against a plan — a process somebody keeps, not
-something `shasum` checks.
+made in advance to publish every run against a plan, which is a process somebody keeps and
+not something `shasum` checks.
 
 **A pinned image is not a pinned system.** `freeze` pins the code that does the asking.
 The system being asked is often a hosted API, and there is no digest for somebody else's
