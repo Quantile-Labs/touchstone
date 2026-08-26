@@ -1,15 +1,24 @@
 # Touchstone
 
-**Evaluation runs that produce evidence a stranger can re-check.**
+**An AI evaluation harness that produces evidence a sceptic can re-check.**
 
-Touchstone runs your evaluation packs in containers, computes the statistics itself, and
-seals everything into a bundle: the frozen plan, every per-item observation, and a SHA-256
-over every file. Anyone can re-check that bundle offline, without this tool, and without
-trusting whoever produced it.
+Touchstone evaluates AI systems (LLMs and LLM applications, classifiers, decisioning
+models) by running evaluation packs against them in containers. It computes every
+statistic itself and seals the result into an evidence bundle: the frozen plan, every
+per-item observation, and a SHA-256 over every file.
 
-## Why
+Anyone can re-check that bundle offline, without this tool, and without trusting whoever
+produced it. That is the difference between an AI evaluation and AI assurance.
 
-Most evaluation tooling reports a rate. A rate on its own cannot be checked.
+## Why AI evaluation needs this
+
+An evaluation answers *how did the system score*. Assurance answers *what may be claimed
+about it, and how would a sceptic check*. The second is what a regulator, a bank's model
+risk function, or a procurement review actually needs, and almost no AI evaluation tooling
+produces it.
+
+Start with the smallest version of the problem. Most AI evaluation tooling reports a rate,
+and a rate on its own cannot be checked.
 
 ```
 47 of 50    →  94%
@@ -24,6 +33,11 @@ print a bare proportion, because the type that carries a result has nowhere to p
 94.0%  (95% CI 92.4-95.4%, n=1000)   ← can
 ```
 
+**A binary pass or fail over n test items is a proportion, and a proportion has a sampling
+distribution.** That is not an exotic statistical position; it is the first thing anyone
+learns about proportions. Yet the dominant scoring method in AI evaluation is exactly that
+binary, and the tooling around it almost never computes the interval it implies.
+
 The same idea decides grades. A score card asserts a level when a metric clears a
 threshold, and where the interval spans that threshold the honest answer is not the better
 level:
@@ -35,7 +49,16 @@ worst_stratum: indeterminate, A or B  [0.861, 0.803 to 0.905, n=180, language=pc
 ```
 
 Grading the point estimate would have printed two confident letters. Both are better than
-this evaluation can support.
+this evaluation can support. `indeterminate` is a finding, and the remedy it points at is
+more evidence.
+
+### What Touchstone is not
+
+- **Not a benchmark or a leaderboard.** It scores a *deployment*: this system, for this
+  purpose, on this population, with this evidence.
+- **Not a safety or capability evaluation.** It makes no claim about alignment or
+  catastrophic risk.
+- **Not a certification.** It says what the evidence supports. No level is an approval.
 
 ## Quickstart
 
@@ -70,9 +93,13 @@ recording that it was.
 
 ## Every rate carries its interval
 
-Packs report what happened, one record per item. They never report a rate. The harness
-computes every statistic, which is what makes the aggregate re-checkable from a sample
-that travels inside the bundle:
+**This is the trust boundary, and it is inverted from how AI evaluation usually works.**
+Whoever computes the statistic is who you have to trust. If a container reports *"94%
+accuracy"*, you are trusting its author, who is often the party that wants a good score.
+
+Touchstone packs report what happened, one record per item. They never report a rate. The
+harness computes every statistic, which is what makes the aggregate re-checkable from a
+sample that travels inside the bundle:
 
 ```console
 $ touchstone estimate run-004 --by rung
@@ -149,7 +176,8 @@ what lets `verify` run on a plane, in a bank basement, with the wifi off.
 
 ## Status
 
-Early, and honest about it. All seven pipeline commands work. The score card format is not
+Early, and honest about it. Built for AI assurance work where the result has to survive
+someone who does not trust the party that produced it. All seven pipeline commands work. The score card format is not
 fixed, so `grade` reads a ladder the score card declares rather than one this tool defines.
 Version 0.0.1 on PyPI is a placeholder release that predates most of this.
 
