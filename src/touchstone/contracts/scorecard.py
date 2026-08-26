@@ -52,6 +52,13 @@ class MetricRef(BaseModel):
     stratum: dict[str, str] = Field(default_factory=dict)
     """Empty is the whole sample. Ignored by `worst_stratum`, which searches cells."""
 
+    keys: list[str] = Field(default_factory=list)
+    """`worst_stratum` only: search cells keyed by exactly these stratum keys.
+
+    Without it every cell carrying any stratum is a candidate, so two indicators that mean
+    to ask about different dimensions ask the same question and return the same cell. An
+    index with a geographic indicator and a language indicator needs them to differ."""
+
     min_n: int = Field(default=30, ge=1)
     """`worst_stratum` only: the smallest cell allowed to be the worst one."""
 
@@ -92,6 +99,18 @@ class Indicator(BaseModel):
     assessment: list[Rule] = Field(min_length=1)
     """Ordered, best level first. The first rule that holds decides the grade."""
 
+    tier_ceilings: dict[str, str | None] | None = None
+    """Overrides the score card's map for this indicator alone.
+
+    A tier mapped to `null` is one where this indicator is **not assessable**: it returns
+    `ungraded` naming the tier, and the metric it would have read is never looked for, so
+    a bundle that legitimately does not hold it is not an error.
+
+    Required because the ceiling is a property of the pair. A black box evaluation can
+    measure headline accuracy completely and cannot measure calibration at all, and one
+    ceiling for a whole card either caps the first for no reason or lets the second be
+    claimed on evidence that does not exist."""
+
     model_config = {"extra": "forbid"}
 
 
@@ -126,6 +145,9 @@ class ScoreCard(BaseModel):
             named.add(self.summary_only_ceiling)
         for indicator in self.indicators:
             named.update(rule.level for rule in indicator.assessment)
+            for ceiling in (indicator.tier_ceilings or {}).values():
+                if ceiling is not None:
+                    named.add(ceiling)
 
         unknown = sorted(named - known)
         if unknown:

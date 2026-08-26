@@ -277,3 +277,112 @@ def test_a_level_no_rule_can_award_is_refused_by_the_contract():
                 }
             ],
         )
+
+
+def coverage_bundle():
+    """One metric, two stratum dimensions. The language cells are weaker than the
+    geographic ones, so an indicator that cannot tell them apart returns the wrong cell."""
+    return bundle(
+        rate("covered", 0.60, 0.55, 0.65, n=500, stratum={"zone": "north"}),
+        rate("covered", 0.70, 0.65, 0.75, n=500, stratum={"zone": "south"}),
+        rate("covered", 0.20, 0.16, 0.25, n=400, stratum={"language": "pcm"}),
+        rate("covered", 0.80, 0.76, 0.84, n=400, stratum={"language": "en"}),
+    )
+
+
+def worst_over(keys):
+    return card(
+        {"source": "worst_stratum", "name": "covered", "pack_id": "procedural_ng", "keys": keys},
+        [{"level": "A", "condition": "greater_equal", "threshold": 0.9}],
+    )
+
+
+def test_a_worst_stratum_can_be_confined_to_one_stratum_key():
+    """Two indicators over two dimensions have to be able to differ. Without this they
+    search every cell carrying any stratum and return the same one."""
+    geographic = grade(worst_over(["zone"]), coverage_bundle(), "black_box").indicators[0]
+    language = grade(worst_over(["language"]), coverage_bundle(), "black_box").indicators[0]
+
+    assert geographic.measured[0].stratum == {"zone": "north"}
+    assert language.measured[0].stratum == {"language": "pcm"}
+    assert geographic.measured[0].value != language.measured[0].value
+
+
+def test_without_keys_every_cell_is_a_candidate():
+    """The old behaviour, kept as the default so a card that does not care need not say so."""
+    both = grade(worst_over([]), coverage_bundle(), "black_box").indicators[0]
+    assert both.measured[0].stratum == {"language": "pcm"}
+
+
+def test_a_key_no_cell_carries_is_an_error_naming_the_key():
+    with pytest.raises(ScoreCardError, match="keyed by agency"):
+        grade(worst_over(["agency"]), coverage_bundle(), "black_box")
+
+
+NOT_HERE = {"name": "confidence_weighted", "pack_id": "procedural_ng"}
+
+
+def tiered_card():
+    """Assessable at grey box, and not a question black box can answer at all."""
+    return ScoreCard(
+        score_card_name="test",
+        levels=LEVELS,
+        tier_ceilings={"black_box": "A", "grey_box": "A"},
+        indicators=[
+            {
+                "id": "indicator",
+                "metric": NOT_HERE,
+                "assessment": PASSES,
+                "tier_ceilings": {"black_box": None},
+            }
+        ],
+    )
+
+
+def test_an_indicator_unassessable_at_this_tier_is_ungraded_not_an_error():
+    """The metric is never looked for. A black box bundle has no reason to hold it, and
+    reporting that absence as a broken reference would blame the score card for a limit the
+    score card is the thing describing."""
+    scored = grade(tiered_card(), bundle(rate("correct", 0.9, 0.85, 0.93)), "black_box")
+
+    assert scored.indicators[0].verdict == "ungraded"
+    assert scored.indicators[0].level is None
+    assert "black_box" in (scored.indicators[0].reason or "")
+
+
+def test_check_skips_a_reference_that_tier_will_never_follow():
+    assert check(tiered_card(), bundle(rate("correct", 0.9, 0.85, 0.93)), "black_box") == []
+
+
+def test_the_same_reference_is_still_checked_at_a_tier_that_can_ask():
+    problems = check(tiered_card(), bundle(rate("correct", 0.9, 0.85, 0.93)), "grey_box")
+    assert any("confidence_weighted" in problem for problem in problems)
+
+
+def test_an_indicator_ceiling_overrides_the_card_for_that_indicator_alone():
+    scored = grade(
+        ScoreCard(
+            score_card_name="test",
+            levels=LEVELS,
+            tier_ceilings={"black_box": "A"},
+            indicators=[
+                {
+                    "id": "capped",
+                    "metric": {"name": "correct", "pack_id": "procedural_ng"},
+                    "assessment": PASSES,
+                    "tier_ceilings": {"black_box": "C"},
+                },
+                {
+                    "id": "uncapped",
+                    "metric": {"name": "correct", "pack_id": "procedural_ng"},
+                    "assessment": PASSES,
+                },
+            ],
+        ),
+        bundle(rate("correct", 0.9, 0.85, 0.93)),
+        "black_box",
+    )
+
+    assert scored.indicators[0].level == "C"
+    assert scored.indicators[0].uncapped_level == "A"
+    assert scored.indicators[1].level == "A", "the card level ceiling still applies elsewhere"

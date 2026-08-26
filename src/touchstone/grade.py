@@ -67,9 +67,8 @@ def grade(
     plan_sha256: str | None = None,
 ) -> Scorecard:
     """Every indicator, decided against the estimates and capped by the access tier."""
-    ceiling = _tier_ceiling(score_card, access_tier)
     graded = [
-        _indicator(indicator, score_card, estimates, ceiling, summary_only)
+        _indicator(indicator, score_card, estimates, access_tier, summary_only)
         for indicator in score_card.indicators
     ]
     return Scorecard(
@@ -82,8 +81,22 @@ def grade(
     )
 
 
-def _tier_ceiling(score_card: ScoreCard, access_tier: str) -> str | None:
-    """The best level this tier may reach, or None where the score card leaves it open."""
+NOT_ASSESSABLE = object()
+"""What an indicator's own map means by a tier mapped to null: not that it is uncapped,
+and not that it is capped low, but that this access does not support the question."""
+
+
+def _tier_ceiling(indicator: Indicator, score_card: ScoreCard, access_tier: str) -> object:
+    """The best level this indicator may reach at this tier.
+
+    `None` leaves it uncapped, `NOT_ASSESSABLE` means the question cannot be asked here,
+    and anything else is a level.
+    """
+    own = indicator.tier_ceilings
+    if own is not None and access_tier in own:
+        ceiling = own[access_tier]
+        return NOT_ASSESSABLE if ceiling is None else ceiling
+
     if not score_card.tier_ceilings:
         return None
     if access_tier not in score_card.tier_ceilings:
@@ -100,12 +113,27 @@ def _indicator(
     indicator: Indicator,
     score_card: ScoreCard,
     estimates: Estimates,
-    ceiling: str | None,
+    access_tier: str,
     summary_only: frozenset[str],
 ) -> GradedIndicator:
+    ceiling = _tier_ceiling(indicator, score_card, access_tier)
+    if ceiling is NOT_ASSESSABLE:
+        # Before the metric is looked for, not after. A bundle from this tier has no reason
+        # to hold it, and reporting that absence as a broken reference would be blaming the
+        # score card for a limit the score card is the thing describing.
+        return GradedIndicator(
+            id=indicator.id,
+            name=indicator.name,
+            verdict="ungraded",
+            reason=(
+                f"not assessable at access tier {access_tier}, which is what the score card "
+                "says about this indicator rather than anything this run found"
+            ),
+        )
+
     measured, expression = _measure(indicator, estimates, summary_only)
     value, low, high = _value_of(indicator.metric, measured)
-    applied = _applied_ceiling(score_card, ceiling, measured)
+    applied = _applied_ceiling(score_card, ceiling if isinstance(ceiling, str) else None, measured)
 
     if value is None:
         return GradedIndicator(
@@ -394,9 +422,14 @@ def _resolve(
 
 def _worst(ref: MetricRef, estimates: Estimates, contaminated: bool, indicator_id: str) -> Measured:
     """The weakest cell of the rollup, through the same function `estimate` uses."""
+    wanted = set(ref.keys)
     subset = estimates.model_copy(
         update={
-            "estimates": [entry for entry in estimates.estimates if entry.pack_id == ref.pack_id]
+            "estimates": [
+                entry
+                for entry in estimates.estimates
+                if entry.pack_id == ref.pack_id and (not wanted or set(entry.stratum) == wanted)
+            ]
         }
     )
     found = estimate_items.worst_stratum(
@@ -404,8 +437,9 @@ def _worst(ref: MetricRef, estimates: Estimates, contaminated: bool, indicator_i
     )
     if found.worst is None:
         thin = len(found.excluded)
+        over = f" keyed by {', '.join(sorted(wanted))}" if wanted else ""
         raise ScoreCardError(
-            f"{indicator_id}: no stratum of {ref.name!r} reaches n={ref.min_n} "
+            f"{indicator_id}: no stratum of {ref.name!r}{over} reaches n={ref.min_n} "
             f"({thin} cell(s) below it). A worst stratum computed over cells this thin is "
             "noise, and reporting one would be worse than reporting none"
         )
@@ -434,14 +468,20 @@ def _missing(indicator_id: str, ref: MetricRef, kind: str) -> str:
     )
 
 
-def check(score_card: ScoreCard, estimates: Estimates) -> list[str]:
+def check(score_card: ScoreCard, estimates: Estimates, access_tier: str = "") -> list[str]:
     """Cross-check a score card against a bundle. Returns every problem, not the first.
 
     Run before anything is graded, so a score card with four broken references reports
     four rather than one per attempt.
+
+    An indicator the score card marks unassessable at `access_tier` is skipped, because the
+    metric it names is one this tier had no way to produce and its absence is the score
+    card being right rather than wrong.
     """
     problems = []
     for indicator in score_card.indicators:
+        if access_tier and _tier_ceiling(indicator, score_card, access_tier) is NOT_ASSESSABLE:
+            continue
         metric = indicator.metric
         has_interval = isinstance(metric, MetricRef) and metric.source in INTERVAL_SOURCES
 

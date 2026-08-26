@@ -211,8 +211,9 @@ def grade(
     try:
         card = grade_run.load_scorecard(score_card)
         estimates = grade_run.load_estimates(run_dir)
+        tier = grade_run.access_tier(run_dir)
 
-        problems = grade_run.check(card, estimates)
+        problems = grade_run.check(card, estimates, tier)
         if problems:
             for problem in problems:
                 typer.echo(problem, err=True)
@@ -221,7 +222,7 @@ def grade(
         scorecard = grade_run.grade(
             card,
             estimates,
-            grade_run.access_tier(run_dir),
+            tier,
             grade_run.summary_only_packs(run_dir),
             grade_run.plan_hash(run_dir),
         )
