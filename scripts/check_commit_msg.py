@@ -46,6 +46,12 @@ PAST_TENSE = re.compile(
 
 SLOGAN = re.compile(r",\s+not\b")
 
+TRACKER = re.compile(r"#\d+|\b[A-Z][A-Z0-9]{1,9}-\d+\b")
+"""Rule 8. A `#12` or a `PROJ-451` in the subject spends characters of the 50 that scanning
+`git log --oneline` has on a string only useful once somebody has already found the commit.
+The uppercase half is what a tracker key looks like and is not what this repository writes:
+`sha256` is lowercase everywhere here, so it does not collide."""
+
 
 def check(message: str) -> list[str]:
     lines = message.rstrip().splitlines()
@@ -80,6 +86,10 @@ def check(message: str) -> list[str]:
 
     if SLOGAN.search(subject):
         errors.append("subject is an 'x, not y' slogan, describe the change")
+
+    found = TRACKER.search(subject)
+    if found:
+        errors.append(f"subject carries the issue reference '{found.group()}', put it in the body")
 
     if len(lines) > 1 and lines[1].strip():
         errors.append("no blank line between subject and body")

@@ -63,3 +63,26 @@ def test_allows_not_in_the_body(tmp_path):
         "not failing, so the grade names the tier instead of erroring.\n"
     )
     assert run(message, tmp_path).returncode == 0
+
+
+def test_rejects_an_issue_number_in_the_subject(tmp_path):
+    """Rule 8. It was listed under the enforced heading and nothing checked it, which is
+    the same defect the slogan rule closed: a list that overstates its own enforcement."""
+    result = run("add golden estimate bundles #42\n", tmp_path)
+    assert result.returncode == 1
+    assert "#42" in result.stderr
+
+
+def test_rejects_a_tracker_key_in_the_subject(tmp_path):
+    result = run("add PROJ-451 egress allowlist\n", tmp_path)
+    assert result.returncode == 1
+    assert "PROJ-451" in result.stderr
+
+
+def test_allows_the_reference_in_the_body(tmp_path):
+    message = "enforce the issue reference rule\n\nRefs #42, which is where a reader wants it.\n"
+    assert run(message, tmp_path).returncode == 0
+
+
+def test_a_lowercase_hyphenated_word_is_not_a_tracker_key(tmp_path):
+    assert run("pin utf-8 encoding on the ledger writer\n", tmp_path).returncode == 0
