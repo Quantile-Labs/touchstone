@@ -54,6 +54,14 @@ strict = true
 # The Protocol in backends/base.py is the reason this runs. runtime_checkable was
 # measured: isinstance passes a backend whose signatures are wrong, and only a missing
 # method or a missing isolation attribute fails it. mypy is what makes it a contract.
+#
+# `files` is a decision and not an oversight. src/ is checked because the package ships
+# py.typed, so every annotation there is a promise to whoever imports it. tests/ is not,
+# because a wrong fixture fails its own test on the next run, which is a faster and
+# louder signal than a type error, and annotating thirty files of literals buys a second
+# check on the one thing already covered. What this gives up is a test helper whose
+# signature has drifted from the function it exercises. Revisit when a shared fixture
+# module is large enough to have a contract of its own; tests/conftest.py is not yet.
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
