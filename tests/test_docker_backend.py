@@ -7,6 +7,8 @@ a backend whose tests only ever skip is a backend nobody has tested.
 
 import json
 import subprocess
+import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -278,3 +280,73 @@ def test_reports_which_images_are_present(backend, image):
         image: True,
         "touchstone/nope:0": False,
     }
+
+
+SLEEPER = ["python", "-c", "import time; time.sleep(300)"]
+
+
+def container_state(run_id: str) -> str:
+    done = subprocess.run(
+        ["docker", "inspect", "--format", "{{.State.Status}}", run_id],
+        capture_output=True,
+        text=True,
+    )
+    return done.stdout.strip() if done.returncode == 0 else "gone"
+
+
+def wait_for(run_id: str, state: str, seconds: int = 30) -> str:
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        found = container_state(run_id)
+        if found == state:
+            return found
+        time.sleep(0.25)
+    return container_state(run_id)
+
+
+def test_shutdown_reaps_the_containers_a_killed_harness_left_behind(tmp_path):
+    """The recovery path, against a harness that actually died rather than a simulated one.
+
+    `_run` removes its container in a `finally`, and SIGKILL runs no `finally`. So the
+    premise this rests on is real: a harness killed mid-run leaves a container holding the
+    memory, the CPU share and the output mount it was given. `shutdown` keys on nothing but
+    the run id, which is what a new process recovering from a crash has, and this checks
+    that the key is enough.
+    """
+    run_id = "touchstone-test-crash"
+    subprocess.run(["docker", "rm", "--force", run_id], capture_output=True)
+
+    harness = subprocess.Popen(
+        [
+            sys.executable,
+            "-c",
+            "from touchstone.backends import DockerBackend, RunSpec\n"
+            "DockerBackend().run(RunSpec("
+            f"run_id={run_id!r}, pack_id='sleeper', image='python:3.12-slim', "
+            f"args={SLEEPER!r}, output_dir={str(tmp_path / 'out')!r}))",
+        ],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    try:
+        assert wait_for(run_id, "running") == "running", "the container never started"
+
+        harness.kill()
+        harness.wait(timeout=30)
+
+        assert container_state(run_id) == "running", (
+            "the premise: a killed harness runs no cleanup, so the container outlives it"
+        )
+
+        DockerBackend().shutdown([run_id])
+
+        assert container_state(run_id) == "gone"
+    finally:
+        harness.kill()
+        subprocess.run(["docker", "rm", "--force", run_id], capture_output=True)
+
+
+def test_shutdown_is_quiet_about_a_container_that_is_already_gone():
+    """Recovery is run against the ids the ledger holds, and some of them finished cleanly
+    before the crash. Raising on those would make the recovery path fail on a healthy run."""
+    DockerBackend().shutdown(["touchstone-test-never-existed"])

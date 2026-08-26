@@ -101,6 +101,12 @@ Same principle. Clarity first, volume last.
    annotations are a promise to whoever imports it, not a note to the next reader.
    Where a value genuinely arrives untyped, from `json.loads` or `yaml.safe_load`,
    annotate it at that boundary rather than letting `Any` spread inward.
+10. **`tests/` is deliberately not type checked**, and annotations there are welcome
+   rather than required. A wrong fixture fails its own test on the next run, which is
+   louder than a type error, so the checker would be a second opinion on the one thing
+   already covered. The cost is a test helper drifting from the function it exercises,
+   which is accepted. The reasoning is in `pyproject.toml` beside the `files` setting,
+   so nobody has to infer it from a one line list.
 
 ### Bad
 
