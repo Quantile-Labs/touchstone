@@ -197,3 +197,60 @@ def test_the_cli_prints_no_rate_without_its_interval(tmp_path):
     for line in result.output.splitlines():
         if "correct [" in line:
             assert "95% CI" in line and "n=" in line
+
+
+def test_the_worst_cell_carries_an_interval_widened_for_the_selection():
+    """The winner of a ranking is not a cell somebody picked in advance."""
+    estimates = estimate(_items(), ["language"])
+    found = worst_stratum(estimates, "correct", min_n=30)
+    marginal = next(
+        entry
+        for entry in estimates.estimates
+        if entry.metric == "correct" and entry.stratum == found.worst.stratum
+    )
+
+    assert found.selected_from == 2
+    assert found.worst.point == marginal.point
+    assert found.worst.low < marginal.low
+    assert found.worst.high > marginal.high
+    assert found.worst.parameters["adjustment"] == "bonferroni"
+    assert found.worst.parameters["selected_from"] == 2
+
+
+def test_one_eligible_cell_is_not_a_selection_and_is_not_widened():
+    items = [
+        ItemRecord(
+            item_id=f"q{index}", stratum={"language": "a"}, outcome={"correct": index % 4 != 0}
+        )
+        for index in range(40)
+    ] + [
+        ItemRecord(item_id=f"thin{index}", stratum={"language": "c"}, outcome={"correct": False})
+        for index in range(3)
+    ]
+    estimates = estimate(items, ["language"])
+    found = worst_stratum(estimates, "correct", min_n=30)
+    marginal = next(
+        entry
+        for entry in estimates.estimates
+        if entry.metric == "correct" and entry.stratum == found.worst.stratum
+    )
+
+    assert found.selected_from == 1
+    assert (found.worst.low, found.worst.high) == (marginal.low, marginal.high)
+
+
+def test_a_worst_cell_without_counts_is_refused_rather_than_reported():
+    """A selected minimum printed with an unadjusted interval is the whole defect."""
+    estimates = estimate(_items(), ["language"])
+    stripped = estimates.model_copy(
+        update={
+            "estimates": [
+                entry.model_copy(update={"k": None})
+                if entry.metric == "correct"
+                else entry.model_copy()
+                for entry in estimates.estimates
+            ]
+        }
+    )
+    with pytest.raises(EstimateError, match="carries no counts"):
+        worst_stratum(stripped, "correct", min_n=30)

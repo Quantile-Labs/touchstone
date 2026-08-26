@@ -6,7 +6,7 @@ from math import isnan
 import pytest
 
 from touchstone.stats import proportion
-from touchstone.stats.proportion import format_rate, wilson
+from touchstone.stats.proportion import Z_95, bonferroni_z, format_rate, wilson
 
 
 def test_matches_the_published_interval():
@@ -63,3 +63,23 @@ def test_the_docstring_examples_run():
     """The rule from CONTEXT.md section 6: prose describing behaviour has a test."""
     results = doctest.testmod(proportion)
     assert results.failed == 0
+
+
+def test_one_comparison_is_the_constant_the_tool_prints_everywhere():
+    assert bonferroni_z(1) == Z_95
+
+
+def test_the_quantile_widens_as_more_cells_are_ranked():
+    quantiles = [bonferroni_z(count) for count in (1, 2, 5, 10, 20)]
+    assert quantiles == sorted(quantiles)
+    assert quantiles[0] < quantiles[-1]
+
+
+def test_a_quantile_needs_at_least_one_comparison():
+    with pytest.raises(ValueError, match="cannot adjust"):
+        bonferroni_z(0)
+
+
+def test_a_confidence_outside_the_unit_interval_is_refused():
+    with pytest.raises(ValueError, match="has to lie"):
+        bonferroni_z(3, confidence=1.0)

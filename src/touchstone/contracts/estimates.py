@@ -59,6 +59,11 @@ class WorstStratum(BaseModel):
     """Cells below `min_n`. Reported rather than dropped: a rollup that quietly discards
     its thin cells reads as coverage it does not have."""
 
+    selected_from: int = Field(default=0, ge=0)
+    """How many eligible cells the winner was ranked against. The interval on `worst` is
+    widened to hold over all of them, so this is the number that makes it readable, and a
+    reader who sees it rise knows the point estimate is being selected harder."""
+
     model_config = {"extra": "forbid"}
 
 

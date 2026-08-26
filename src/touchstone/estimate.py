@@ -20,7 +20,13 @@ from touchstone.stats.bootstrap import BCA_REFERENCE, RESAMPLES, bootstrap_bca
 
 __all__ = ["RESAMPLES"]
 from touchstone.stats.calibration import calibration, confident_and_wrong
-from touchstone.stats.proportion import WILSON_REFERENCE, Z_95, format_rate, wilson
+from touchstone.stats.proportion import (
+    WILSON_REFERENCE,
+    Z_95,
+    bonferroni_z,
+    format_rate,
+    wilson,
+)
 from touchstone.stats.replicates import between_replicate
 from touchstone.stats.rollup import Cell, metrics, scores, tally, values
 
@@ -228,6 +234,42 @@ def estimate(
     )
 
 
+def _adjusted_for_selection(entry: Estimate, comparisons: int) -> Estimate:
+    """The selected cell, with an interval that holds over every cell it beat.
+
+    Ranking cells and reporting the minimum selects on the noise, so the marginal interval
+    on the winner undercovers, and not slightly: over ten equal cells of 180 a nominal 95
+    percent Wilson interval holds about 69 percent of the time, and roughly a third of the
+    time it sits entirely below the true rate, which reads as a confident finding of a
+    weak group that is not weak. A Bonferroni quantile over the cells that were ranked
+    restores the coverage.
+
+    The point estimate is left as the selected minimum and is still biased low. Widening
+    the interval makes the estimate admit that rather than correct it, which is the
+    honest half of the fix and the half that does not need a prior.
+    """
+    if entry.k is None:
+        raise EstimateError(
+            f"cannot adjust {entry.metric!r} for selection: the cell carries no counts. "
+            "A selected minimum reported with an unadjusted interval is the error this "
+            "function exists to prevent, so it is refused rather than printed"
+        )
+    z = bonferroni_z(comparisons)
+    _, low, high = wilson(entry.k, entry.n, z=z)
+    return entry.model_copy(
+        update={
+            "low": low,
+            "high": high,
+            "parameters": {
+                **entry.parameters,
+                "z": z,
+                "adjustment": "bonferroni",
+                "selected_from": comparisons,
+            },
+        }
+    )
+
+
 def worst_stratum(
     estimates: Estimates,
     metric: str,
@@ -255,7 +297,8 @@ def worst_stratum(
     worst = None
     if ranked:
         sign = 1.0 if higher_is_better else -1.0
-        _, _, worst = min(ranked, key=lambda row: (sign * row[0], row[1]))
+        _, _, selected = min(ranked, key=lambda row: (sign * row[0], row[1]))
+        worst = _adjusted_for_selection(selected, len(ranked))
 
     return WorstStratum(
         metric=metric,
@@ -263,6 +306,7 @@ def worst_stratum(
         higher_is_better=higher_is_better,
         worst=worst,
         excluded=sorted(excluded, key=lambda entry: sorted(entry.stratum.items())),
+        selected_from=len(ranked),
     )
 
 

@@ -18,11 +18,13 @@ LEVELS = ["A", "B", "C", "D"]
 
 
 def rate(metric, point, low, high, n=200, pack="procedural_ng", stratum=None):
+    """A Wilson estimate carrying its counts, because `k` is what a Wilson estimate is."""
     return Estimate(
         metric=metric,
         pack_id=pack,
         stratum=stratum or {},
         n=n,
+        k=round(point * n),
         point=point,
         low=low,
         high=high,
