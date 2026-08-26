@@ -260,3 +260,11 @@ def bundle_(
 
     typer.echo(f"{bundle_dir}: sealed {len(manifest.files)} file(s)")
     typer.echo(f"sha256 {manifest.sha256}")
+
+    if manifest.run_ledger == "absent":
+        typer.echo(
+            f"{bundle_dir} holds no run log, so this is a directory assembled by hand "
+            "rather than one this tool ran. MANIFEST.json records that, and a reader is "
+            "entitled to know which of the two they are holding",
+            err=True,
+        )

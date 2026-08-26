@@ -5,10 +5,18 @@ no copy of this tool.
 """
 
 from pathlib import PurePosixPath
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
 SHA256 = r"^[0-9a-f]{64}$"
+
+LEDGER_DIR = "ledger"
+RUNLOG_NAME = "RUNLOG.jsonl"
+RUN_FINISHED = "run_finished"
+"""Where a run records what it did, and the event it writes when it got to the end. Part
+of the bundle layout rather than of `run`, because the thing that has to know what a
+finished run looks like is the thing that refuses to seal an unfinished one."""
 
 
 class FileEntry(BaseModel):
@@ -40,5 +48,13 @@ class BundleManifest(BaseModel):
     sha256: str = Field(pattern=SHA256)
     """Over the canonicalised file list alone, so it does not move when sealed_utc does.
     This is the one value a report quotes and an anchor timestamps."""
+
+    run_ledger: Literal["complete", "absent"] = "absent"
+    """Whether this bundle holds a run log that reached `run_finished`.
+
+    `absent` is a directory assembled by hand, which is legitimate and says so here rather
+    than passing for a run. There is no `incomplete`: a directory whose ledger stops before
+    the end is refused, because a run that failed part way through produced files that
+    hash perfectly well and mean nothing."""
 
     model_config = {"extra": "forbid"}

@@ -97,3 +97,49 @@ def test_rejects_a_path_that_escapes_the_bundle(tmp_path):
     path.write_text(json.dumps(record))
     with pytest.raises(BundleError):
         bundle.verify(root)
+
+
+def ledger(root, *events):
+    path = root / "ledger" / "RUNLOG.jsonl"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("".join(json.dumps({"utc": "now", "event": event}) + "\n" for event in events))
+    return root
+
+
+def test_refuses_to_seal_a_run_that_never_finished(tmp_path):
+    """The defect this guards: a crashed run leaves files that hash perfectly well, and a
+    bundle sealed over them is a failed run presenting itself as evidence that verifies."""
+    (tmp_path / "items.jsonl").write_text('{"item_id": "a"}\n')
+    ledger(tmp_path, "run_started", "unit_started")
+
+    with pytest.raises(BundleError) as raised:
+        bundle.seal(tmp_path)
+
+    assert "never finished" in str(raised.value)
+    assert "unit_started" in str(raised.value), "say where the ledger stopped"
+    assert not (tmp_path / bundle.MANIFEST_NAME).exists()
+
+
+def test_seals_a_run_whose_units_failed_but_whose_harness_finished(tmp_path):
+    """A unit that exits non-zero is a result. The guard is about the harness dying, not
+    about the pack failing, and conflating the two would refuse to seal a real finding."""
+    (tmp_path / "items.jsonl").write_text('{"item_id": "a"}\n')
+    ledger(tmp_path, "run_started", "unit_started", "unit_failed", "run_finished")
+
+    assert bundle.seal(tmp_path).run_ledger == "complete"
+
+
+def test_a_hand_built_directory_seals_and_says_it_was_not_a_run(tmp_path):
+    """Sealing files that came from somewhere else stays legitimate. What changes is that
+    the manifest no longer lets it pass for something this tool ran."""
+    root = sealed(tmp_path, {"items.jsonl": "x"})
+    assert bundle.load_manifest(root).run_ledger == "absent"
+
+
+def test_an_unreadable_ledger_is_an_error_and_not_an_absent_one(tmp_path):
+    (tmp_path / "items.jsonl").write_text("x")
+    (tmp_path / "ledger").mkdir()
+    (tmp_path / "ledger" / "RUNLOG.jsonl").write_text("{not json\n")
+
+    with pytest.raises(BundleError):
+        bundle.seal(tmp_path)

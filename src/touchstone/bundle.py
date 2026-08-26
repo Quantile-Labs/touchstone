@@ -4,11 +4,18 @@ import hashlib
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Literal
 
 from pydantic import ValidationError
 
 from touchstone import __version__
-from touchstone.contracts.bundle import BundleManifest, FileEntry
+from touchstone.contracts.bundle import (
+    LEDGER_DIR,
+    RUN_FINISHED,
+    RUNLOG_NAME,
+    BundleManifest,
+    FileEntry,
+)
 from touchstone.errors import BundleError
 
 MANIFEST_NAME = "MANIFEST.json"
@@ -45,12 +52,50 @@ def _walk(bundle_dir: Path) -> list[FileEntry]:
     return entries
 
 
+def run_ledger(bundle_dir: Path) -> Literal["complete", "absent"]:
+    """`complete`, `absent`, or a refusal, by reading the run log the harness wrote.
+
+    A run that dies part way leaves items behind and never writes `run_finished`, and every
+    file it did write hashes perfectly well. Sealing that directory produces a manifest
+    `verify` passes, which is a run that failed presenting itself as evidence that checks
+    out. The ledger is the only thing in a bundle that says whether the harness got to the
+    end, so it is what this reads.
+
+    A directory with no ledger at all was assembled by hand rather than run, which stays
+    legitimate: a bundle can be built from files that came from somewhere else. It is
+    recorded as `absent` instead of being taken for a run.
+    """
+    path = bundle_dir / LEDGER_DIR / RUNLOG_NAME
+    if not path.is_file():
+        return "absent"
+
+    events = []
+    for line in path.read_text().splitlines():
+        if not line.strip():
+            continue
+        try:
+            events.append(json.loads(line).get("event"))
+        except json.JSONDecodeError as exc:
+            raise BundleError(f"{LEDGER_DIR}/{RUNLOG_NAME} is not readable: {exc}") from exc
+
+    if RUN_FINISHED in events:
+        return "complete"
+    last = events[-1] if events else "nothing"
+    raise BundleError(
+        f"the run in {bundle_dir} never finished: its ledger stops at {last!r} and never "
+        f"records {RUN_FINISHED!r}. Refusing to seal it, because the files it did write "
+        "would hash and verify like any other bundle. Run it again"
+    )
+
+
 def seal(bundle_dir: Path) -> BundleManifest:
     """Hash every file under the directory and write MANIFEST.json. Returns the manifest."""
     if not bundle_dir.is_dir():
         raise BundleError(f"not a directory: {bundle_dir}")
     if (bundle_dir / MANIFEST_NAME).exists():
         raise BundleError(f"already sealed: remove {MANIFEST_NAME} to seal {bundle_dir} again")
+
+    ledger = run_ledger(bundle_dir)
 
     files = _walk(bundle_dir)
     if not files:
@@ -61,6 +106,7 @@ def seal(bundle_dir: Path) -> BundleManifest:
         sealed_utc=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         files=files,
         sha256=bundle_hash(files),
+        run_ledger=ledger,
     )
     # Indented on purpose. The bundle has to be readable years from now by someone
     # holding a text editor and nothing else.
