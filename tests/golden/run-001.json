@@ -1,0 +1,5 @@
+{
+  "keys": ["language"],
+  "calibrate": ["correct"],
+  "seed": 7
+}

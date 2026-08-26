@@ -1,0 +1,18 @@
+{
+  "bundle_format": 1,
+  "files": [
+    {
+      "path": "estimates.json",
+      "sha256": "a648e5abb6b630c65a7f6ed6b078c05205cf6c6ce0bf5365568b8f187ad75918",
+      "size": 12346
+    },
+    {
+      "path": "items.jsonl",
+      "sha256": "9b3c334e5eb4e82ab35f9b65f9e2a08687f85015e13ccdec2a7ff4e89d72741e",
+      "size": 20987
+    }
+  ],
+  "sealed_utc": "2026-08-26T07:27:00Z",
+  "sha256": "bed98d8942183ab9c7d2162e0814967e04f2f9989ab63ef9abb8bc9c44f0a704",
+  "touchstone_version": "0.0.1"
+}
