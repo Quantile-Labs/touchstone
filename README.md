@@ -7,8 +7,11 @@ of every file. The system under test can be an LLM, an LLM application, a classi
 scoring model, and the harness treats them all the same way.
 
 Anyone can re-check that folder offline with `shasum`, which means you do not have to
-trust whoever ran it. Most evaluation tools hand you a score and ask you to believe it,
-whereas this one hands you the working alongside the answer.
+trust whoever ran it to have done the arithmetic honestly. Most evaluation tools hand you
+a score and ask you to believe it, whereas this one hands you the working alongside the
+answer. What that does not settle is in
+[what this does not prove](#what-this-does-not-prove), which is worth reading before you
+rely on a bundle.
 
 - **Every number carries an interval**: 47 of 50 and 940 of 1000 are both 94%, and only
   one of them backs a claim about a 90% bar. A bare percentage is not representable here.
@@ -56,6 +59,26 @@ worst_stratum: indeterminate, A or B  [0.8611, 0.7846 to 0.9135, n=180, language
 Grading the middle number on its own would have printed two confident letters, neither of
 which the evidence supports, so `indeterminate` is the answer that tells you to go and get
 more data.
+
+**What the interval covers, and what it does not.** It is sampling error, and only that:
+how far the number would move if you drew another set of items the same way. That is the
+error you can compute from the run, and in most evaluations it is not the largest one.
+Three larger ones are not in it and cannot be. Your 1,000 items are not a random sample of
+what the system meets in deployment, and nothing in the bundle says how far off they are.
+Whatever decided `correct` for each item has an error rate of its own, and where that
+judge is itself a model, its mistakes are correlated rather than independent, so they do
+not average out with more items. An item set that has leaked into training measures
+recall rather than ability.
+
+Two of the usual suspects are measured, and are reported next to the rate. Run to run
+instability comes back as between-replicate variance, which reports both how far the rate
+moved and how many individual items changed their answer, because a system can hold a
+steady rate while disagreeing with itself on half the items. A system's own stated
+confidence is scored against its outcomes as a calibration error and a confident-and-wrong
+rate.
+
+So read `94.0% (95% CI 92.4-95.4%, n=1000)` as a precise statement about one item set
+graded one way, which is what it is. It is precision, and it is not accuracy.
 
 **A few things Touchstone is not.** It is not a benchmark or a leaderboard, because it
 scores one system doing one job for one population rather than ranking models against each
@@ -141,6 +164,27 @@ That catches a file changed after the bundle was sealed. It does not catch someo
 re-seals the whole thing, because they could redo the hashes too. For that you need a
 timestamp from outside: `freeze --anchor` stamps the plan hash with OpenTimestamps, which
 proves the plan existed before the run.
+
+## What this does not prove
+
+Two limits, both real, and neither fixable with a hash.
+
+**Nothing stops someone running it ten times and sealing the run they liked.** Freezing
+the plan before the run means a grade boundary cannot be moved after seeing the result,
+and the OpenTimestamps receipt proves the plan existed first. Neither says how many runs
+happened. Every mechanism here survives run selection untouched, because run selection
+leaves no trace in any artefact the tool produces. Closing it takes a commitment made in
+advance to publish every run against a given plan, which is a process somebody has to
+keep, not something `shasum` can check. Read the guarantee as being about the arithmetic
+rather than about the person.
+
+**A pinned image is not a pinned system.** `freeze` resolves each pack's container image
+to a digest, so the code that does the asking is fixed. The system being asked is often a
+hosted API, and there is no digest for somebody else's endpoint: it can change under the
+same model name, between two runs of the same frozen plan, without telling you. Fixed
+seeds make the harness deterministic and do not make the system under test deterministic.
+Where reproducibility has to hold end to end, the system needs to be something you can
+pin too, such as a local weights file or an image you control.
 
 ## Containment
 
