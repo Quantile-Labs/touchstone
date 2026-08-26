@@ -12,6 +12,7 @@ worse one. It is `indeterminate`, reported with the two levels it lies between.
 """
 
 import json
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -20,10 +21,13 @@ from pydantic import ValidationError
 
 from touchstone import __version__, expressions
 from touchstone import estimate as estimate_items
+from touchstone.bundle import sha256_file
+from touchstone.contracts.audit import AUDIT_NAME, AuditResponse, AuditResponses
 from touchstone.contracts.estimates import Estimate, Estimates
 from touchstone.contracts.scorecard import (
     INTERVAL_CONDITIONS,
     INTERVAL_SOURCES,
+    AuditRef,
     Expression,
     GradedIndicator,
     Indicator,
@@ -65,10 +69,12 @@ def grade(
     access_tier: str,
     summary_only: frozenset[str] = frozenset(),
     plan_sha256: str | None = None,
+    audit: AuditResponses | None = None,
+    audit_sha256: str | None = None,
 ) -> Scorecard:
     """Every indicator, decided against the estimates and capped by the access tier."""
     graded = [
-        _indicator(indicator, score_card, estimates, access_tier, summary_only)
+        _indicator(indicator, score_card, estimates, access_tier, summary_only, audit)
         for indicator in score_card.indicators
     ]
     return Scorecard(
@@ -77,6 +83,9 @@ def grade(
         access_tier=access_tier,
         levels=list(score_card.levels),
         plan_sha256=plan_sha256,
+        audit_name=audit.audit_name if audit else None,
+        audit_assessor=audit.assessor if audit else None,
+        audit_sha256=audit_sha256,
         indicators=graded,
     )
 
@@ -115,6 +124,7 @@ def _indicator(
     estimates: Estimates,
     access_tier: str,
     summary_only: frozenset[str],
+    audit: AuditResponses | None = None,
 ) -> GradedIndicator:
     ceiling = _tier_ceiling(indicator, score_card, access_tier)
     if ceiling is NOT_ASSESSABLE:
@@ -131,9 +141,14 @@ def _indicator(
             ),
         )
 
-    measured, expression = _measure(indicator, estimates, summary_only)
-    value, low, high = _value_of(indicator.metric, measured)
-    applied = _applied_ceiling(score_card, ceiling if isinstance(ceiling, str) else None, measured)
+    capped = ceiling if isinstance(ceiling, str) else None
+    metric = indicator.metric
+    if isinstance(metric, AuditRef):
+        return _audited(indicator, score_card, capped, audit)
+
+    measured, expression = _measure(metric, indicator.id, estimates, summary_only)
+    value, low, high = _value_of(metric, measured)
+    applied = _applied_ceiling(score_card, capped, measured)
 
     if value is None:
         return GradedIndicator(
@@ -147,6 +162,75 @@ def _indicator(
 
     decided = _walk(indicator.assessment, value, low, high)
     return _cap(indicator, decided, score_card, applied, measured, expression, value)
+
+
+def _audited(
+    indicator: Indicator,
+    score_card: ScoreCard,
+    tier_ceiling: str | None,
+    audit: AuditResponses | None,
+) -> GradedIndicator:
+    """Grade an indicator from what a person recorded, capped like any other.
+
+    The engine asserts nothing here beyond the two things it can check: that the level is
+    on the ladder the score card declares, and that it does not exceed what this access
+    tier may claim. `artefact_provenance` is the reason the second matters. No tier reaches
+    the top level for it, because a white box evaluation still cannot show that the model
+    it read is the model serving traffic, and the ceiling is where that limit stops being
+    a footnote and starts being machine readable.
+    """
+    if audit is None:
+        return GradedIndicator(
+            id=indicator.id,
+            name=indicator.name,
+            verdict="ungraded",
+            reason=(
+                "assessed by a person and no audit responses were supplied. Pass "
+                "--audit to grade it, and until then it is unassessed rather than failed"
+            ),
+        )
+
+    response = audit.responses.get(indicator.id)
+    if response is None:
+        return GradedIndicator(
+            id=indicator.id,
+            name=indicator.name,
+            verdict="ungraded",
+            reason=(
+                f"{audit.audit_name} answers {len(audit.responses)} indicator(s) and not "
+                f"this one, so nobody has assessed it"
+            ),
+        )
+
+    if response.level not in score_card.levels:
+        raise ScoreCardError(_off_the_ladder(indicator.id, response, score_card))
+
+    built = GradedIndicator(
+        id=indicator.id,
+        name=indicator.name,
+        verdict="graded",
+        level=response.level,
+        uncapped_level=response.level,
+        audit=response,
+    )
+    if tier_ceiling is None:
+        return built
+
+    capped = _worst_of(score_card, response.level, tier_ceiling)
+    if capped == response.level:
+        return built
+    return built.model_copy(
+        update={"level": capped, "ceiling": tier_ceiling, "ceiling_reason": "access_tier"}
+    )
+
+
+def _off_the_ladder(indicator_id: str, response: AuditResponse, score_card: ScoreCard) -> str:
+    ladder = ", ".join(score_card.levels)
+    return (
+        f"{indicator_id}: the audit records level {response.level!r} and the score card's "
+        f"ladder is {ladder}. An assessor and a card that disagree about the vocabulary "
+        "produce a grade that means nothing, so this is an error rather than a nearest match"
+    )
 
 
 @dataclass(frozen=True)
@@ -325,15 +409,17 @@ def _applied_ceiling(
 
 
 def _measure(
-    indicator: Indicator, estimates: Estimates, summary_only: frozenset[str]
+    metric: MetricRef | Expression,
+    indicator_id: str,
+    estimates: Estimates,
+    summary_only: frozenset[str],
 ) -> tuple[list[Measured], str | None]:
-    if isinstance(indicator.metric, Expression):
+    if isinstance(metric, Expression):
         measured = [
-            _resolve(ref, estimates, summary_only, indicator.id)
-            for ref in indicator.metric.values.values()
+            _resolve(ref, estimates, summary_only, indicator_id) for ref in metric.values.values()
         ]
-        return measured, indicator.metric.expression
-    return [_resolve(indicator.metric, estimates, summary_only, indicator.id)], None
+        return measured, metric.expression
+    return [_resolve(metric, estimates, summary_only, indicator_id)], None
 
 
 def _value_of(
@@ -470,7 +556,12 @@ def _missing(indicator_id: str, ref: MetricRef, kind: str) -> str:
     )
 
 
-def check(score_card: ScoreCard, estimates: Estimates, access_tier: str = "") -> list[str]:
+def check(
+    score_card: ScoreCard,
+    estimates: Estimates,
+    access_tier: str = "",
+    audit: AuditResponses | None = None,
+) -> list[str]:
     """Cross-check a score card against a bundle. Returns every problem, not the first.
 
     Run before anything is graded, so a score card with four broken references reports
@@ -481,10 +572,31 @@ def check(score_card: ScoreCard, estimates: Estimates, access_tier: str = "") ->
     card being right rather than wrong.
     """
     problems = []
+    if audit is not None:
+        declared = {indicator.id for indicator in score_card.indicators}
+        audited = {
+            indicator.id
+            for indicator in score_card.indicators
+            if isinstance(indicator.metric, AuditRef)
+        }
+        for answered in sorted(audit.responses):
+            if answered not in declared:
+                problems.append(
+                    f"{audit.audit_name} answers {answered!r}, which this score card does "
+                    "not declare. It is a typo or an audit of a different card"
+                )
+            elif answered not in audited:
+                problems.append(
+                    f"{audit.audit_name} answers {answered!r}, which this score card "
+                    "computes from the bundle. An assessor cannot overrule a measurement"
+                )
+
     for indicator in score_card.indicators:
         if access_tier and _tier_ceiling(indicator, score_card, access_tier) is NOT_ASSESSABLE:
             continue
         metric = indicator.metric
+        if isinstance(metric, AuditRef):
+            continue
         has_interval = isinstance(metric, MetricRef) and metric.source in INTERVAL_SOURCES
 
         for rule in indicator.assessment:
@@ -531,6 +643,35 @@ def access_tier(run_dir: Path) -> str:
             "unknown. A grade without its tier is a claim without its ceiling"
         )
     return load_lock(path).access_tier
+
+
+def load_audit(path: Path) -> AuditResponses:
+    """Read a file of audit responses and check it against itself."""
+    try:
+        raw = yaml.safe_load(path.read_text())
+    except yaml.YAMLError as exc:
+        raise ScoreCardError(f"{path}: {exc}") from exc
+    if not isinstance(raw, dict):
+        raise ScoreCardError(f"{path} is not a set of audit responses")
+    try:
+        return AuditResponses.model_validate(raw)
+    except ValidationError as exc:
+        raise ScoreCardError(f"{path}: {exc}") from exc
+
+
+def copy_audit(path: Path, run_dir: Path) -> tuple[Path, str]:
+    """Put the responses in the bundle and hash them. Returns where they landed.
+
+    A grade read out of a file that lives on the assessor's laptop cannot be recomputed
+    from the bundle, which is what every other input to this command already avoids. The
+    same-file case is the one the run directory hits when the responses are already there,
+    and copying a file onto itself raises.
+    """
+    destination = run_dir / AUDIT_NAME
+    run_dir.mkdir(parents=True, exist_ok=True)
+    if path.resolve() != destination.resolve():
+        shutil.copyfile(path, destination)
+    return destination, sha256_file(destination)
 
 
 def load_estimates(run_dir: Path) -> Estimates:

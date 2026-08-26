@@ -206,18 +206,35 @@ def grade(
             help="The score card to apply: the ladder, its thresholds and its ceilings",
         ),
     ],
+    audit: Annotated[
+        Path | None,
+        typer.Option(
+            "--audit",
+            "-a",
+            exists=True,
+            dir_okay=False,
+            help="Responses for the indicators a person assesses rather than the bundle "
+            "reports. Copied into the run, so the grade stays recomputable from it. "
+            "Without this those indicators are ungraded, which is a true statement",
+        ),
+    ] = None,
 ) -> None:
     """Apply a score card and produce DQI indicators. Offline, no Docker."""
     try:
         card = grade_run.load_scorecard(score_card)
         estimates = grade_run.load_estimates(run_dir)
         tier = grade_run.access_tier(run_dir)
+        responses = grade_run.load_audit(audit) if audit else None
 
-        problems = grade_run.check(card, estimates, tier)
+        problems = grade_run.check(card, estimates, tier, responses)
         if problems:
             for problem in problems:
                 typer.echo(problem, err=True)
             raise typer.Exit(1)
+
+        audit_sha256 = None
+        if audit is not None:
+            _, audit_sha256 = grade_run.copy_audit(audit, run_dir)
 
         scorecard = grade_run.grade(
             card,
@@ -225,6 +242,8 @@ def grade(
             tier,
             grade_run.summary_only_packs(run_dir),
             grade_run.plan_hash(run_dir),
+            responses,
+            audit_sha256,
         )
         path = grade_run.write_scorecard(scorecard, run_dir)
     except TouchstoneError as exc:
@@ -235,6 +254,8 @@ def grade(
     typer.echo(
         f"{path}: {len(scorecard.indicators)} indicator(s) at access tier {scorecard.access_tier}"
     )
+    if scorecard.audit_name:
+        typer.echo(f"audit {scorecard.audit_name}, sha256 {scorecard.audit_sha256}")
     for line in grade_run.lines(scorecard):
         typer.echo(line)
 

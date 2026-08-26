@@ -14,6 +14,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
+from touchstone.contracts.audit import AuditResponse
+
 Condition = Literal[
     "greater_equal",
     "greater_than",
@@ -78,6 +80,24 @@ class Expression(BaseModel):
     model_config = {"extra": "forbid"}
 
 
+class AuditRef(BaseModel):
+    """An indicator a person assesses, not one the engine computes.
+
+    It reads nothing from `estimates.json` and carries no ladder: the assessor supplies the
+    level and the engine's job is to check it against the score card's own levels and cap
+    it by the access tier, which is where `artefact_provenance` gets its limit. The
+    response arrives in a separate file, keyed by indicator id, so the judgment and the
+    rubric are written by different people at different times.
+    """
+
+    source: Literal["audit"]
+    question: str = Field(min_length=1)
+    """What the assessor was asked, in the card rather than in the responses, so two audits
+    of the same index answered the same question."""
+
+    model_config = {"extra": "forbid"}
+
+
 class Rule(BaseModel):
     """One rung of the ladder: the level this awards, and what has to hold to award it."""
 
@@ -95,9 +115,12 @@ class Rule(BaseModel):
 class Indicator(BaseModel):
     id: str = Field(pattern=r"^[a-z0-9_]{1,32}$")
     name: str | None = None
-    metric: MetricRef | Expression
-    assessment: list[Rule] = Field(min_length=1)
-    """Ordered, best level first. The first rule that holds decides the grade."""
+    metric: MetricRef | Expression | AuditRef
+    assessment: list[Rule] = Field(default_factory=list)
+    """Ordered, best level first. The first rule that holds decides the grade.
+
+    Empty only for an audit indicator, where the ladder is the assessor's and a rule here
+    would be a threshold applied to a judgment that never produced a number."""
 
     tier_ceilings: dict[str, str | None] | None = None
     """Overrides the score card's map for this indicator alone.
@@ -110,6 +133,17 @@ class Indicator(BaseModel):
     measure headline accuracy completely and cannot measure calibration at all, and one
     ceiling for a whole card either caps the first for no reason or lets the second be
     claimed on evidence that does not exist."""
+
+    @model_validator(mode="after")
+    def _assessment_matches_the_metric(self) -> "Indicator":
+        audited = isinstance(self.metric, AuditRef)
+        if audited and self.assessment:
+            raise ValueError(
+                f"{self.id}: an audit indicator is graded by its assessor, not by rules"
+            )
+        if not audited and not self.assessment:
+            raise ValueError(f"{self.id}: assessment is empty and there is nothing to grade with")
+        return self
 
     model_config = {"extra": "forbid"}
 
@@ -238,6 +272,10 @@ class GradedIndicator(BaseModel):
     """The formula, where one was used. It carries no interval, by design: combining two
     intervals needs their correlation, and a bundle does not record it."""
 
+    audit: AuditResponse | None = None
+    """The assessor's answer, where this indicator was audited rather than computed. Kept
+    whole, so the level and the evidence behind it travel together into the report."""
+
     model_config = {"extra": "forbid"}
 
 
@@ -257,6 +295,12 @@ class Scorecard(BaseModel):
     plan_sha256: str | None = None
     """The frozen plan these grades were asserted against. A grade is only meaningful
     beside the thresholds that were fixed before the run."""
+
+    audit_name: str | None = None
+    audit_assessor: str | None = None
+    audit_sha256: str | None = None
+    """The audit responses these grades used, and the hash of the file they came from. An
+    audited level is somebody's judgment, and the bundle names whose and which version."""
 
     indicators: list[GradedIndicator] = Field(default_factory=list)
 
