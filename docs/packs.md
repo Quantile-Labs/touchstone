@@ -53,12 +53,36 @@ network:
 `network.egress` is a declaration a security reviewer can read. Empty means the pack
 reaches nothing, and that is enforced: the container runs with no network at all.
 
-**A non-empty allowlist is not enforced yet.** Docker cannot restrict a container to a
-list of hosts without a proxy, which is not built. `run` refuses such a pack rather than
-quietly granting it everything. `--allow-unenforced-egress` runs it anyway, gives it the
-whole network, and records `egress_enforced: false` in the bundle's `environment.json` so
-a reader knows the pack was not contained. Use it to develop against a real API, not to
-produce evidence for anyone.
+**A non-empty allowlist is enforced.** The pack runs on a Docker network created
+`--internal`, which has no route off the host, and a squid sidecar attached to both that
+network and the bridge is the only way through. It allows `CONNECT` to the declared hosts
+and denies everything else.
+
+**Containment does not depend on your pack.** It is told about the proxy through
+`HTTPS_PROXY` and the usual spellings, and that is a courtesy rather than the control: a
+pack that ignores those variables is on a network with nowhere to go. The internal network
+is what makes the answer irrelevant.
+
+**The proxy never terminates TLS.** It reads the hostname off the `CONNECT` line and the
+bytes stay opaque, so it is never trusted with your API keys. That is the constraint the
+design is built around rather than a limitation of it.
+
+Declare hostnames and nothing else. No scheme, no port, no path, no wildcard, and no bare
+IP address: `dstdomain` matches names rather than addresses, so an address would be
+accepted and then match nothing, and a denial with no explanation is worse than a refusal
+with one. A host that is not a hostname is refused before anything starts. `dstdomain
+example.com` matches that host and not its subdomains, so a pack that needs a subdomain
+declares the subdomain.
+
+The bundle records what happened. `environment.json` carries `egress_enforced: true`, and
+every request the pack made, allowed or denied, is written to `<run_id>.egress.log` beside
+its records. **A denial in there is a finding rather than an error**: it says the pack
+tried to reach a host it never declared.
+
+`--allow-unenforced-egress` is a downgrade of something the backend can now do. It runs the
+pack on the ordinary bridge network with the whole internet available, and records
+`egress_enforced: false` so a reader knows the pack was not contained. Use it to develop
+against a real API. It is not a way to produce evidence for anyone.
 
 `strata` is declared so a plan can be checked against it before anything runs. The
 values are yours. Touchstone never interprets them, which is why a pack for any
