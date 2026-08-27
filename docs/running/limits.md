@@ -65,3 +65,11 @@ A pack killed by the memory cgroup is recorded as `out_of_memory`:
 Docker reports 137 for a killed container, and that is also what a timeout reports, so the
 exit code alone cannot tell them apart. `termination` is carried separately for exactly
 this reason. See [Running packs](run.md#termination-is-recorded-separately-from-the-exit-code).
+
+The harness knows a timeout because its own wait expired, and reads a 137 that arrives any
+other way as the memory cap, which every container runs under. Docker's `State.OOMKilled`
+is not what decides it: dockerd writes that flag from an event containerd delivers, on
+cgroup v2 the event is sometimes never delivered, and a container the kernel killed would
+then be recorded as a pack that chose to exit 137. The cost of reading the exit code
+instead is that a pack calling `exit(137)` on purpose is filed as killed for memory, which
+is the safer of the two mistakes: it names the harness rather than the system under test.
