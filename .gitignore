@@ -40,3 +40,6 @@ logs/
 
 # OS
 .DS_Store
+
+# Docs site build output
+site/

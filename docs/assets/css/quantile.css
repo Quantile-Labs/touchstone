@@ -1,0 +1,700 @@
+/* ==========================================================================
+   Touchstone documentation, Quantile Labs
+   The tokens below are lifted from quantilelabs.com/assets/css/main.css so the
+   docs subdomain and the laboratory site are one substrate. One hue, six steps,
+   light only: the parent site sets `color-scheme: light` deliberately, so there
+   is no dark palette here to toggle to.
+   ========================================================================== */
+
+/* --- faces ---------------------------------------------------------------- */
+/* Self-hosted, same files the parent site serves. Material is configured with
+   `font: false` so it never fetches a Google-hosted face over these. */
+@font-face {
+  font-family: 'Google Sans Flex';
+  font-style: normal;
+  font-weight: 1 1000;
+  font-display: swap;
+  src: url(../fonts/google-sans-flex.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Google Sans Flex';
+  font-style: normal;
+  font-weight: 1 1000;
+  font-display: swap;
+  src: url(../fonts/google-sans-flex-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url(../fonts/plex-mono-400.woff2) format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(../fonts/plex-mono-500.woff2) format('woff2');
+}
+
+/* --- tokens --------------------------------------------------------------- */
+:root {
+  --paper: #f1eff3;
+  --surface: #fbfafc;
+  --vellum: #e5e2ea;
+  --rule: #cdc7d6;
+  --slate: #635c70;
+  --ink: #1b1720;
+  --tail: #3e2352;
+  --tail-deep: #2a1739;
+  --tail-lift: #c4a9dc;
+
+  --radius: 4px;
+  --radius-sm: 3px;
+
+  --display: 'Google Sans Flex', ui-sans-serif, system-ui, sans-serif;
+  --body: 'Google Sans Flex', ui-sans-serif, system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Material's own names, pointed at the above. */
+  --md-text-font-family: var(--body);
+  --md-code-font-family: var(--mono);
+
+  --md-primary-fg-color: var(--tail);
+  --md-primary-fg-color--light: #57356f;
+  --md-primary-fg-color--dark: var(--tail-deep);
+  --md-primary-bg-color: var(--paper);
+  --md-primary-bg-color--light: var(--vellum);
+
+  --md-accent-fg-color: var(--tail-deep);
+  --md-accent-fg-color--transparent: rgba(62, 35, 82, 0.1);
+
+  --md-default-bg-color: var(--paper);
+  --md-default-fg-color: var(--ink);
+  --md-default-fg-color--light: var(--slate);
+  --md-default-fg-color--lighter: #8b8398;
+  --md-default-fg-color--lightest: var(--rule);
+
+  --md-typeset-color: var(--ink);
+  --md-typeset-a-color: var(--tail);
+  --md-typeset-mark-color: rgba(196, 169, 220, 0.4);
+
+  --md-code-bg-color: var(--vellum);
+  --md-code-fg-color: var(--ink);
+  --md-code-hl-color: rgba(196, 169, 220, 0.35);
+
+  --md-footer-bg-color: var(--ink);
+  --md-footer-bg-color--dark: var(--tail-deep);
+  --md-footer-fg-color: var(--paper);
+  --md-footer-fg-color--light: rgba(241, 239, 243, 0.8);
+  --md-footer-fg-color--lighter: rgba(241, 239, 243, 0.55);
+
+  --md-shadow-z1: 0 0 0 1px var(--rule);
+  --md-shadow-z2: 0 0 0 1px var(--rule);
+  --md-shadow-z3: 0 0 0 1px var(--rule);
+}
+
+/* --- body ----------------------------------------------------------------- */
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-synthesis-weight: none;
+}
+
+.md-typeset {
+  font-size: 0.8125rem;
+  line-height: 1.68;
+  letter-spacing: -0.002em;
+}
+
+.md-grid {
+  max-width: 1180px; /* --shell on the parent site */
+}
+
+/* --- masthead ------------------------------------------------------------- */
+/* The parent site's header is paper with a rule under it and an ink wordmark,
+   not a coloured bar. Match it, or the subdomain reads as a different property. */
+.md-header {
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: none;
+  border-bottom: 1px solid var(--rule);
+}
+.md-header--shadow {
+  box-shadow: none;
+  border-bottom-color: var(--rule);
+}
+.md-header__title {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.0625rem;
+  letter-spacing: -0.02em;
+}
+.md-header__topic:first-child {
+  font-weight: 600;
+}
+.md-header__button.md-logo :is(img, svg) {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
+}
+.md-tabs {
+  background: var(--paper);
+  color: var(--ink);
+  border-bottom: 1px solid var(--rule);
+}
+
+/* Search sits in the header, so it has to survive on paper rather than on plum. */
+.md-search__form {
+  background: var(--vellum);
+  border-radius: var(--radius);
+  box-shadow: none;
+}
+.md-search__form:hover {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+.md-search__input {
+  color: var(--ink);
+  font-family: var(--body);
+}
+.md-search__input::placeholder {
+  color: var(--slate);
+}
+.md-search__icon,
+.md-search__options .md-icon {
+  color: var(--slate);
+}
+[data-md-toggle='search']:checked ~ .md-header .md-search__form {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--rule);
+}
+.md-search__output {
+  border-radius: var(--radius);
+  box-shadow: 0 0 0 1px var(--rule);
+}
+.md-search-result__meta {
+  background: var(--vellum);
+  color: var(--slate);
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+}
+.md-search-result__article {
+  background: var(--surface);
+}
+.md-search-result__link:is(:focus, :hover) {
+  background: var(--vellum);
+}
+
+/* --- navigation ----------------------------------------------------------- */
+.md-nav {
+  font-size: 0.75rem;
+  font-family: var(--body);
+}
+.md-nav__title {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--slate);
+}
+.md-nav__item--section > .md-nav__link {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--slate);
+}
+.md-nav__link {
+  color: var(--slate);
+  transition: color 80ms ease;
+}
+.md-nav__link:is(:focus, :hover) {
+  color: var(--ink);
+}
+.md-nav__link--active,
+.md-nav__link--active:is(:focus, :hover) {
+  color: var(--ink);
+  font-weight: 500;
+}
+/* The active page is marked with the hue on the rail, which is how the parent
+   site marks the current nav item. */
+.md-nav--secondary .md-nav__link--active,
+.md-sidebar--primary .md-nav__link--active {
+  box-shadow: inset 2px 0 0 var(--tail);
+  padding-left: 0.6rem;
+}
+.md-sidebar {
+  font-family: var(--body);
+}
+.md-sidebar--secondary .md-nav__title {
+  color: var(--slate);
+}
+
+/* --- typography ----------------------------------------------------------- */
+.md-typeset h1 {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 2rem;
+  line-height: 1.14;
+  letter-spacing: -0.028em;
+  color: var(--ink);
+  margin-bottom: 0.6em;
+}
+.md-typeset h2 {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.3125rem;
+  line-height: 1.24;
+  letter-spacing: -0.022em;
+  color: var(--ink);
+  margin-top: 2.2em;
+  padding-top: 0.9em;
+  border-top: 1px solid var(--rule);
+}
+.md-typeset h3 {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 1.0625rem;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  margin-top: 1.9em;
+}
+.md-typeset h4,
+.md-typeset h5,
+.md-typeset h6 {
+  font-family: var(--display);
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  text-transform: none;
+}
+.md-typeset h5 {
+  font-size: 0.875rem;
+}
+
+/* The lede: first paragraph of a page, set up a step. Applied with
+   `{ .lede }` on the paragraph. */
+.md-typeset p.lede {
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--slate);
+  letter-spacing: -0.008em;
+  max-width: 44ch;
+}
+
+.md-typeset a {
+  text-decoration: none;
+  box-shadow: inset 0 -1px 0 rgba(62, 35, 82, 0.32);
+  transition: box-shadow 80ms ease, color 80ms ease;
+}
+.md-typeset a:is(:focus, :hover) {
+  color: var(--tail-deep);
+  box-shadow: inset 0 -1px 0 var(--tail);
+}
+.md-typeset a.headerlink {
+  box-shadow: none;
+  color: var(--rule);
+}
+.md-typeset a.headerlink:is(:focus, :hover) {
+  color: var(--tail);
+}
+
+.md-typeset hr {
+  border-bottom: 1px solid var(--rule);
+}
+
+.md-typeset blockquote {
+  border-left: 2px solid var(--tail-lift);
+  color: var(--slate);
+}
+
+/* --- code ----------------------------------------------------------------- */
+.md-typeset code,
+.md-typeset kbd,
+.md-typeset pre {
+  font-family: var(--mono);
+  font-feature-settings: normal;
+}
+.md-typeset code {
+  font-size: 0.855em;
+  padding: 0.1em 0.32em;
+  border-radius: var(--radius-sm);
+  background: var(--vellum);
+  color: var(--tail-deep);
+}
+.md-typeset a code {
+  color: var(--tail);
+  background: var(--vellum);
+}
+.md-typeset pre > code {
+  font-size: 0.78rem;
+  line-height: 1.6;
+  padding: 1rem 1.1rem;
+  background: transparent;
+  color: var(--ink);
+}
+.md-typeset .highlight,
+.md-typeset .highlighttable {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.md-typeset .highlight pre,
+.md-typeset .highlighttable pre {
+  margin: 0;
+}
+/* A console block is a transcript, so it is set on the recessed fill rather
+   than the raised one: it is something that happened, not something to run. */
+.md-typeset .language-console.highlight,
+.md-typeset .language-text.highlight {
+  background: var(--vellum);
+}
+.md-clipboard {
+  color: var(--rule);
+}
+.md-clipboard:is(:focus, :hover) {
+  color: var(--tail);
+}
+.md-typeset .linenos,
+.md-typeset .linenodiv pre {
+  color: var(--rule);
+  background: transparent;
+  border-right: 1px solid var(--rule);
+}
+
+/* Highlighting. Low contrast on purpose: the parent site spends emphasis on
+   limitations, not on syntax. */
+.md-typeset .highlight :is(.k, .kd, .kn, .kp, .kr, .kt, .kc) {
+  color: var(--tail);
+  font-weight: 500;
+}
+.md-typeset .highlight :is(.s, .s1, .s2, .sb, .sc, .sd, .se, .sh, .si, .sx, .sr) {
+  color: #3d5a3a;
+}
+.md-typeset .highlight :is(.c, .c1, .cm, .cs, .ch, .cp, .cpf) {
+  color: var(--slate);
+  font-style: italic;
+}
+.md-typeset .highlight :is(.m, .mi, .mf, .mh, .mo, .il) {
+  color: #7a3b2e;
+}
+.md-typeset .highlight :is(.nf, .fm) {
+  color: var(--ink);
+  font-weight: 500;
+}
+.md-typeset .highlight .nt {
+  color: var(--tail);
+}
+.md-typeset .highlight .gp {
+  color: var(--slate);
+  user-select: none;
+}
+
+/* --- tables --------------------------------------------------------------- */
+.md-typeset table:not([class]) {
+  font-size: 0.78rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: none;
+  background: var(--surface);
+}
+.md-typeset table:not([class]) th {
+  background: var(--vellum);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--rule);
+  padding: 0.7em 0.9em;
+}
+.md-typeset table:not([class]) td {
+  border-top: 1px solid var(--rule);
+  padding: 0.7em 0.9em;
+  vertical-align: top;
+}
+.md-typeset table:not([class]) tr:first-child td {
+  border-top: none;
+}
+.md-typeset table:not([class]) tr:hover {
+  background: rgba(229, 226, 234, 0.4);
+}
+
+/* --- admonitions ---------------------------------------------------------- */
+/* Material ships a different hue per type: amber for warning, red for danger, blue
+   for note. The parent site is one hue, so all of that is overridden here and the type
+   is carried by the icon and by the weight of the left rule instead. Squared off and
+   quiet: Material's default is a rounded card with a coloured title bar, which is louder
+   than anything on quantilelabs.com. */
+.md-typeset :is(.admonition, details) {
+  font-size: 0.78rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-left: 2px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: none;
+}
+.md-typeset :is(.admonition-title, summary) {
+  background: transparent;
+  border-left: none;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.8125rem;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  margin-block: 0;
+}
+.md-typeset :is(.admonition-title, summary)::before {
+  background-color: var(--slate);
+}
+.md-typeset .admonition > :last-child,
+.md-typeset details > :last-child {
+  margin-bottom: 0.6rem;
+}
+
+/* Every type, reset to the hue. The selector list is Material's own type vocabulary;
+   anything not named here falls through to the quiet default above. */
+.md-typeset
+  :is(
+    .admonition,
+    details
+  ):is(
+    .note, .abstract, .summary, .tldr, .info, .todo, .tip, .hint, .important,
+    .success, .check, .done, .question, .help, .faq, .example, .quote, .cite, .bug
+  ) {
+  border-color: var(--rule);
+  border-left-color: var(--tail-lift);
+}
+.md-typeset
+  :is(.note, .abstract, .summary, .tldr, .info, .todo, .tip, .hint, .important,
+      .success, .check, .done, .question, .help, .faq, .example, .quote, .cite, .bug)
+  > :is(.admonition-title, summary) {
+  background: transparent;
+}
+.md-typeset
+  :is(.note, .abstract, .summary, .tldr, .info, .todo, .tip, .hint, .important,
+      .success, .check, .done, .question, .help, .faq, .example, .quote, .cite, .bug)
+  > :is(.admonition-title, summary)::before {
+  background-color: var(--slate);
+}
+
+/* Warning and danger get the hue at full strength and a filled title bar, because a
+   limitation is the thing this project asks you to read. */
+.md-typeset
+  :is(.admonition, details):is(.warning, .caution, .attention, .danger, .error, .failure, .fail, .missing) {
+  border-color: var(--rule);
+  border-left-color: var(--tail);
+}
+.md-typeset
+  :is(.warning, .caution, .attention, .danger, .error, .failure, .fail, .missing)
+  > :is(.admonition-title, summary) {
+  background: var(--vellum);
+  color: var(--ink);
+}
+.md-typeset
+  :is(.warning, .caution, .attention, .danger, .error, .failure, .fail, .missing)
+  > :is(.admonition-title, summary)::before {
+  background-color: var(--tail);
+}
+/* Danger is the loudest thing on the site: the rule goes to the deep plum and the
+   title bar carries the tint. Still one hue. */
+.md-typeset :is(.admonition, details):is(.danger, .error) {
+  border-left-color: var(--tail-deep);
+}
+.md-typeset :is(.danger, .error) > :is(.admonition-title, summary) {
+  background: rgba(196, 169, 220, 0.28);
+}
+
+/* --- tabs ----------------------------------------------------------------- */
+.md-typeset .tabbed-labels > label {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--slate);
+}
+.md-typeset .tabbed-labels > label:hover {
+  color: var(--ink);
+}
+.md-typeset .tabbed-set > input:checked + label {
+  color: var(--ink);
+  border-color: var(--tail);
+}
+
+/* --- footer --------------------------------------------------------------- */
+.md-footer {
+  background: var(--ink);
+}
+.md-footer-meta {
+  background: var(--tail-deep);
+}
+.md-footer__link {
+  opacity: 1;
+}
+.md-footer__title {
+  font-family: var(--display);
+  font-weight: 500;
+}
+.md-footer__direction {
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.md-copyright {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.02em;
+}
+.md-social__link svg {
+  fill: rgba(241, 239, 243, 0.7);
+}
+.md-social__link:hover svg {
+  fill: var(--tail-lift);
+}
+
+/* --- the way back to the laboratory --------------------------------------- */
+/* A docs subdomain with no route home is a dead end. This sits above the nav in
+   the sidebar and in the header on wide screens. */
+.ql-home {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--slate);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.ql-home:hover {
+  color: var(--ink);
+}
+.ql-home::before {
+  content: '←';
+  font-size: 0.8125rem;
+  letter-spacing: 0;
+}
+
+/* --- misc ----------------------------------------------------------------- */
+.md-typeset .md-button {
+  font-family: var(--display);
+  font-weight: 500;
+  border-radius: var(--radius);
+  border-width: 1px;
+  box-shadow: none;
+}
+.md-typeset .md-button--primary {
+  background: var(--tail);
+  border-color: var(--tail);
+  color: var(--paper);
+}
+.md-typeset .md-button--primary:is(:focus, :hover) {
+  background: var(--tail-deep);
+  border-color: var(--tail-deep);
+  color: var(--paper);
+}
+.md-typeset .md-button:is(:focus, :hover) {
+  background: var(--tail-deep);
+  border-color: var(--tail-deep);
+  color: var(--paper);
+}
+::selection {
+  background: var(--tail-lift);
+  color: var(--ink);
+}
+
+/* --- sidebar title -------------------------------------------------------- */
+/* The site name is in the masthead and the laboratory link is directly above, so the
+   nav's own repeat of it is a third instance of the same word in one column. */
+@media screen and (min-width: 76.25em) {
+  .md-nav--primary > .md-nav__title {
+    display: none;
+  }
+  .ql-home {
+    margin-bottom: var(--s5, 24px);
+    display: inline-flex;
+  }
+}
+
+/* --- the edit link -------------------------------------------------------- */
+.md-content__button {
+  color: var(--rule);
+}
+.md-content__button:is(:focus, :hover) {
+  color: var(--tail);
+}
+
+/* --- header repo block ---------------------------------------------------- */
+.md-header__source {
+  color: var(--slate);
+}
+.md-source__repository {
+  font-family: var(--display);
+  font-weight: 500;
+}
+.md-source__facts {
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.02em;
+  opacity: 0.8;
+}
+.md-header__button {
+  color: var(--ink);
+}
+
+/* --- generated reference -------------------------------------------------- */
+/* mkdocstrings' symbol chips. Tinted to the hue so the Reference reads as part of
+   the same site rather than as generated output pasted into it. */
+.md-typeset .doc-symbol {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border-radius: var(--radius-sm);
+  padding: 0.08em 0.4em;
+}
+.md-typeset .doc-symbol-class,
+.md-typeset .doc-symbol-heading.doc-symbol-class {
+  background: rgba(62, 35, 82, 0.1);
+  color: var(--tail);
+}
+.md-typeset .doc-symbol-attribute,
+.md-typeset .doc-symbol-heading.doc-symbol-attribute {
+  background: var(--vellum);
+  color: var(--slate);
+}
+.md-typeset .doc-symbol-module,
+.md-typeset .doc-symbol-function,
+.md-typeset .doc-symbol-method {
+  background: var(--vellum);
+  color: var(--slate);
+}
+/* The signature block is a definition, not something to run: recessed fill. */
+.md-typeset .doc-signature .highlight,
+.md-typeset .doc-heading + .highlight {
+  background: var(--vellum);
+}
+.md-typeset .doc-contents {
+  border-left: none;
+}
+.md-typeset .doc-children > .doc-object {
+  margin-top: var(--s5, 24px);
+}

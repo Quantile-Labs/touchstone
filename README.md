@@ -267,8 +267,8 @@ uv run pytest -q
 ```
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) first. Commit messages are linted, `main` is
-protected, and changes go in through a pull request. See [docs/packs.md](docs/packs.md) to
-write a pack.
+protected, and changes go in through a pull request. See [Writing a
+pack](https://touchstone.quantilelabs.com/extending/writing-a-pack/) to write a pack.
 
 ## Licence
 

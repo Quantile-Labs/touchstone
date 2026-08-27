@@ -1,0 +1,156 @@
+site_name: Touchstone
+site_url: https://touchstone.quantilelabs.com/
+site_description: >-
+  An open-source harness for AI evaluations that seal into a checkable evidence
+  bundle. Built by Quantile Labs.
+site_author: Quantile Labs
+copyright: Quantile Labs · Apache 2.0
+
+repo_url: https://github.com/Quantile-Labs/touchstone
+repo_name: Quantile-Labs/touchstone
+edit_uri: edit/main/docs/
+
+docs_dir: docs
+site_dir: site
+
+theme:
+  name: material
+  custom_dir: overrides
+  language: en
+  favicon: assets/favicon.svg
+  logo: assets/favicon.svg
+  # The parent site self-hosts Google Sans Flex and IBM Plex Mono and commits to
+  # one substrate. Material must not fetch its own faces over them, and there is
+  # no dark palette to toggle to.
+  font: false
+  palette:
+    scheme: default
+  features:
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - navigation.footer
+    - toc.follow
+    - content.code.copy
+    - content.action.edit
+    - search.suggest
+    - search.highlight
+
+extra_css:
+  - assets/css/quantile.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Quantile-Labs
+      name: Quantile Labs on GitHub
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/company/quantilelabs/
+      name: Quantile Labs on LinkedIn
+  generator: false
+
+markdown_extensions:
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      permalink_title: Link to this section
+      toc_depth: 3
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.smartsymbols
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            show_source: false
+            # The page supplies its own section heading per module, so the module's
+            # own root heading would be the same word twice in a row.
+            show_root_heading: false
+            show_root_toc_entry: false
+            show_root_full_path: false
+            heading_level: 3
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+            show_if_no_docstring: false
+            show_labels: false
+            docstring_section_style: table
+            members_order: source
+            docstring_style: google
+            separate_signature: true
+            show_signature_annotations: true
+            signature_crossrefs: true
+            filters: ["!^_"]
+
+nav:
+  - Basics:
+      - Welcome: index.md
+      - Installation: basics/installation.md
+      - Tutorial: basics/tutorial.md
+      - CLI reference: basics/cli.md
+  - Components:
+      - Plans: components/plans.md
+      - Packs: components/packs.md
+      - Systems: components/systems.md
+      - Item records: components/items.md
+  - Running:
+      - Freeze and the lock: running/freeze.md
+      - Running packs: running/run.md
+      - Containment: running/containment.md
+      - Resource limits: running/limits.md
+      - The ledger: running/ledger.md
+  - Estimation:
+      - Rates and Wilson: estimation/rates.md
+      - Scores and the bootstrap: estimation/scores.md
+      - Strata and rollup: estimation/strata.md
+      - Replicates: estimation/replicates.md
+      - Calibration: estimation/calibration.md
+  - Score cards:
+      - Anatomy: scorecards/anatomy.md
+      - Conditions: scorecards/conditions.md
+      - Tier ceilings: scorecards/ceilings.md
+      - Indeterminate: scorecards/indeterminate.md
+      - Expressions: scorecards/expressions.md
+      - Audit indicators: scorecards/audit.md
+      - Comparing to a prior bundle: scorecards/prior.md
+  - Bundles:
+      - Anatomy: bundles/anatomy.md
+      - Verifying: bundles/verifying.md
+      - Anchoring: bundles/anchoring.md
+      - Re-analysis: bundles/reanalysis.md
+  - Extending:
+      - Writing a pack: extending/writing-a-pack.md
+      - Backend protocol: extending/backends.md
+  - Reference:
+      - Contracts: reference/contracts.md
+  - Project:
+      - What this does not prove: project/limits.md
+      - Status: project/status.md
+      - Contributing: project/contributing.md
+      - Releasing: project/releasing.md
+
+# Repository documentation rather than a page of the site. It is copied into the build so
+# the OFL text beside it travels with the fonts it covers, and it is named here so a build
+# does not report it as a page somebody forgot to put in the nav.
+not_in_nav: |
+  /assets/fonts/README.md
+
+watch:
+  - src
