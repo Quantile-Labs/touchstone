@@ -249,8 +249,8 @@ says what the evidence supports; nothing in it amounts to an approval.
 
 ## Status
 
-Early, and saying so. 0.1.0 is the first release that is the code this document
-describes, and all seven commands work and are tested doing it. What is not settled is the
+Early, and saying so. 0.2.0 is the current release, all seven commands work and are
+tested doing it, and this document describes the code that is on PyPI. What is not settled is the
 score card format, so `grade` applies whatever ladder the card gives it rather than one
 built in, and `examples/scorecard.yaml` shows the shape rather than a rubric anyone should
 adopt. The package is `touchstone-dqi` because `touchstone` was taken on PyPI. DQI is the

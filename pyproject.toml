@@ -1,6 +1,6 @@
 [project]
 name = "touchstone-dqi"
-version = "0.1.0"
+version = "0.2.0"
 description = "AI evaluation harness that seals results into an evidence bundle anyone can re-check offline."
 readme = "README.md"
 requires-python = ">=3.12"

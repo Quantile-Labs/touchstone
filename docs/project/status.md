@@ -1,6 +1,6 @@
 ---
 title: Status
-description: What is settled in 0.1.0, what is not, and what is planned.
+description: What is settled in 0.2.0, what is not, and what is planned.
 ---
 
 # Status
@@ -8,17 +8,24 @@ description: What is settled in 0.1.0, what is not, and what is planned.
 Early, and saying so.
 { .lede }
 
+## 0.2.0
+
+`estimate` given more than one `--by` key rolls up each key on its own as well as crossing
+them, so a card that asks about one dimension per indicator reads its cells off a single
+run. `grade` refuses a worst stratum that names no keys where the bundle holds cells
+sitting inside other cells, rather than ranking a group against part of itself.
+
+```console
+$ touchstone version
+touchstone 0.2.0
+```
+
+Still classified `Development Status :: 2 - Pre-Alpha` on PyPI, which is accurate.
+
 ## 0.1.0
 
 The first release that is the code this documentation describes. All seven commands work
 and are tested doing it.
-
-```console
-$ touchstone version
-touchstone 0.1.0
-```
-
-Classified `Development Status :: 2 - Pre-Alpha` on PyPI, which is accurate.
 
 ## What is settled
 

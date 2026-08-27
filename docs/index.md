@@ -111,8 +111,8 @@ with the wifi off.
 
 ## Status
 
-Early, and saying so. `0.1.0` is the first release that is the code this documentation
-describes, and all seven commands work and are tested doing it. What is not settled is the
+Early, and saying so. `0.2.0` is the current release, all seven commands work and are
+tested doing it, and the documentation describes the code that is on PyPI. What is not settled is the
 score card format. See [Status](project/status.md).
 
 The package is `touchstone-dqi` because `touchstone` was taken on PyPI.
