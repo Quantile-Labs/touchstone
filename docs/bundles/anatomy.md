@@ -68,6 +68,13 @@ Paths are relative to the bundle root, forward slashes on every platform. A path
 starts with `/` or contains `..` is refused. A manifest lists things inside the bundle, and
 one that reaches outside is either a mistake or an attack.
 
+!!! warning "`touchstone_version` in a bundle sealed by 0.1.0"
+
+    0.1.0 bumped the package version and left the string the code stamps reading `0.0.1`,
+    so every artefact it sealed names a version nobody published. A bundle reading `0.0.1`
+    was sealed by 0.0.1 or by 0.1.0 and nothing inside it separates the two. Fixed in
+    0.2.0, and no hash is affected. See [Status](../project/status.md).
+
 ## The bundle hash
 
 `sha256` is over **the canonicalised file list alone**, not over `MANIFEST.json` as a file:

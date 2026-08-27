@@ -69,6 +69,19 @@ published, so nothing here grades against it.
 | No trace viewer | `trace_ref` points into the bundle; reading it is your text editor's job. |
 | Anchors need manual upgrade | `ots upgrade` is a step somebody has to remember. See [Anchoring](../bundles/anchoring.md). |
 
+## Bundles sealed before 0.2.1
+
+A bundle from 0.1.0 or 0.2.0 verifies exactly as it did. Two things in one are worth
+knowing before quoting what it says.
+
+| Sealed by | Reads |
+|---|---|
+| 0.1.0 | `touchstone_version` says `0.0.1`. That release bumped `pyproject.toml` and left the string the code stamps, so a bundle reading `0.0.1` came from 0.0.1 or from 0.1.0. |
+| 0.1.0 or 0.2.0 | A unit the kernel killed for exceeding its memory cap can carry `exit_code: 137` with `termination` null, which reads as the pack exiting 137 on its own. See [Resource limits](../running/limits.md#being-killed-is-recorded). |
+
+Neither touches a hash, and neither can be corrected in a bundle that is already sealed.
+Re-running under 0.2.1 is what settles a 137 in an old one.
+
 ## What is tested
 
 ```bash
