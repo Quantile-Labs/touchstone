@@ -1,0 +1,46 @@
+# DQI Specification v0.1 framework mapping: ISO/IEC 42001:2023.
+#
+# THIS FILE CARRIES NO CITATIONS, AND THAT IS ITS CONTENT.
+#
+# ISO/IEC 42001:2023, Information technology, Artificial intelligence, Management system,
+# is sold rather than published. iso.org returns 403 to automated requests, including to
+# the Online Browsing Platform page that carries the free front matter, so neither the
+# clause text nor the published table of contents was obtained on 27 August 2026.
+#
+# Clause numbers for 42001 are widely reproduced in blog posts, certification-body
+# marketing and consultancy summaries. None of that is a primary source. Section 8 of the
+# specification exists precisely to stop those numbers being copied into a compliance
+# artefact, where a reader cannot tell a checked citation from a remembered one until they
+# buy the standard and check. So this file records the absence instead.
+#
+# WHAT CLOSES IT: a licensed copy of ISO/IEC 42001:2023, read clause by clause, with each
+# row dated and attributed like every row in eu.yaml and ng.yaml. It is a purchase and a
+# reading session, not a research problem.
+#
+# WHAT IS EXPECTED TO BE FOUND, asserted about nothing: 42001 is a management system
+# standard on the ISO harmonised structure, so its obligations are about process, roles,
+# documentation and review rather than about the accuracy of an output. The DQI indicators
+# it is most likely to reach are therefore artefact_provenance and drift_since_last, and
+# an evidence bundle is most likely to serve it as documented evidence of a control rather
+# than as a measurement of a requirement. NOTHING IS CLAIMED HERE. This paragraph exists so
+# that whoever reads the standard knows what this mapping was hoping for and can say
+# plainly that it was wrong.
+
+jurisdiction: iso
+status: unread
+
+framework:
+  id: iso_iec_42001_2023
+  name: "ISO/IEC 42001:2023 Information technology - Artificial intelligence - Management system"
+  published: "2023-12"
+  source: "https://www.iso.org/standard/81230.html"
+  attempted: "2026-08-27"
+  blocked_by: >-
+    Paywalled. iso.org and its Online Browsing Platform both returned HTTP 403 to
+    automated requests, so not even the free table of contents was read.
+  to_close: >-
+    Buy the standard, read it, and write the rows. Until then this framework contributes
+    no clause to any DQI report, and a report that cites 42001 without this file being
+    filled in is citing something nobody here has read.
+
+indicators: {}
