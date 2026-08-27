@@ -38,6 +38,12 @@ runs/
 bundles/
 logs/
 
+# `bundles/` above has no leading slash, so it matches a directory of that name at any
+# depth, and the documentation has a section about bundles. Those four pages are source
+# and git was silently declining to track them. The broad pattern stays, because a run
+# written into a subdirectory is still output nobody should commit.
+!docs/bundles/
+
 # OS
 .DS_Store
 
