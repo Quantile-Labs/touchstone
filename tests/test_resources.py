@@ -48,6 +48,22 @@ def value_after(args: list[str], flag: str) -> str:
     return args[args.index(flag) + 1]
 
 
+def termination_for(exit_code: int, tmp_path) -> str | None:
+    """What a docker exit is recorded as, with no daemon and no OOM event to read."""
+    backend = DockerBackend()
+
+    def stub(*args: str, timeout: int | None = None) -> subprocess.CompletedProcess:
+        code = exit_code if args[0] == "run" else 0
+        return subprocess.CompletedProcess(args=list(args), returncode=code, stdout="", stderr="")
+
+    backend._cli = stub  # type: ignore[method-assign]
+    backend.resolve_digest = lambda image: f"{image}@sha256:{'a' * 64}"  # type: ignore[method-assign]
+    result = backend.run(
+        RunSpec(run_id="unit", pack_id="p", image="i", output_dir=tmp_path / "out")
+    )
+    return result.termination
+
+
 def test_the_defaults_match_the_figures_asqi_uses():
     limits = Resources()
     assert limits.memory_mb == 2048
@@ -96,3 +112,17 @@ def test_the_manifest_figure_is_pinned_into_the_lock():
 def test_a_pack_declaring_nothing_still_lands_a_ceiling_in_the_lock():
     lock = freeze_plan.freeze(Plan.model_validate(PLAN), StubBackend())
     assert lock.packs[0].resources.memory_mb == 2048
+
+
+def test_a_kill_under_the_cap_is_named_without_asking_docker_why(tmp_path):
+    """dockerd writes `State.OOMKilled` from an event containerd delivers, and on cgroup v2
+    that event goes missing: this test's stub answers nothing, and CI has seen a real
+    container exit 137 against a 64m cap with the flag false. A kill recorded as no
+    termination is the pack's own exit code by the rule in `RunResult`, which hands the
+    system under test the blame for a ceiling the harness imposed."""
+    assert termination_for(137, tmp_path) == "out_of_memory"
+
+
+def test_a_pack_that_fails_on_its_own_is_not_read_as_a_kill(tmp_path):
+    assert termination_for(1, tmp_path) is None
+    assert termination_for(0, tmp_path) is None

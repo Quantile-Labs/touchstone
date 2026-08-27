@@ -24,8 +24,30 @@ from touchstone.backends.base import MANIFEST_PATH, ContainerBackend, RunResult,
 from touchstone.contracts import Manifest
 from touchstone.errors import BackendError
 
-TIMEOUT_EXIT = 137
-"""What docker reports for a killed container, and what ASQI reports for a timeout."""
+SIGKILL_EXIT = 137
+"""128 plus SIGKILL. What docker reports for a killed container, what ASQI reports for a
+timeout, and what the kernel leaves behind when it enforces a memory cap."""
+
+
+def _termination(exit_code: int) -> str | None:
+    """Why the runtime ended a container that ran to completion, or None if it did not.
+
+    Every container this backend starts is capped, with `--memory-swap` pinned so the cap
+    holds, and a timeout is killed on the other branch and named there, so a SIGKILL that
+    reaches here is the kernel enforcing that cap.
+
+    Docker's own answer is `State.OOMKilled`, which is what this used to read until CI
+    produced exit 137 against a 64m cap with the flag false. dockerd writes it from an event
+    containerd delivers, on cgroup v2 that event is sometimes never delivered at all, and
+    by the rule in `RunResult` a kill filed as no termination reads as the pack's own exit
+    code. Blaming the system under test for a limit the harness imposed is the claim this
+    field exists to keep out of a bundle, so the exit code is read directly rather than a
+    flag that is right most of the time.
+
+    A pack that calls `exit(137)` itself is recorded as killed for memory. Docker reports
+    an exit code and no signal, so nothing here can tell those two apart.
+    """
+    return "out_of_memory" if exit_code == SIGKILL_EXIT else None
 
 
 def _now() -> str:
@@ -211,17 +233,16 @@ class DockerBackend(ContainerBackend):
 
         started = _now()
         try:
-            # Not --rm. The container has to survive long enough to be asked why it
-            # stopped: docker reports an out of memory kill as exit 137, which is also
-            # what a timeout reports, so the exit code alone cannot tell them apart and a
-            # bundle would record a pack that was too big as a pack that was too slow.
             done = self._cli(*args, timeout=spec.timeout_seconds)
             exit_code, stdout = done.returncode, done.stdout
-            termination = "out_of_memory" if self._out_of_memory(spec.run_id) else None
+            termination = _termination(exit_code)
         except subprocess.TimeoutExpired:
             self._cli("kill", spec.run_id)
-            exit_code, termination, stdout = TIMEOUT_EXIT, "timeout", ""
+            exit_code, termination, stdout = SIGKILL_EXIT, "timeout", ""
         finally:
+            # Not --rm. Removal is a single call on every branch, so a container the
+            # harness killed for running long and one that exited on its own leave the host
+            # in the same state.
             self._cli("rm", "--force", spec.run_id)
 
         stdout_path = None
@@ -242,11 +263,6 @@ class DockerBackend(ContainerBackend):
             egress_enforced=egress_enforced,
             native_id=spec.run_id,
         )
-
-    def _out_of_memory(self, run_id: str) -> bool:
-        """Whether the kernel killed the container for exceeding its memory limit."""
-        done = self._cli("inspect", "--format", "{{.State.OOMKilled}}", run_id)
-        return done.stdout.strip() == "true"
 
     def shutdown(self, run_ids: list[str]) -> None:
         for run_id in run_ids:
