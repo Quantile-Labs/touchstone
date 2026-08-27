@@ -33,8 +33,8 @@ touchstone = "touchstone.cli:app"
 
 [dependency-groups]
 dev = ["pytest>=8.0", "ruff>=0.12", "mypy>=1.15", "types-PyYAML>=6.0"]
-# Mirrored, pinned, in requirements-docs.txt, which is what Vercel installs.
-# tests/test_docs_requirements.py fails if the two drift apart.
+# What the docs workflow syncs before it builds the site. uv.lock pins the versions, so
+# the published site and a local `mkdocs serve` are built from the same resolution.
 docs = [
     "mkdocs>=1.6",
     "mkdocs-material>=9.5",
