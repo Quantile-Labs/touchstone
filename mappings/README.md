@@ -28,8 +28,15 @@ to. `tests/test_mappings.py` enforces the shape.
 | File | State |
 |---|---|
 | `eu.yaml` | Regulation (EU) 2024/1689, 11 articles read in full |
-| `ng.yaml` | five Nigerian instruments, four read in full, one read through the regulator's own directive |
+| `ng.yaml` | six Nigerian instruments. Four downloaded from the issuer and read in full, one read through the regulator's own directive, one read from text supplied because the issuer's site refuses automated requests |
 | `iso.yaml` | **no citations.** ISO/IEC 42001:2023 is sold rather than published and was not read |
+
+66 rows: 34 `direct`, 31 `supporting`, 1 `unknown`.
+
+**Provenance is not uniform and the files say so.** A row read from a copy somebody handed
+over is not the same as one read from the issuer's own domain, and `read_from` on the
+framework records which it was. Neither is worse evidence than the other; a reader is
+entitled to know which they are looking at.
 
 An unread framework keeps a file. It records what was attempted, what blocked it and what
 closes it, so that a later reader can tell an absence from an oversight.

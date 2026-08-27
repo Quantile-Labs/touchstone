@@ -54,6 +54,26 @@ frameworks:
   - id: naicom_insurtech_2025
     name: "Guidelines for Insurtech Operations in Nigeria, August 2025"
     source: "https://naicom.gov.ng/wp-content/uploads/2026/07/Guidelines-for-Insurtech-Operations-in-Nigeria-August-2025.pdf"
+  - id: cbn_cyber_2024
+    name: "CBN Risk-Based Cybersecurity Framework and Guidelines for Deposit Money Banks and Payment Service Banks, 2024"
+    circular: "BSD/DIR/PUB/LAB/017/008, 31 May 2024, signed Ag. Director, Banking Supervision"
+    effective: "2024-07-01"
+    replaces: "the Risk-Based Cybersecurity Framework and Guidelines for Deposit Money Banks and Payment Service Providers, October 2018"
+    applies_to: "commercial, merchant, non-interest and payment service banks, jointly Supervised Financial Institutions"
+    source: "https://www.cbn.gov.ng/Out/2024/BSD/CBN%20Risk-Based%20Cybersecurity%20Framework%20for%20DMBs%20and%20PSBs_2024.pdf"
+    read_from: >-
+      The document text, supplied by the repository owner on 27 August 2026 after
+      cbn.gov.ng refused automated retrieval. Recorded because it is a different provenance
+      from every other row in this file: the four instruments above were downloaded from the
+      issuer's own domain by the person writing the mapping, and this one was not. The text
+      carries its own circular number, date and signatory, and the rows below quote it.
+    scope_caveat: >-
+      This is a CYBERSECURITY framework. It treats artificial intelligence as an attack
+      surface and as a control to be secured, and it places no obligation on the accuracy,
+      fairness or contestability of what an AI system decides. Section 4.4 is four
+      paragraphs inside an emerging-technologies chapter. Most rows below are therefore
+      `supporting`, and the `direct` ones are about testing, inventory and monitoring rather
+      than about outputs. Reading it as an AI governance instrument would overstate it.
   - id: nitda_cop_2022
     name: "NITDA Code of Practice for Interactive Computer Service Platforms / Internet Intermediaries 2022"
     source: "https://nitda.gov.ng/wp-content/uploads/2022/10/APPROVED-NITDA-CODE-OF-PRACTIVE-FOR-INTERACTIVE-COMPUTER-SERVICE-PLATFORMS-INTERNET-INTERMEDIARIES-2022-002.pdf"
@@ -79,6 +99,9 @@ indicators:
        quote: "before granting credit to a consumer, profile or assess the capability to repay in a sustainable manner by engaging in proper credit assessment of the consumer and carrying out a due diligence and credit worthiness of the consumer"}
     - {framework: naicom_insurtech_2025, clause: "clause 12.1(iii)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
        quote: "Unapproved Products and Pricing Models: Launching products or using dynamic pricing without actuarial support or prior approval from the Commission."}
+    - {framework: cbn_cyber_2024, clause: "s. 4.4 with Appendix IV, 1(c)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "AI and ML exposes SFIs to cyber-risks such as data breach, data leak, limited data, poor data quality, breach of privacy laws and opaque algorithms.",
+       note: "s. 4.4 names poor data quality as a risk and does not oblige anything about it. The obligation is Appendix IV 1(c), 'assessment of potential risks and controls considering their operating environment'. A measured accuracy rate is how that assessment is evidenced, which makes this supporting rather than direct."}
 
   worst_stratum_performance:
     - {framework: ndpc_gaid_2025, clause: "Article 43(4)(a)(i)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
@@ -108,6 +131,9 @@ indicators:
        note: "A disparate-outcome assessment over a population the evidence base does not reach is not an assessment of it. The obligation is on the outcome; coverage is what makes the obligation checkable."}
     - {framework: ndpc_gaid_2025, clause: "Article 43(4)(a)(ii)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
        quote: "Data Subjects' Vulnerability Indexes (DSVI) as stated in Schedule 6"}
+    - {framework: cbn_cyber_2024, clause: "s. 4.4 with Appendix IV, 1(c)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "limited data",
+       note: "s. 4.4 lists limited data among the cyber-risks AI and ML expose an institution to, and Appendix IV 1(c) requires those risks to be assessed. A coverage figure with its denominator is the assessment of exactly that risk. **This is the only place in any instrument read for this mapping where a regulator names the size of the evidence base as a risk in its own right.**"}
 
   geographic_coverage:
     - {framework: ndpc_gaid_2025, clause: "Article 43(4)(a)(i)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
@@ -131,13 +157,20 @@ indicators:
        quote: "Testing the ETs in low-risk environments where public interest may be served for a reasonable period and where significant outcomes of their use may be observed."}
     - {framework: ndpc_gaid_2025, clause: "Article 43(4)(d)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
        quote: "Retool and return (repeatedly as occasions may warrant) to the controlled environment to re-test the ETs tools until satisfactory outcomes are achieved"}
+    - {framework: cbn_cyber_2024, clause: "Appendix IV, 2(i)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "ensure that the adopted technology does not increase the risk exposure of existing technology"}
 
   adversarial_resistance:
     - {framework: ndpa_2023, clause: "s. 24(1)(f)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
        quote: "processed in a manner that ensures appropriate security of personal data, including protection against unauthorised or unlawful processing, access, loss, destruction, damage, or any form of data breach",
        read_via: "GAID 2025 Schedule 1 item 6"}
-    - {framework: cbn_cyber_2024, clause: "unread", strength: unknown, checked: null, by: null,
-       note: "This is the indicator the CBN framework would most likely reach. It is unread; see frameworks_unread below."}
+    - {framework: cbn_cyber_2024, clause: "Appendix IV, 3(e)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "monitor and secure AI-enabled systems to prevent misuse or manipulation",
+       note: "The only sentence in the framework that puts an obligation on an AI system as such rather than on the process around it."}
+    - {framework: cbn_cyber_2024, clause: "s. 2.2(iii)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "A third-party shall conduct a penetration test annually, at a minimum."}
+    - {framework: cbn_cyber_2024, clause: "Appendix IV, 2(a)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "conduct regular assessments (vulnerability assessments, penetration tests, etc) to identify and remediate any security flaws in the adopted emerging technology"}
 
   confident_and_wrong:
     - {framework: naicom_insurtech_2025, clause: "clause 12.1(iv)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
@@ -173,31 +206,26 @@ indicators:
     - {framework: nitda_cop_2022, clause: "Part I, clause 10", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
        quote: "make provision for a User to apply for a review or appeal of the removed content",
        caveat: "Content removal only. Narrower than this indicator asks."}
+    - {framework: cbn_cyber_2024, clause: "s. 4.4 with Appendix IV, 1(c)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "opaque algorithms",
+       note: "Listed among the cyber-risks of AI and ML, and assessable under Appendix IV 1(c). It is a risk to be managed rather than a right anyone holds, so it supports the indicator and does not create it."}
 
   drift_since_last:
     - {framework: ndpc_gaid_2025, clause: "Article 43(4)(e)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
        quote: "Where a determination has been made that the ETs are safe for use, a data controller shall put in place a mechanism for continuous monitoring and evaluation in all circumstances where they may be deployed."}
+    - {framework: cbn_cyber_2024, clause: "Appendix IV, 3(a)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "continually monitor and periodically report the impact of the adoption of emerging technologies on the cybersecurity posture to Management"}
+    - {framework: cbn_cyber_2024, clause: "s. 5.0(ii)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "The metrics should help to identify deficiencies, failed security controls as well as highlight the progress made in resolving issues."}
 
   artefact_provenance:
     - {framework: ndpc_gaid_2025, clause: "Article 43(3)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
        quote: "The technical and organisational parameters are to be documented and filed with the Commission as part of NDP Act CAR."}
     - {framework: ndpc_gaid_2025, clause: "Article 48", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
        note: "Evidence of Compliance with the NDP Act. Read as the heading; the article body was not quoted here."}
-
-frameworks_unread:
-  - id: cbn_cyber_2024
-    name: "CBN Risk-Based Cybersecurity Framework and Guidelines for Deposit Money Banks and Payment Service Banks"
-    issued: "2024-05-31"
-    effective: "2024-07-01"
-    source: "https://www.cbn.gov.ng/Out/2024/BSD/CBN%20Risk-Based%20Cybersecurity%20Framework%20for%20DMBs%20and%20PSBs_2024.pdf"
-    attempted: "2026-08-27"
-    blocked_by: >-
-      cbn.gov.ng sits behind a Cloudflare bot-verification interstitial. Four attempts,
-      three transports: curl with a full browser header set, the WebFetch fetcher, and a
-      real Chrome tab, all returned 403 with the "Performing security verification" page.
-      Working around it is bot-detection bypass and was not attempted.
-    to_close: >-
-      Download it by hand from an ordinary browsing session and drop it beside this file.
-      Expected reach, on the framework's published scope: adversarial_resistance and
-      artefact_provenance directly, drift_since_last through its monitoring requirements.
-      Nothing is asserted about its clauses until it is read.
+    - {framework: cbn_cyber_2024, clause: "Appendix II, 1.1(a)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Maintain an up-to-date inventory of all authorised IT assets on-premises and in cloud infrastructure used to process, store or transmit data/information such as workstations, laptops, ATMs, POS, network switches, routers, firewall, printers, scanners, photocopiers, IP Phones, Mobile devices, surveillance cameras, Applications, Databases, Services, Protocols etc."}
+    - {framework: cbn_cyber_2024, clause: "Appendix III, 1.5(e)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Ensure that configuration information of hardware and software are reviewed and verified regularly."}
+    - {framework: cbn_cyber_2024, clause: "Appendix III, 1.6(c)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "ensure that Open-Source codes or libraries are properly tested before use"}
