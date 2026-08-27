@@ -1,3 +1,8 @@
+---
+title: Releasing
+description: How touchstone-dqi publishes from CI with PyPI trusted publishing.
+---
+
 # Releasing
 
 Both packages publish from CI using PyPI trusted publishing. No API token is stored

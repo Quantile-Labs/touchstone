@@ -1,6 +1,18 @@
+---
+title: Writing a pack
+description: >-
+  The container contract, covering the manifest, the arguments and the item records, and
+  the rules that keep a pack from being trusted with the arithmetic.
+---
+
 # Writing a pack
 
 A pack is a container image that evaluates a system and reports what happened.
+{ .lede }
+
+It is the only part of the pipeline that talks to the system under test. See
+[Packs](../components/packs.md) for what a pack looks like from the plan's side, and
+[Item records](../components/items.md) for the record format in detail.
 
 ## Contract
 
@@ -12,13 +24,16 @@ A pack is a container image that evaluates a system and reports what happened.
 5. Accept `--output-dir`, defaulting to `/output`. This is what lets a pack author run
    the pack outside a container while writing it.
 
-**The container runs as the user who invoked Touchstone**, not as root and not as the
-image's `USER`. A bind mount on Linux keeps host ownership, so a pack running as anyone
-else cannot write to `/output`. Do not put a `USER` line in your Dockerfile expecting it
-to apply.
+!!! warning "The container runs as the user who invoked Touchstone"
 
-**Results go in `/output`, never to stdout.** Stdout is logs, it is not captured into the
-bundle, and a pack that prints a request prints the credential with it.
+    Not as root, and not as the image's `USER`. A bind mount on Linux keeps host
+    ownership, so a pack running as anyone else cannot write to `/output`. Do not put a
+    `USER` line in your Dockerfile expecting it to apply.
+
+!!! danger "Results go in `/output`, never to stdout"
+
+    Stdout is logs. It is not captured into the bundle, and a pack that prints a request
+    prints the credential with it.
 
 `packs/example_pack/` is a working pack that follows all of this in about seventy lines of
 standard library. Copy it.

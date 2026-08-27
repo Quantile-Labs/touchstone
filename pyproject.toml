@@ -24,7 +24,8 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Quantile-Labs/touchstone"
+Homepage = "https://touchstone.quantilelabs.com"
+Documentation = "https://touchstone.quantilelabs.com"
 Source = "https://github.com/Quantile-Labs/touchstone"
 
 [project.scripts]
@@ -32,6 +33,17 @@ touchstone = "touchstone.cli:app"
 
 [dependency-groups]
 dev = ["pytest>=8.0", "ruff>=0.12", "mypy>=1.15", "types-PyYAML>=6.0"]
+# Mirrored, pinned, in requirements-docs.txt, which is what Vercel installs.
+# tests/test_docs_requirements.py fails if the two drift apart.
+docs = [
+    "mkdocs>=1.6",
+    "mkdocs-material>=9.5",
+    "mkdocstrings[python]>=1.0",
+    # Named explicitly, though the extra above pulls it, so the handler that renders the
+    # whole Reference section is a version this repo chose rather than one resolution
+    # happened to land on.
+    "mkdocstrings-python>=2.0",
+]
 
 [build-system]
 requires = ["hatchling"]
