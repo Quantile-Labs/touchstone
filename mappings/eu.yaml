@@ -1,0 +1,90 @@
+# DQI Specification v0.1 framework mapping: European Union.
+#
+# Written to the shape section 8 of the specification requires: every row carries the
+# framework, the clause, the strength, and the date the citation was verified against the
+# primary source with the name of who verified it.
+#
+# Every clause below was read in full text on 27 August 2026 at
+# https://artificialintelligenceact.eu/article/<n>/, which reproduces the Official Journal
+# text of Regulation (EU) 2024/1689. Nothing here is cited from memory or from a summary.
+#
+# SCOPE, and it bounds every row: these obligations attach to high-risk AI systems, and to
+# providers or deployers of them. A system outside Annex III carries none of them. The
+# mapping says which obligation an indicator evidences where the Regulation applies; it
+# does not decide that it applies.
+
+jurisdiction: eu
+framework:
+  id: eu_ai_act
+  name: "Regulation (EU) 2024/1689 (Artificial Intelligence Act)"
+  in_force: "2024-08-01"
+  applies_from: "2026-08-02"          # Article 113, for the provisions cited here
+  source: "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32024R1689"
+  read_via: "https://artificialintelligenceact.eu/article/{n}/"
+
+indicators:
+  headline_accuracy:
+    - {framework: eu_ai_act, clause: "Article 15(1)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "achieve an appropriate level of accuracy, robustness, and cybersecurity, and that they perform consistently in those respects throughout their lifecycle"}
+    - {framework: eu_ai_act, clause: "Article 15(3)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "The levels of accuracy and the relevant accuracy metrics of high-risk AI systems shall be declared in the accompanying instructions of use."}
+    - {framework: eu_ai_act, clause: "Article 13(3)(b)(ii)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "the level of accuracy, including its metrics, robustness and cybersecurity referred to in Article 15 against which the high-risk AI system has been tested and validated and which can be expected"}
+
+  worst_stratum_performance:
+    - {framework: eu_ai_act, clause: "Article 13(3)(b)(v)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "when appropriate, its performance regarding specific persons or groups of persons on which the system is intended to be used"}
+    - {framework: eu_ai_act, clause: "Article 10(2)(f)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "examination in view of possible biases that are likely to affect the health and safety of persons, have a negative impact on fundamental rights or lead to discrimination prohibited under Union law"}
+
+  calibration:
+    - {framework: eu_ai_act, clause: "Article 13(3)(b)(vii)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "where applicable, information to enable deployers to interpret the output of the high-risk AI system and use it appropriately"}
+    - {framework: eu_ai_act, clause: "Article 15(1)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       note: "No provision of the Regulation names calibration. A stated confidence that does not mean what it says is an accuracy defect under 15(1) and nothing narrower was found."}
+
+  population_coverage:
+    - {framework: eu_ai_act, clause: "Article 10(3)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Training, validation and testing data sets shall be relevant, sufficiently representative, and to the best extent possible, free of errors and complete in view of the intended purpose. They shall have the appropriate statistical properties, including, where applicable, as regards the persons or groups of persons in relation to whom the high-risk AI system is intended to be used."}
+    - {framework: eu_ai_act, clause: "Article 26(4)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "the deployer shall ensure that input data is relevant and sufficiently representative in view of the intended purpose of the high-risk AI system"}
+
+  geographic_coverage:
+    - {framework: eu_ai_act, clause: "Article 10(4)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Data sets shall take into account, to the extent required by the intended purpose, the characteristics or elements that are particular to the specific geographical, contextual, behavioural or functional setting within which the high-risk AI system is intended to be used."}
+
+  language_coverage:
+    - {framework: eu_ai_act, clause: "Article 10(3)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       note: "Read on 'groups of persons in relation to whom the system is intended to be used'. A language community is such a group."}
+    - {framework: eu_ai_act, clause: "Article 10(4)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       note: "10(4) names the geographical setting explicitly and language only through 'contextual', so it is supporting here and direct for geographic_coverage."}
+
+  operational_degradation:
+    - {framework: eu_ai_act, clause: "Article 15(4)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "High-risk AI systems shall be as resilient as possible regarding errors, faults or inconsistencies that may occur within the system or the environment in which the system operates"}
+    - {framework: eu_ai_act, clause: "Article 13(3)(b)(ii)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "any known and foreseeable circumstances that may have an impact on that expected level of accuracy, robustness and cybersecurity"}
+
+  adversarial_resistance:
+    - {framework: eu_ai_act, clause: "Article 15(5)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "inputs designed to cause the AI model to make a mistake (adversarial examples or model evasion)"}
+
+  confident_and_wrong:
+    - {framework: eu_ai_act, clause: "Article 14(4)(b)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "to remain aware of the possible tendency of automatically relying or over-relying on the output produced by a high-risk AI system (automation bias), in particular for high-risk AI systems used to provide information or recommendations for decisions to be taken by natural persons"}
+
+  contestability:
+    - {framework: eu_ai_act, clause: "Article 86(1)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "shall have the right to obtain from the deployer clear and meaningful explanations of the role of the AI system in the decision-making procedure and the main elements of the decision taken"}
+
+  drift_since_last:
+    - {framework: eu_ai_act, clause: "Article 72(2)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "actively and systematically collect, document and analyse relevant data ... on the performance of high-risk AI systems throughout their lifetime, and which allow the provider to evaluate the continuous compliance of AI systems with the requirements set out in Chapter III, Section 2"}
+    - {framework: eu_ai_act, clause: "Article 15(1)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "perform consistently in those respects throughout their lifecycle"}
+
+  artefact_provenance:
+    - {framework: eu_ai_act, clause: "Article 12(1), 12(2)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "shall technically allow for the automatic recording of events (logs) over the lifetime of the system ... to ensure a level of traceability of the functioning of a high-risk AI system"}
+    - {framework: eu_ai_act, clause: "Article 26(6)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "shall keep the logs automatically generated by that high-risk AI system ... for a period appropriate to the intended purpose ... of at least six months"}

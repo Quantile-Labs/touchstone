@@ -1,0 +1,203 @@
+# DQI Specification v0.1 framework mapping: Nigeria.
+#
+# Four instruments were read in full on 27 August 2026, each downloaded from the issuing
+# body's own domain. Nothing here is cited from a summary, a law firm note or memory.
+#
+#   NDP Act 2023 and NDPC GAID 2025   ndpc.gov.ng .../NDP-ACT-GAID-2025-MARCH-20TH.pdf, 117pp
+#   FCCPC DEON Regulations 2025       fccpc.gov.ng .../Digital-Electronic-Online-or-Non-
+#                                     Traditional-Consumer-Lending-Regulations-2025.pdf, 20pp
+#   NAICOM Insurtech Guidelines       naicom.gov.ng .../Guidelines-for-Insurtech-Operations-
+#                                     in-Nigeria-August-2025.pdf, 27pp
+#   NITDA Code of Practice 2022       nitda.gov.ng .../APPROVED-NITDA-CODE-OF-PRACTIVE-...pdf
+#
+# ONE INSTRUMENT COULD NOT BE READ. cbn.gov.ng serves a Cloudflare bot-verification
+# interstitial to every automated request, so the CBN Risk-Based Cybersecurity Framework
+# and Guidelines for DMBs and PSBs (issued 31 May 2024, effective 1 July 2024) carries no
+# rows here. It is listed at the end as `unread` with what is needed to close it. An empty
+# row is recoverable; an invented one is not.
+#
+# TWO NEGATIVE FINDINGS, and both are load bearing:
+#
+#   1. The FCCPC DEON Regulations 2025 contain no algorithmic provision at all. Searched
+#      in full text: "algorithm" 0, "model" 0, "artificial" 0, "machine" 0, "black box" 0,
+#      "credit scoring" 0. The one hit for "bias" is Regulation 18(a), a general fair
+#      treatment duty. See the note against fccpc_deon_2025 below.
+#   2. NITDA has issued no Code of Practice for artificial intelligence. The instrument
+#      called the NITDA Code of Practice is the 2022 one for Interactive Computer Service
+#      Platforms and Internet Intermediaries. Its Part III clause 4 is nonetheless the
+#      most direct algorithmic-quality obligation in Nigerian law found anywhere in this
+#      exercise, and its scope is narrow. Both facts are recorded below.
+
+jurisdiction: ng
+
+frameworks:
+  - id: ndpa_2023
+    name: "Nigeria Data Protection Act 2023"
+    note: >-
+      The Act's own gazette PDF is served by cert.gov.ng, which returns 403 to automated
+      requests. Its sections are therefore cited THROUGH the NDPC's own directive, which
+      reproduces them verbatim in Schedule 1. Every s.24 quote below is the text the
+      regulator prints for that subsection. Sections quoted nowhere in the GAID are marked
+      `unread` rather than paraphrased.
+  - id: ndpc_gaid_2025
+    name: "NDP Act General Application and Implementation Directive (GAID) 2025"
+    reference: "NDPC/NDP ACT-GAID/01/2025"
+    source: "https://ndpc.gov.ng/wp-content/uploads/2025/07/NDP-ACT-GAID-2025-MARCH-20TH.pdf"
+  - id: fccpc_deon_2025
+    name: "Digital, Electronic, Online or Non-Traditional Consumer Lending Regulations 2025"
+    made_under: "Federal Competition and Consumer Protection Act 2018, ss. 17, 18, 163"
+    source: "https://fccpc.gov.ng/wp-content/uploads/2025/11/Digital-Electronic-Online-or-Non-Traditional-Consumer-Lending-Regulations-2025.pdf"
+    note: >-
+      Regulates disclosure, fair treatment, conduct and redress in consumer lending. It
+      says nothing about algorithms, models or automated decisions, so it reaches a
+      Touchstone indicator only through a general duty. Rows below are marked accordingly.
+  - id: naicom_insurtech_2025
+    name: "Guidelines for Insurtech Operations in Nigeria, August 2025"
+    source: "https://naicom.gov.ng/wp-content/uploads/2026/07/Guidelines-for-Insurtech-Operations-in-Nigeria-August-2025.pdf"
+  - id: nitda_cop_2022
+    name: "NITDA Code of Practice for Interactive Computer Service Platforms / Internet Intermediaries 2022"
+    source: "https://nitda.gov.ng/wp-content/uploads/2022/10/APPROVED-NITDA-CODE-OF-PRACTIVE-FOR-INTERACTIVE-COMPUTER-SERVICE-PLATFORMS-INTERNET-INTERMEDIARIES-2022-002.pdf"
+    scope_caveat: >-
+      Binds Platforms and Internet Intermediaries. Part III binds Large Service Platforms
+      only, defined by user count. A public-service procedural assistant run by an agency
+      is very likely outside it, so the Part III rows below are the right clause for the
+      wrong respondent unless the deployment is a platform. Recorded rather than dropped,
+      because it is the only Nigerian instrument that names accuracy and bias in automated
+      tools in one sentence.
+
+indicators:
+  headline_accuracy:
+    - {framework: ndpa_2023, clause: "s. 24(1)(e)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "accurate, complete, not misleading, and, where necessary, kept up to date having regard to the purposes for which the personal data is collected or is further processed",
+       read_via: "GAID 2025 Schedule 1 item 5, which reproduces the subsection"}
+    - {framework: ndpc_gaid_2025, clause: "Schedule 1, item 5(i)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "'accurate' means the data being processed or intended for processing is free from foreseeable errors. The data controller or data processor must therefore put in place appropriate technical and organisational measure to ensure data accuracy."}
+    - {framework: nitda_cop_2022, clause: "Part III, clause 4", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Provide the necessary human supervision to review and improve the use of automated tools to strengthen accuracy and fairness, checkmate bias and discrimination",
+       caveat: "Large Service Platforms only. See scope_caveat."}
+    - {framework: fccpc_deon_2025, clause: "Regulation 19(i)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "before granting credit to a consumer, profile or assess the capability to repay in a sustainable manner by engaging in proper credit assessment of the consumer and carrying out a due diligence and credit worthiness of the consumer"}
+    - {framework: naicom_insurtech_2025, clause: "clause 12.1(iii)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Unapproved Products and Pricing Models: Launching products or using dynamic pricing without actuarial support or prior approval from the Commission."}
+
+  worst_stratum_performance:
+    - {framework: ndpc_gaid_2025, clause: "Article 43(4)(a)(i)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Assessment of disparate outcomes of data processing.",
+       note: "Article 43 governs a controller deploying Emerging Technologies, which it defines to include Artificial Intelligence. This is the closest thing in Nigerian law to a stratified fairness obligation on an AI deployment."}
+    - {framework: ndpc_gaid_2025, clause: "Article 43(4)(c)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Determine whether there are disparate outcomes and the possibility of effectively addressing the disparate outcomes."}
+    - {framework: ndpc_gaid_2025, clause: "Article 41(8)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Safeguards should be in place to prevent the creation of profiles or the application of algorithms that could lead to prejudiced outcomes."}
+    - {framework: ndpc_gaid_2025, clause: "Article 41(5)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Discrimination based on gender, ethnicity, religion, physical ability or any other characteristic is strictly prohibited."}
+    - {framework: fccpc_deon_2025, clause: "Regulation 18(a)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "treat each and every consumer equitably and fairly without discrimination, exploitation or bias",
+       note: "A general fair treatment duty, not an algorithmic one. It is the whole of DEON's reach into this indicator."}
+    - {framework: nitda_cop_2022, clause: "Part III, clause 4", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "checkmate bias and discrimination", caveat: "Large Service Platforms only."}
+    - {framework: naicom_insurtech_2025, clause: "clause 11.2(a)(v)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Treat the client fairly and avoid conflict of interest"}
+
+  calibration:
+    - {framework: ndpc_gaid_2025, clause: "Article 42(2)(c)(ii)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Capabilities of the technology used for processing - particularly, the use of algorithms for profiling, the risks involved, mitigation of risks",
+       note: "No Nigerian instrument read here names calibration or stated confidence. This is a disclosure duty that a miscalibrated confidence would breach, and it is the nearest hook found."}
+
+  population_coverage:
+    - {framework: ndpc_gaid_2025, clause: "Article 43(4)(a)(i)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       note: "A disparate-outcome assessment over a population the evidence base does not reach is not an assessment of it. The obligation is on the outcome; coverage is what makes the obligation checkable."}
+    - {framework: ndpc_gaid_2025, clause: "Article 43(4)(a)(ii)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Data Subjects' Vulnerability Indexes (DSVI) as stated in Schedule 6"}
+
+  geographic_coverage:
+    - {framework: ndpc_gaid_2025, clause: "Article 43(4)(a)(i)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       note: "As population_coverage, resolved over a geographic stratum. No Nigerian instrument read here names a geographic representativeness duty."}
+
+  language_coverage:
+    - framework: ndpc_gaid_2025
+      clause: "Article 43(4)(a)(i)"
+      strength: supporting
+      checked: "2026-08-27"
+      by: "Quantile Labs"
+      note: >-
+        As above, resolved over a language stratum. Recorded deliberately as the weakest
+        row in this file: nothing read in Nigerian law obliges anyone to evaluate a system
+        in the languages its users speak. Nigeria's most widely spoken language has no
+        procedural accuracy benchmark in any public evaluation suite either, so the gap is
+        the same one from two directions and neither closes the other.
+
+  operational_degradation:
+    - {framework: ndpc_gaid_2025, clause: "Article 43(4)(b)(ii)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Testing the ETs in low-risk environments where public interest may be served for a reasonable period and where significant outcomes of their use may be observed."}
+    - {framework: ndpc_gaid_2025, clause: "Article 43(4)(d)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Retool and return (repeatedly as occasions may warrant) to the controlled environment to re-test the ETs tools until satisfactory outcomes are achieved"}
+
+  adversarial_resistance:
+    - {framework: ndpa_2023, clause: "s. 24(1)(f)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "processed in a manner that ensures appropriate security of personal data, including protection against unauthorised or unlawful processing, access, loss, destruction, damage, or any form of data breach",
+       read_via: "GAID 2025 Schedule 1 item 6"}
+    - {framework: cbn_cyber_2024, clause: "unread", strength: unknown, checked: null, by: null,
+       note: "This is the indicator the CBN framework would most likely reach. It is unread; see frameworks_unread below."}
+
+  confident_and_wrong:
+    - {framework: naicom_insurtech_2025, clause: "clause 12.1(iv)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Unsupervised automated claims rejections: Complete reliance on Artificial Intelligence (AI) systems to decline claims without human intervention.",
+       note: "Listed as an impermissible activity. A confidently wrong output is what makes the required human intervention nominal, which is the failure this prohibition is aimed at."}
+    - {framework: ndpc_gaid_2025, clause: "Article 43(2)(a)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Right of a data subject not to be subject to a decision solely based on automated processes or algorithms"}
+    - {framework: nitda_cop_2022, clause: "Part III, clause 4", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Provide the necessary human supervision", caveat: "Large Service Platforms only."}
+
+  contestability:
+    - {framework: ndpc_gaid_2025, clause: "Article 18(1)(f)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Before the data controller makes a decision based solely on automated processing which produces legal effects concerning or significantly affecting the data subject"}
+    - {framework: ndpc_gaid_2025, clause: "Article 42(2)(c)(iii)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Effective channel for redressing grievances."}
+    - framework: ndpa_2023
+      clause: "s. 37"
+      strength: unknown
+      checked: null
+      by: null
+      note: >-
+        Automated decision making. Named repeatedly in secondary sources as the right not
+        to be subject to a solely automated decision with a right to human intervention
+        and to contest. Its text is quoted nowhere in the GAID and the gazette PDF is not
+        retrievable, so this row stays unread rather than being written from a summary.
+        Closing it needs the gazette.
+    - {framework: fccpc_deon_2025, clause: "Regulation 22(a)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "develop documented processes on complaints handling that guarantees fairness, transparency, responsiveness and independence of the complaint handling mechanism"}
+    - {framework: fccpc_deon_2025, clause: "Regulation 19(j)", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "notify a consumer where the loan requests are declined, varied or amended"}
+    - {framework: naicom_insurtech_2025, clause: "clause 16.2", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "An insurtech and the insurance institution shall put in place an appropriate complaints redress mechanism ... All complaints shall be reviewed and resolved fairly and promptly."}
+    - {framework: nitda_cop_2022, clause: "Part I, clause 10", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "make provision for a User to apply for a review or appeal of the removed content",
+       caveat: "Content removal only. Narrower than this indicator asks."}
+
+  drift_since_last:
+    - {framework: ndpc_gaid_2025, clause: "Article 43(4)(e)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "Where a determination has been made that the ETs are safe for use, a data controller shall put in place a mechanism for continuous monitoring and evaluation in all circumstances where they may be deployed."}
+
+  artefact_provenance:
+    - {framework: ndpc_gaid_2025, clause: "Article 43(3)", strength: direct, checked: "2026-08-27", by: "Quantile Labs",
+       quote: "The technical and organisational parameters are to be documented and filed with the Commission as part of NDP Act CAR."}
+    - {framework: ndpc_gaid_2025, clause: "Article 48", strength: supporting, checked: "2026-08-27", by: "Quantile Labs",
+       note: "Evidence of Compliance with the NDP Act. Read as the heading; the article body was not quoted here."}
+
+frameworks_unread:
+  - id: cbn_cyber_2024
+    name: "CBN Risk-Based Cybersecurity Framework and Guidelines for Deposit Money Banks and Payment Service Banks"
+    issued: "2024-05-31"
+    effective: "2024-07-01"
+    source: "https://www.cbn.gov.ng/Out/2024/BSD/CBN%20Risk-Based%20Cybersecurity%20Framework%20for%20DMBs%20and%20PSBs_2024.pdf"
+    attempted: "2026-08-27"
+    blocked_by: >-
+      cbn.gov.ng sits behind a Cloudflare bot-verification interstitial. Four attempts,
+      three transports: curl with a full browser header set, the WebFetch fetcher, and a
+      real Chrome tab, all returned 403 with the "Performing security verification" page.
+      Working around it is bot-detection bypass and was not attempted.
+    to_close: >-
+      Download it by hand from an ordinary browsing session and drop it beside this file.
+      Expected reach, on the framework's published scope: adversarial_resistance and
+      artefact_provenance directly, drift_since_last through its monitoring requirements.
+      Nothing is asserted about its clauses until it is read.
