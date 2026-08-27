@@ -21,8 +21,8 @@ SHA-256 of every file into a folder anyone can re-check with `shasum`. Core feat
 It is built for people handed a result who have to decide whether to act on it. Auditors,
 procurement, risk, regulators, and the teams producing evidence for them. It is not
 built for iterating on a prompt: freezing plans and sealing bundles are overhead in a loop
-where you change a line and rerun twenty times. Use Inspect, promptfoo or lm-eval-harness
-while exploring, and this for the claim you publish.
+where you change a line and rerun twenty times. Use Inspect while exploring, and this for
+the claim you publish.
 
 ## Getting started
 
