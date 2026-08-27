@@ -196,5 +196,5 @@ bundle](../bundles/verifying.md).
 
 ```console
 $ touchstone version
-touchstone 0.2.0
+touchstone 0.2.1
 ```

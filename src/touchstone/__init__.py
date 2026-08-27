@@ -1,4 +1,4 @@
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 """The version this build stamps into every bundle, estimate and score card.
 
 It is a literal rather than a lookup through `importlib.metadata`, so it holds when the
