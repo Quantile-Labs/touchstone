@@ -60,6 +60,27 @@ def test_crossing_two_keys_gives_the_product_of_the_cells():
     assert (("language", "a"), ("task", "t")) in cells
 
 
+def test_several_keys_are_rolled_up_one_at_a_time_as_well_as_crossed():
+    """A card asks about one dimension per indicator. Crossing every key it was given and
+    stopping there leaves those indicators with no cell to read, and `grade` then refuses a
+    metric that was never computed."""
+    cells = _by_cell(estimate(_items(), ["language", "task"]), "correct")
+
+    assert cells[(("language", "a"),)].n == 50
+    assert cells[(("task", "t"),)].n == 103
+    assert cells[(("language", "a"), ("task", "t"))].n == 50
+
+
+def test_a_single_key_is_not_rolled_up_twice():
+    """One key crossed with nothing is that key on its own, so it is emitted once."""
+    entries = [
+        entry
+        for entry in estimate(_items(), ["language"]).estimates
+        if entry.metric == "correct" and entry.stratum == {"language": "a"}
+    ]
+    assert len(entries) == 1
+
+
 def test_an_item_missing_a_requested_key_is_marked_rather_than_dropped():
     """Dropping it would silently shrink the denominator."""
     items = [

@@ -142,7 +142,10 @@ class Estimates(BaseModel):
     """How many item records were read. The rollup's grand total."""
 
     grouped_by: list[str] = Field(default_factory=list)
-    """The stratum keys the rollup used, in the order they were requested."""
+    """The stratum keys the rollup used, in the order they were requested.
+
+    Several keys are rolled up one at a time and then crossed, so the cells below carry
+    one key or all of them. Which shape an estimate is keyed by is on the estimate."""
 
     packs: list[str] = Field(default_factory=list)
     """Which packs contributed records. More than one and every estimate carrying a null

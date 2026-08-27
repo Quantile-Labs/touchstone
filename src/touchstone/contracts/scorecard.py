@@ -68,7 +68,12 @@ class MetricRef(BaseModel):
 
     Without it every cell carrying any stratum is a candidate, so two indicators that mean
     to ask about different dimensions ask the same question and return the same cell. An
-    index with a geographic indicator and a language indicator needs them to differ."""
+    index with a geographic indicator and a language indicator needs them to differ.
+
+    A bundle whose rollup was crossed holds cells of more than one shape, and a coarse cell
+    contains the finer ones inside it, so ranking them together compares a group against
+    part of itself. `grade` refuses that rather than picking a shape on the author's
+    behalf, which makes this field required in practice on any run given several keys."""
 
     min_n: int = Field(default=30, ge=1)
     """`worst_stratum` only: the smallest cell allowed to be the worst one."""

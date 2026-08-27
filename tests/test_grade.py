@@ -354,6 +354,30 @@ def test_without_keys_every_cell_is_a_candidate():
     assert both.measured[0].stratum == {"language": "pcm"}
 
 
+def nested_bundle():
+    """What `estimate --by language --by difficulty` writes: each key on its own, and the
+    crossing. The `language` cells contain the crossed cells inside them."""
+    return bundle(
+        rate("covered", 0.60, 0.55, 0.65, n=400, stratum={"language": "pcm"}),
+        rate("covered", 0.80, 0.76, 0.84, n=400, stratum={"language": "en"}),
+        rate("covered", 0.40, 0.34, 0.47, n=200, stratum={"language": "pcm", "task": "hard"}),
+        rate("covered", 0.75, 0.69, 0.81, n=200, stratum={"language": "en", "task": "hard"}),
+    )
+
+
+def test_a_worst_stratum_over_nested_cells_needs_the_dimension_named():
+    """Ranking `language=pcm` against the crossed cells inside it compares a group with
+    part of itself, and the lowest slice always wins."""
+    with pytest.raises(ScoreCardError, match="part of itself"):
+        grade(worst_over([]), nested_bundle(), "black_box")
+
+
+def test_naming_the_dimension_confines_the_search_to_that_shape():
+    found = grade(worst_over(["language"]), nested_bundle(), "black_box").indicators[0]
+    assert found.measured[0].stratum == {"language": "pcm"}
+    assert found.measured[0].n == 400
+
+
 def test_a_key_no_cell_carries_is_an_error_naming_the_key():
     with pytest.raises(ScoreCardError, match="keyed by agency"):
         grade(worst_over(["agency"]), coverage_bundle(), "black_box")
