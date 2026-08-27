@@ -552,15 +552,53 @@ def _resolve(
     raise ScoreCardError(_missing(indicator_id, ref, "estimate"))
 
 
+def _keyed(shape: frozenset[str]) -> str:
+    """One cell shape, named the way a score card would write it."""
+    return ", ".join(sorted(shape))
+
+
 def _worst(ref: MetricRef, estimates: Estimates, contaminated: bool, indicator_id: str) -> Measured:
     """The weakest cell of the rollup, through the same function `estimate` uses."""
-    wanted = set(ref.keys)
+    wanted = frozenset(ref.keys)
+    cells = [
+        entry
+        for entry in estimates.estimates
+        if entry.metric == ref.name and entry.pack_id == ref.pack_id and entry.stratum
+    ]
+    shapes = {frozenset(entry.stratum) for entry in cells}
+    held = "; ".join(sorted(_keyed(shape) for shape in shapes)) or "none"
+
+    if not cells:
+        raise ScoreCardError(
+            f"{indicator_id}: no cell of {ref.name!r} carries a stratum in this bundle, so "
+            "there is nothing to rank. `estimate` was run without `--by`"
+        )
+    if wanted and wanted not in shapes:
+        raise ScoreCardError(
+            f"{indicator_id}: no cell of {ref.name!r} is keyed by {_keyed(wanted)}. "
+            f"This bundle holds cells keyed: {held}. Re-run `estimate` with that key. "
+            "A dimension nobody rolled up is a gap in the run, not a stratum too thin "
+            "to report"
+        )
+    nested = sorted(
+        (_keyed(coarse), _keyed(fine)) for coarse in shapes for fine in shapes if coarse < fine
+    )
+    if not wanted and nested:
+        coarse, fine = nested[0]
+        raise ScoreCardError(
+            f"{indicator_id}: this bundle holds cells of {ref.name!r} keyed ({coarse}) and "
+            f"cells keyed ({fine}) that sit inside them, so a worst stratum naming no keys "
+            "would rank a group against part of itself and report whichever slice of it "
+            f"came out lowest. Name the dimension with `keys`. This bundle holds: {held}"
+        )
+
     subset = estimates.model_copy(
         update={
             "estimates": [
                 entry
                 for entry in estimates.estimates
-                if entry.pack_id == ref.pack_id and (not wanted or set(entry.stratum) == wanted)
+                if entry.pack_id == ref.pack_id
+                and (not wanted or frozenset(entry.stratum) == wanted)
             ]
         }
     )
@@ -569,7 +607,7 @@ def _worst(ref: MetricRef, estimates: Estimates, contaminated: bool, indicator_i
     )
     if found.worst is None:
         thin = len(found.excluded)
-        over = f" keyed by {', '.join(sorted(wanted))}" if wanted else ""
+        over = f" keyed by {_keyed(wanted)}" if wanted else ""
         raise ScoreCardError(
             f"{indicator_id}: no stratum of {ref.name!r}{over} reaches n={ref.min_n} "
             f"({thin} cell(s) below it). A worst stratum computed over cells this thin is "

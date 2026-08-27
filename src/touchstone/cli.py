@@ -149,7 +149,11 @@ def estimate(
     run_dir: Annotated[Path, typer.Argument(exists=True, file_okay=False)],
     by: Annotated[
         list[str] | None,
-        typer.Option("--by", "-b", help="Stratum key to group by. Repeat to cross keys"),
+        typer.Option(
+            "--by",
+            "-b",
+            help="Stratum key to group by. Repeat for each key on its own and crossed",
+        ),
     ] = None,
     calibrate: Annotated[
         list[str] | None,

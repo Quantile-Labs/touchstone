@@ -114,6 +114,25 @@ def declared_calibration(run_dir: Path) -> dict[str, str]:
     return {pack.id: pack.calibrates for pack in lock.packs if pack.calibrates}
 
 
+def _groupings(keys: list[str]) -> list[list[str]]:
+    """The rollups a request for `keys` asks for: overall, each key alone, then the cross.
+
+    A score card asks about one dimension at a time. A geographic indicator searches cells
+    keyed `zone` and a language indicator cells keyed `language`, so a run given both keys
+    and only their crossing holds nothing either one can read, and `grade` refuses them for
+    naming a metric that was never computed. Emitting each key's own rollup is what lets a
+    single `estimate` serve a card that names several dimensions.
+
+    The crossing is still emitted, because whether a weakness in one dimension is
+    concentrated in a cell of another is a real question. It comes last because it is the
+    rarer one and the more expensive. A single key asks for the same rollup twice, so it is
+    emitted once.
+    """
+    if len(keys) < 2:
+        return [[]] + ([keys] if keys else [])
+    return [[]] + [[key] for key in keys] + [keys]
+
+
 def _estimates_for(
     items: list[ItemRecord],
     groupings: list[list[str]],
@@ -173,6 +192,9 @@ def estimate(
     Booleans become rates with a Wilson interval, continuous scores become means with a
     BCa interval, and each carries the denominator it was computed over.
 
+    Several keys are rolled up one at a time as well as crossed, so a card naming one
+    dimension per indicator reads its cells off a single run. See `_groupings`.
+
     Where more than one pack contributed, every metric is also computed per pack. Two
     packs both reporting `correct` are not measuring the same thing, so the pooled figure
     is kept but marked, and the per-pack figures are what a reader should quote.
@@ -183,7 +205,7 @@ def estimate(
     """
     keys = list(keys or [])
     declared = dict(declared or {})
-    groupings: list[list[str]] = [[]] + ([keys] if keys else [])
+    groupings = _groupings(keys)
 
     packs = sorted({item.pack_id for item in items if item.pack_id is not None})
     pooled = len(packs) > 1
