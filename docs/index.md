@@ -20,10 +20,8 @@ procurement, risk, regulators, and the teams producing evidence for them.
 !!! warning "It is not built for iterating on a prompt"
 
     Freezing plans and sealing bundles are overhead in a loop where you change a line and
-    rerun twenty times. Use [Inspect](https://inspect.aisi.org.uk/),
-    [promptfoo](https://promptfoo.dev/) or
-    [lm-eval-harness](https://github.com/EleutherAI/lm-evaluation-harness) while exploring,
-    and this for the claim you publish.
+    rerun twenty times. Use [Inspect](https://inspect.aisi.org.uk/) while exploring, and
+    this for the claim you publish.
 
 ## What it does differently
 
