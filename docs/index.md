@@ -1,13 +1,13 @@
 ---
 title: Welcome
 description: >-
-  Touchstone runs an AI evaluation in containers, computes every number itself,
-  and seals the result into a folder anyone can re-check with shasum alone.
+  Touchstone runs AI evaluations in containers, calculates the results itself,
+  and creates a folder containing everything needed to verify them later.
 ---
 
 # Touchstone
 
-An open-source harness for AI evaluations that seal into a checkable evidence bundle.
+An open-source tool for running AI evaluations and creating evidence that anyone can check.
 { .lede }
 
 Touchstone runs an evaluation in containers, works out every number itself rather than
@@ -114,5 +114,3 @@ with the wifi off.
 Early, and saying so. `0.2.1` is the current release, all seven commands work and are
 tested doing it, and the documentation describes the code that is on PyPI. What is not settled is the
 score card format. See [Status](project/status.md).
-
-The package is `touchstone-dqi` because `touchstone` was taken on PyPI.

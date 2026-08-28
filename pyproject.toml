@@ -1,7 +1,7 @@
 [project]
 name = "touchstone-dqi"
 version = "0.2.1"
-description = "AI evaluation harness that seals results into an evidence bundle anyone can re-check offline."
+description = "An open-source tool for running AI evaluations and creating evidence that anyone can check."
 readme = "README.md"
 requires-python = ">=3.12"
 license = "Apache-2.0"
