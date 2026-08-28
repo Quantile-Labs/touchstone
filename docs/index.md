@@ -50,8 +50,8 @@ file, so a card with three levels and a card with eight both work. See
 Two systems are tested. Both get 94%. One was tested on 50 items, the other on 1,000:
 
 ```text
-94.0%  (95% CI 83.5-98.8%, n=50)     <- cannot back a claim about a 90% bar
-94.0%  (95% CI 92.4-95.4%, n=1000)   <- can
+94.0%  (95% CI 83.8-97.9%, n=50)     <- cannot back a claim about a 90% bar
+94.0%  (95% CI 92.4-95.3%, n=1000)   <- can
 ```
 
 Grades work the same way. If the error bar crosses the threshold, the honest answer is not
@@ -59,7 +59,7 @@ the better letter:
 
 ```console
 headline_accuracy: indeterminate, A or C  [0.91, 0.8783 to 0.9345, n=400]
-    the interval spans the A boundary of 0.9, so the evidence does not say which
+    the interval spans the A boundary of 0.9, so the grade is A or C and the evidence does not say which
 ```
 
 **The interval is sampling error, and only that.** It is how far the number would move if

@@ -54,7 +54,7 @@ interval sits below it, and **reports the overlap as what it is rather than reso
 either direction.**
 
 Compare with `greater_equal`, which reads the point estimate: a run of 50 items at 94%
-(95% CI 83.5-98.8%) would be awarded `A` by `greater_equal` and reported `indeterminate` by
+(95% CI 83.8-97.9%) would be awarded `A` by `greater_equal` and reported `indeterminate` by
 `greater_equal_ci_lower`. Fifty items cannot separate 94% from a 90% bar, and
 `greater_equal_ci_lower` is the condition that says so.
 

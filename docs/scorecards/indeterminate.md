@@ -13,7 +13,7 @@ says so, and names the two levels the evidence sits between.
 
 ```console
 headline_accuracy: indeterminate, A or C  [0.91, 0.8783 to 0.9345, n=400]
-    the interval spans the A boundary of 0.9, so the evidence does not say which
+    the interval spans the A boundary of 0.9, so the grade is A or C and the evidence does not say which
 ```
 
 ## What happened there
