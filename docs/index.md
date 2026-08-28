@@ -1,13 +1,13 @@
 ---
 title: Welcome
 description: >-
-  Touchstone runs an AI evaluation in containers, computes every number itself,
-  and seals the result into a folder anyone can re-check with shasum alone.
+  Touchstone runs AI evaluations in containers, calculates the results itself,
+  and creates a folder containing everything needed to verify them later.
 ---
 
 # Touchstone
 
-An open-source harness for AI evaluations that seal into a checkable evidence bundle.
+An open-source tool for running AI evaluations and creating evidence that anyone can check.
 { .lede }
 
 Touchstone runs an evaluation in containers, works out every number itself rather than

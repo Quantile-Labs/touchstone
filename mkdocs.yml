@@ -1,8 +1,8 @@
 site_name: Touchstone
 site_url: https://touchstone.quantilelabs.com/
 site_description: >-
-  An open-source harness for AI evaluations that seal into a checkable evidence
-  bundle. Built by Quantile Labs.
+  An open-source tool for running AI evaluations and creating evidence that
+  anyone can check. Built by Quantile Labs.
 site_author: Quantile Labs
 copyright: Quantile Labs · Apache 2.0
 
