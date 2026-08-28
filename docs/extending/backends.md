@@ -124,7 +124,7 @@ A backend that cannot do its job at all raises `BackendError`.
 ## Writing one
 
 Implement the seven methods, set `name` and `isolation` truthfully, and run
-`mypy --strict` over it. There is no registration step in 0.2.1, because the backend is
+`mypy --strict` over it. There is no registration step in 0.3.0, because the backend is
 constructed by the CLI, so a third-party backend currently means a fork or a patch.
 
 A plugin entry point is on the list. See [Status](../project/status.md).

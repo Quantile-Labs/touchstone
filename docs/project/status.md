@@ -1,12 +1,40 @@
 ---
 title: Status
-description: What is settled in 0.2.1, what is not, and what is planned.
+description: What is settled in 0.3.0, what is not, and what is planned.
 ---
 
 # Status
 
 Early, and saying so.
 { .lede }
+
+## 0.3.0
+
+**Intervals over repeated items are wider, and every bundle with `replicates` above one
+holds different numbers than 0.2.1 computed from the same rows.** Asking an item twice
+does not give two independent observations of the system, but the rollup counted one row
+per item-trial and gave that denominator to Wilson. Over 200 items a nominal 95 percent
+interval held 95 percent of the time at one replicate and 54 percent at twenty, narrowing
+with every replicate added while the rate it covers stayed where it was. The interval is
+now computed over items, an outcome with repeated items reports `wilson_clustered` and
+carries `effective_n` and `design_effect`, and the bootstrap resamples items rather than
+rows. A run with one replicate per item is unchanged. See [Rates and
+Wilson](../estimation/rates.md#the-denominator-is-items-not-rows).
+
+Two smaller corrections travel with it. The printed rate is the interval the bundle
+stores rather than one recomputed from `k` and `n`, which would have disagreed with the
+file as soon as an interval was widened. And the confident-and-wrong rate counts an item
+once rather than once per replicate.
+
+**Re-read a bundle rather than comparing a 0.2.1 estimate to a 0.3.0 one.** The rows are
+untouched and `estimate` recomputes from them, so an old bundle can be brought forward.
+
+```console
+$ touchstone version
+touchstone 0.3.0
+```
+
+Still classified `Development Status :: 2 - Pre-Alpha` on PyPI, which is accurate.
 
 ## 0.2.1
 
@@ -15,13 +43,6 @@ from its exit code. `State.OOMKilled`, which decided it before, is written from 
 containerd delivers and on cgroup v2 that event is sometimes never delivered, so a run the
 harness starved could reach a bundle looking like the pack's own exit code. See [Resource
 limits](../running/limits.md#being-killed-is-recorded).
-
-```console
-$ touchstone version
-touchstone 0.2.1
-```
-
-Still classified `Development Status :: 2 - Pre-Alpha` on PyPI, which is accurate.
 
 ## 0.2.0
 

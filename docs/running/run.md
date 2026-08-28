@@ -90,7 +90,7 @@ limits](limits.md).
 
 ```json
 {
-  "touchstone_version": "0.2.1",
+  "touchstone_version": "0.3.0",
   "python": "3.12.4",
   "platform": "Linux-6.8.0-x86_64",
   "backend": "docker",
