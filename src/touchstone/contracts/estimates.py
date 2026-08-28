@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """What the harness computes from the observations, and how it computed it.
 
 02-DESIGN.md section 6 rule 3: the bundle is self-describing. An estimate that does not

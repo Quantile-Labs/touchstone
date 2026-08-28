@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """Turn item records into estimates, and write them where a reviewer can find them.
 
 A pure function of the records. No container, no daemon, no network, so every number in a

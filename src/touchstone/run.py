@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """Execute a frozen plan and record what happened while it happens.
 
 The ledger is written by this module at the moment of each event, not assembled at the

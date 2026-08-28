@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """A plan with nothing left to interpret. What freeze produces and run consumes."""
 
 from pydantic import BaseModel, Field

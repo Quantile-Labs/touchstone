@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """Run a pack in a container, through the docker CLI.
 
 The CLI rather than the docker SDK, which pulls requests, urllib3 and certifi. An HTTP

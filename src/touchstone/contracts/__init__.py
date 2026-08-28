@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 from touchstone.contracts.bundle import BundleManifest, FileEntry
 from touchstone.contracts.environment import Environment
 from touchstone.contracts.estimates import (

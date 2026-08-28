@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """Timestamp the plan hash, so a claim about when a run was designed can be checked.
 
 Shells out to `ots` rather than depending on the OpenTimestamps client, which would put a

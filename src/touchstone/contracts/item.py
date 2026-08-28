@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """The observation a pack emits, one per evaluated item.
 
 This is the load-bearing contract. Packs report what happened; Touchstone computes

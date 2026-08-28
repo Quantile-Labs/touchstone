@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """Validate a plan against the manifests of the packs it names."""
 
 from pathlib import Path

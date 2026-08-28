@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """Arithmetic over metrics, with no `eval` anywhere in the path.
 
 The idea is ASQI's `metric_expression.py`: parse the formula, walk the tree, refuse any

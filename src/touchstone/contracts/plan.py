@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """What the analyst writes, and what freeze turns into an anchor."""
 
 from pydantic import BaseModel, Field

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """The contract every runtime implements, so the harness cannot tell them apart.
 
 Five methods, taken from ASQI, where one workflow layer drives a Docker backend and a

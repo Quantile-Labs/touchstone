@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """What a person assessed, for the indicators no bundle can answer on its own.
 
 Two of the DQI 0.1 indicators are not computed. Whether someone subject to an adverse
