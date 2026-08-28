@@ -39,6 +39,27 @@ jobs:
           done
           exit $status
 
+  dco:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: check every commit in the pull request is signed off
+        run: |
+          set -e
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          status=0
+          for sha in $(git rev-list "$base".."$head"); do
+            git log -1 --format=%B "$sha" > /tmp/msg
+            author=$(git log -1 --format='%an <%ae>' "$sha")
+            echo "--- $(git log -1 --format=%h\ %s "$sha")"
+            python3 scripts/check_dco.py /tmp/msg "$author" || status=1
+          done
+          exit $status
+
   docker-backend:
     runs-on: ubuntu-latest
     steps:
