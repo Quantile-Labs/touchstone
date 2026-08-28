@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """Enforce a pack's declared egress allowlist with a proxy sidecar.
 
 02-DESIGN.md section 7. A pack declares the hosts it needs in its manifest, `freeze` pins

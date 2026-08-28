@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """What an analyst asserts a grade means, and what the harness decided.
 
 The rubric is data. `levels` is an ordered list the score card declares, best first, and

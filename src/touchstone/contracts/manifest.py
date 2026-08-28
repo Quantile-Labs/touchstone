@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """What a pack declares about itself, read before it is run."""
 
 from pydantic import BaseModel, Field

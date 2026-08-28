@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """Group item records into cells and count what happened in each.
 
 The strata are open dimensions, declared by the pack rather than by this engine, so the

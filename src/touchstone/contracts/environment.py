@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """What the run actually ran on, recorded so a reader can judge the evidence.
 
 02-DESIGN.md section 7.3: a runtime that contained the pack less well than a container

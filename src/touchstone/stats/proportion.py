@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """Proportions, with the interval attached.
 
 The house rule is that no bare proportion leaves the laboratory, so the formatter here

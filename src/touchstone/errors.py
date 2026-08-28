@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
+
 class TouchstoneError(Exception):
     """Base for every error this tool raises."""
 

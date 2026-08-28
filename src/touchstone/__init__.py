@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 __version__ = "0.3.0"
 """The version this build stamps into every bundle, estimate and score card.
 

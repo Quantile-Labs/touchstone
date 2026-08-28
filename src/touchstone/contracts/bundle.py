@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """What a sealed bundle records about itself.
 
 Written by `bundle`, read by `verify`, and readable by a person with a text editor and

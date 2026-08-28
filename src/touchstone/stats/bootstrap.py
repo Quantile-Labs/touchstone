@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """BCa bootstrap intervals for continuous measures.
 
 A rubric score has no closed-form interval, and the percentile bootstrap is biased

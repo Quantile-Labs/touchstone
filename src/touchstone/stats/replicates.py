@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """Between-replicate variance: how much of a result is the system and how much is the run.
 
 01-ASQI-TEARDOWN.md section 3.2. A grade boundary asserted on a single run is a claim

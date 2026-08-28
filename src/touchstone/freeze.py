@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """Pin a plan so that a run can be repeated and an anchor can mean something.
 
 The lock is written as canonical JSON rather than YAML so that one file carries both

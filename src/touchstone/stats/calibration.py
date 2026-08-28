@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """Calibration: does a stated confidence mean what it says?
 
 A system that is right 60 percent of the time and says 0.95 every time is not merely

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+
 """Apply a score card to the estimates and say what may be claimed.
 
 Pure function of `estimates.json` and the frozen plan, like `estimate` before it, so a
