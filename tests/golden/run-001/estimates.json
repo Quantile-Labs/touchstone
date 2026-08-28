@@ -52,67 +52,82 @@
   ],
   "estimates": [
     {
-      "estimator": "wilson",
-      "high": 0.744683897772007,
+      "estimator": "wilson_clustered",
+      "high": 0.7727090578407216,
       "k": 80,
-      "low": 0.5783093452093498,
+      "low": 0.540566298666634,
       "metric": "correct",
       "n": 120,
       "pack_id": null,
       "parameters": {
         "confidence": 0.95,
+        "design_effect": 2.0,
+        "effective_n": 60.0,
+        "items": 60,
+        "observations": 120,
         "z": 1.96
       },
       "point": 0.6666666666666666,
-      "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22(158), 209-212.",
+      "reference": "Kish, L. (1965). Survey Sampling. Wiley, section 8.2. The design effect, and the effective sample size a clustered design is worth.",
       "stratum": {}
     },
     {
-      "estimator": "wilson",
-      "high": 0.7727090578407216,
+      "estimator": "wilson_clustered",
+      "high": 0.807697044731538,
       "k": 40,
-      "low": 0.540566298666634,
+      "low": 0.48779725813830266,
       "metric": "correct",
       "n": 60,
       "pack_id": null,
       "parameters": {
         "confidence": 0.95,
+        "design_effect": 2.0,
+        "effective_n": 30.0,
+        "items": 30,
+        "observations": 60,
         "z": 1.96
       },
       "point": 0.6666666666666666,
-      "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22(158), 209-212.",
+      "reference": "Kish, L. (1965). Survey Sampling. Wiley, section 8.2. The design effect, and the effective sample size a clustered design is worth.",
       "stratum": {
         "language": "en"
       }
     },
     {
-      "estimator": "wilson",
-      "high": 0.7727090578407216,
+      "estimator": "wilson_clustered",
+      "high": 0.807697044731538,
       "k": 40,
-      "low": 0.540566298666634,
+      "low": 0.48779725813830266,
       "metric": "correct",
       "n": 60,
       "pack_id": null,
       "parameters": {
         "confidence": 0.95,
+        "design_effect": 2.0,
+        "effective_n": 30.0,
+        "items": 30,
+        "observations": 60,
         "z": 1.96
       },
       "point": 0.6666666666666666,
-      "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22(158), 209-212.",
+      "reference": "Kish, L. (1965). Survey Sampling. Wiley, section 8.2. The design effect, and the effective sample size a clustered design is worth.",
       "stratum": {
         "language": "pcm"
       }
     },
     {
       "estimator": "bootstrap_bca",
-      "high": 0.7308333333333333,
+      "high": 0.7200000000000001,
       "k": null,
-      "low": 0.6625,
+      "low": 0.6708333333333333,
       "metric": "quality",
       "n": 120,
       "pack_id": null,
       "parameters": {
         "confidence": 0.95,
+        "effective_n": 60.0,
+        "items": 60,
+        "observations": 120,
         "resamples": 2000,
         "seed": 7
       },
@@ -122,18 +137,21 @@
     },
     {
       "estimator": "bootstrap_bca",
-      "high": 0.745,
+      "high": 0.7316666666666667,
       "k": null,
-      "low": 0.6433333333333333,
+      "low": 0.66,
       "metric": "quality",
       "n": 60,
       "pack_id": null,
       "parameters": {
         "confidence": 0.95,
+        "effective_n": 30.0,
+        "items": 30,
+        "observations": 60,
         "resamples": 2000,
         "seed": 7
       },
-      "point": 0.6966666666666667,
+      "point": 0.6966666666666668,
       "reference": "Efron, B. (1987). Better bootstrap confidence intervals. Journal of the American Statistical Association 82(397), 171-185.",
       "stratum": {
         "language": "en"
@@ -141,14 +159,17 @@
     },
     {
       "estimator": "bootstrap_bca",
-      "high": 0.7466666666666666,
+      "high": 0.7333333333333333,
       "k": null,
-      "low": 0.6466666666666666,
+      "low": 0.66,
       "metric": "quality",
       "n": 60,
       "pack_id": null,
       "parameters": {
         "confidence": 0.95,
+        "effective_n": 30.0,
+        "items": 30,
+        "observations": 60,
         "resamples": 2000,
         "seed": 7
       },
@@ -159,8 +180,8 @@
       }
     },
     {
-      "estimator": "wilson",
-      "high": 0.031020271055929513,
+      "estimator": "wilson_clustered",
+      "high": 0.06017393047793289,
       "k": 0,
       "low": 0.0,
       "metric": "confident_and_wrong(correct)",
@@ -168,75 +189,94 @@
       "pack_id": null,
       "parameters": {
         "confidence": 0.95,
+        "design_effect": 1.0,
+        "effective_n": 60.0,
+        "items": 60,
+        "observations": 120,
         "threshold": 0.9,
         "z": 1.96
       },
       "point": 0.0,
-      "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22(158), 209-212.",
+      "reference": "Kish, L. (1965). Survey Sampling. Wiley, section 8.2. The design effect, and the effective sample size a clustered design is worth.",
       "stratum": {}
     },
     {
-      "estimator": "wilson",
-      "high": 0.7727090578407216,
+      "estimator": "wilson_clustered",
+      "high": 0.807697044731538,
       "k": 40,
-      "low": 0.540566298666634,
+      "low": 0.48779725813830266,
       "metric": "correct",
       "n": 60,
       "pack_id": "credit_pack",
       "parameters": {
         "confidence": 0.95,
+        "design_effect": 2.0,
+        "effective_n": 30.0,
+        "items": 30,
+        "observations": 60,
         "z": 1.96
       },
       "point": 0.6666666666666666,
-      "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22(158), 209-212.",
+      "reference": "Kish, L. (1965). Survey Sampling. Wiley, section 8.2. The design effect, and the effective sample size a clustered design is worth.",
       "stratum": {}
     },
     {
-      "estimator": "wilson",
-      "high": 0.807697044731538,
+      "estimator": "wilson_clustered",
+      "high": 0.8482389930530876,
       "k": 20,
-      "low": 0.48779725813830266,
+      "low": 0.41713125151212976,
       "metric": "correct",
       "n": 30,
       "pack_id": "credit_pack",
       "parameters": {
         "confidence": 0.95,
+        "design_effect": 2.0,
+        "effective_n": 15.0,
+        "items": 15,
+        "observations": 30,
         "z": 1.96
       },
       "point": 0.6666666666666666,
-      "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22(158), 209-212.",
+      "reference": "Kish, L. (1965). Survey Sampling. Wiley, section 8.2. The design effect, and the effective sample size a clustered design is worth.",
       "stratum": {
         "language": "en"
       }
     },
     {
-      "estimator": "wilson",
-      "high": 0.807697044731538,
+      "estimator": "wilson_clustered",
+      "high": 0.8482389930530876,
       "k": 20,
-      "low": 0.48779725813830266,
+      "low": 0.41713125151212976,
       "metric": "correct",
       "n": 30,
       "pack_id": "credit_pack",
       "parameters": {
         "confidence": 0.95,
+        "design_effect": 2.0,
+        "effective_n": 15.0,
+        "items": 15,
+        "observations": 30,
         "z": 1.96
       },
       "point": 0.6666666666666666,
-      "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22(158), 209-212.",
+      "reference": "Kish, L. (1965). Survey Sampling. Wiley, section 8.2. The design effect, and the effective sample size a clustered design is worth.",
       "stratum": {
         "language": "pcm"
       }
     },
     {
       "estimator": "bootstrap_bca",
-      "high": 0.74,
+      "high": 0.7283333333333334,
       "k": null,
-      "low": 0.6416666666666667,
+      "low": 0.6566666666666666,
       "metric": "quality",
       "n": 60,
       "pack_id": "credit_pack",
       "parameters": {
         "confidence": 0.95,
+        "effective_n": 30.0,
+        "items": 30,
+        "observations": 60,
         "resamples": 2000,
         "seed": 7
       },
@@ -246,14 +286,17 @@
     },
     {
       "estimator": "bootstrap_bca",
-      "high": 0.7666666666666667,
+      "high": 0.7466666666666666,
       "k": null,
-      "low": 0.6233333333333333,
+      "low": 0.6466666666666667,
       "metric": "quality",
       "n": 30,
       "pack_id": "credit_pack",
       "parameters": {
         "confidence": 0.95,
+        "effective_n": 15.0,
+        "items": 15,
+        "observations": 30,
         "resamples": 2000,
         "seed": 7
       },
@@ -265,14 +308,17 @@
     },
     {
       "estimator": "bootstrap_bca",
-      "high": 0.7566666666666666,
+      "high": 0.74,
       "k": null,
-      "low": 0.6133333333333333,
+      "low": 0.6333333333333333,
       "metric": "quality",
       "n": 30,
       "pack_id": "credit_pack",
       "parameters": {
         "confidence": 0.95,
+        "effective_n": 15.0,
+        "items": 15,
+        "observations": 30,
         "resamples": 2000,
         "seed": 7
       },
@@ -283,67 +329,82 @@
       }
     },
     {
-      "estimator": "wilson",
-      "high": 0.7727090578407216,
+      "estimator": "wilson_clustered",
+      "high": 0.807697044731538,
       "k": 40,
-      "low": 0.540566298666634,
+      "low": 0.48779725813830266,
       "metric": "correct",
       "n": 60,
       "pack_id": "flood_pack",
       "parameters": {
         "confidence": 0.95,
+        "design_effect": 2.0,
+        "effective_n": 30.0,
+        "items": 30,
+        "observations": 60,
         "z": 1.96
       },
       "point": 0.6666666666666666,
-      "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22(158), 209-212.",
+      "reference": "Kish, L. (1965). Survey Sampling. Wiley, section 8.2. The design effect, and the effective sample size a clustered design is worth.",
       "stratum": {}
     },
     {
-      "estimator": "wilson",
-      "high": 0.807697044731538,
+      "estimator": "wilson_clustered",
+      "high": 0.8482389930530876,
       "k": 20,
-      "low": 0.48779725813830266,
+      "low": 0.41713125151212976,
       "metric": "correct",
       "n": 30,
       "pack_id": "flood_pack",
       "parameters": {
         "confidence": 0.95,
+        "design_effect": 2.0,
+        "effective_n": 15.0,
+        "items": 15,
+        "observations": 30,
         "z": 1.96
       },
       "point": 0.6666666666666666,
-      "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22(158), 209-212.",
+      "reference": "Kish, L. (1965). Survey Sampling. Wiley, section 8.2. The design effect, and the effective sample size a clustered design is worth.",
       "stratum": {
         "language": "en"
       }
     },
     {
-      "estimator": "wilson",
-      "high": 0.807697044731538,
+      "estimator": "wilson_clustered",
+      "high": 0.8482389930530876,
       "k": 20,
-      "low": 0.48779725813830266,
+      "low": 0.41713125151212976,
       "metric": "correct",
       "n": 30,
       "pack_id": "flood_pack",
       "parameters": {
         "confidence": 0.95,
+        "design_effect": 2.0,
+        "effective_n": 15.0,
+        "items": 15,
+        "observations": 30,
         "z": 1.96
       },
       "point": 0.6666666666666666,
-      "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, and statistical inference. Journal of the American Statistical Association 22(158), 209-212.",
+      "reference": "Kish, L. (1965). Survey Sampling. Wiley, section 8.2. The design effect, and the effective sample size a clustered design is worth.",
       "stratum": {
         "language": "pcm"
       }
     },
     {
       "estimator": "bootstrap_bca",
-      "high": 0.7483333333333333,
+      "high": 0.7333333333333333,
       "k": null,
-      "low": 0.65,
+      "low": 0.6616666666666667,
       "metric": "quality",
       "n": 60,
       "pack_id": "flood_pack",
       "parameters": {
         "confidence": 0.95,
+        "effective_n": 30.0,
+        "items": 30,
+        "observations": 60,
         "resamples": 2000,
         "seed": 7
       },
@@ -353,14 +414,17 @@
     },
     {
       "estimator": "bootstrap_bca",
-      "high": 0.7633333333333333,
+      "high": 0.7433333333333334,
       "k": null,
-      "low": 0.62,
+      "low": 0.6433333333333333,
       "metric": "quality",
       "n": 30,
       "pack_id": "flood_pack",
       "parameters": {
         "confidence": 0.95,
+        "effective_n": 15.0,
+        "items": 15,
+        "observations": 30,
         "resamples": 2000,
         "seed": 7
       },
@@ -372,14 +436,17 @@
     },
     {
       "estimator": "bootstrap_bca",
-      "high": 0.7733333333333333,
+      "high": 0.75,
       "k": null,
-      "low": 0.6333333333333333,
+      "low": 0.65,
       "metric": "quality",
       "n": 30,
       "pack_id": "flood_pack",
       "parameters": {
         "confidence": 0.95,
+        "effective_n": 15.0,
+        "items": 15,
+        "observations": 30,
         "resamples": 2000,
         "seed": 7
       },
@@ -458,5 +525,5 @@
       "unstable_items": 0
     }
   ],
-  "touchstone_version": "0.0.1"
+  "touchstone_version": "0.2.1"
 }

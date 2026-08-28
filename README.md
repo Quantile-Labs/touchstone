@@ -1,28 +1,32 @@
 # Touchstone
 
-**An open-source harness for AI evaluations that seal into a checkable evidence bundle.**
+**An open-source tool for running AI evaluations and creating evidence that anyone can
+check.**
 
-Touchstone runs an evaluation in containers, works out every number itself rather than
-taking the system's word for any of them, and writes the plan, one row per test item and a
-SHA-256 of every file into a folder anyone can re-check with `shasum`. Core features:
+Touchstone runs evaluations in containers, calculates the results itself, and creates a
+folder containing everything needed to verify those results later.
 
-- **Bundles checkable without this tool.** Every file is JSON, JSON lines or a hash. No
-  database, no index, no proprietary format.
-- **Every rate carries an interval.** A bare percentage cannot be represented at all.
-- **Grades can say `indeterminate`** when the interval crosses a threshold, instead of
-  printing a letter the evidence does not support.
-- **Packs report facts, never scores.** The arithmetic is Touchstone's, and the rows
-  travel in the bundle so anyone can redo it.
-- **Containment.** A pack reaches the hosts it declared and nothing else; the proxy that
-  lets it out never decrypts anything.
-- **A score card is data.** Levels, thresholds and access-tier ceilings are read from a
-  YAML file, so a card with three levels and a card with eight both work.
+### What it does
 
-It is built for people handed a result who have to decide whether to act on it. Auditors,
-procurement, risk, regulators, and the teams producing evidence for them. It is not
-built for iterating on a prompt: freezing plans and sealing bundles are overhead in a loop
-where you change a line and rerun twenty times. Use Inspect while exploring, and this for
-the claim you publish.
+* **Easy to verify.** Everything is stored as JSON, JSON Lines, or file hashes. No
+  database or proprietary format is needed.
+* **Every percentage has a range.** Results always show how certain the measurement is.
+* **Can report `indeterminate`.** If the evidence is not strong enough to clearly pass or
+  fail, Touchstone says so instead of guessing.
+* **Reports facts, not made-up scores.** Touchstone does the calculations itself, while
+  the original test results are kept in the evidence bundle.
+* **Keeps evaluations contained.** An evaluation can only access the systems it is
+  allowed to reach.
+* **Flexible scoring.** Rules, thresholds, and access levels are stored in a simple YAML
+  file, so you can use as many scoring levels as you need.
+
+Touchstone is built for situations where someone needs to **trust a result before making
+a decision**... auditors, procurement teams, risk teams, regulators, and the people
+producing evidence for them.
+
+It is **not designed for rapid prompt experimentation**. If you are changing prompts and
+running tests repeatedly, use Inspect. When you have a result you are ready to stand
+behind and publish, use Touchstone.
 
 ## Getting started
 
