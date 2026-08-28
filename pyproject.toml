@@ -5,6 +5,10 @@ description = "An open-source tool for running AI evaluations and creating evide
 readme = "README.md"
 requires-python = ">=3.12"
 license = "Apache-2.0"
+# NOTICE is named because Apache 2.0 section 4(d) requires it to travel with every
+# redistribution. Hatchling finds LICENSE on its own and would not find NOTICE, so
+# without this line the wheel would break the obligation the file itself creates.
+license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "Quantile Labs" }]
 maintainers = [{ name = "Quantile Labs" }]
 keywords = ["evaluation", "ai-assurance", "audit", "reproducibility"]
