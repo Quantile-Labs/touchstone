@@ -103,3 +103,27 @@ def confident_and_wrong(
         if item.confidence >= threshold and not item.outcome[metric]:
             wrong += 1
     return wrong, scored
+
+
+def confident_and_wrong_by_item(
+    items: Iterable[ItemRecord], metric: str, threshold: float = 0.9
+) -> list[tuple[int, int]]:
+    """The same counts split by item, one `(wrong, scored)` pair per distinct item.
+
+    What the interval has to be computed over. A system asked the same question three
+    times and confidently wrong all three has failed once, not three times, so pooling the
+    rows would report the rate over a denominator that never existed. See
+    `stats.proportion.clustered_wilson`.
+    """
+    if not 0.0 <= threshold <= 1.0:
+        raise ValueError(f"threshold has to be in [0, 1], got {threshold}")
+
+    per_item: dict[str, list[int]] = {}
+    for item in items:
+        if metric not in item.outcome or item.confidence is None:
+            continue
+        pair = per_item.setdefault(item.item_id, [0, 0])
+        pair[1] += 1
+        if item.confidence >= threshold and not item.outcome[metric]:
+            pair[0] += 1
+    return [(wrong, scored) for _, (wrong, scored) in sorted(per_item.items())]

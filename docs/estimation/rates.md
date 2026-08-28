@@ -46,11 +46,10 @@ The Wilson score interval is correct in exactly those places. This is the whole 
 implemented:
 
 ```python title="src/touchstone/stats/proportion.py"
-p = k / n
 denominator = 1 + z * z / n
 centre = (p + z * z / (2 * n)) / denominator
 half = z * sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / denominator
-return p, max(0.0, centre - half), min(1.0, centre + half)
+return max(0.0, centre - half), min(1.0, centre + half)
 ```
 
 The point estimate returned is the plain `k / n`. The interval is centred elsewhere, which
@@ -64,7 +63,45 @@ rate is zero.
 > Wilson, E. B. (1927). Probable inference, the law of succession, and statistical
 > inference. *Journal of the American Statistical Association* 22(158), 209-212.
 
-## The denominator
+## The denominator is items, not rows
+
+Asking the same item twice does not give two independent observations of the system. When
+a plan sets `replicates: 2`, a 60 item pack writes 120 rows, and computing the interval
+over 120 would report a precision the run did not buy. The interval narrows with every
+replicate added while the rate it is meant to cover stays where it was.
+
+The size of that is worth stating plainly. Over 200 items, a nominal 95% interval computed
+across the rows holds:
+
+| Replicates per item | Coverage of a nominal 95% interval |
+|---|---|
+| 1 | 95% |
+| 2 | 91% |
+| 5 | 79% |
+| 10 | 67% |
+| 20 | 54% |
+
+So the interval is computed over **items**. Each item contributes one score, the mean of
+its replicates, and the spread across those per-item scores is what the interval is built
+from. That spread is carried back into the same Wilson arithmetic through an **effective
+sample size**, because rates near zero and one are exactly where Wilson was chosen over
+the normal approximation and that reason does not go away here.
+
+The effective size sits between two ends. Replicates that agree perfectly add nothing, so
+the floor is the item count: 60 items answered the same way twice are worth 60
+observations, not 120. Replicates that are uncorrelated add a full observation each, so
+the ceiling is the row count. A run with one replicate has nothing to correct and its
+numbers are unchanged, which is why `estimator` still reads `wilson` there and reads
+`wilson_clustered` when items repeat.
+
+`k` and `n` stay the raw counts either way, because they are what a reader checks against
+the rows. `effective_n` and `design_effect` in `parameters` say what the interval was
+actually computed over.
+
+Continuous scores get the same treatment: the bootstrap resamples items rather than rows,
+for the same reason and in the same direction.
+
+## What is in the denominator
 
 An item that does not report a metric is **not in that metric's denominator**. It was not
 observed, and counting it as a failure would be an invention.
@@ -85,10 +122,13 @@ rather than being dropped, because dropping it would silently shrink the denomin
   "low": 0.069,
   "high": 0.088,
   "estimator": "wilson",
-  "parameters": {"z": 1.96, "confidence": 0.95},
+  "parameters": {"z": 1.96, "confidence": 0.95, "effective_n": 3090.0},
   "reference": "Wilson, E. B. (1927). Probable inference, the law of succession, …"
 }
 ```
+
+Where items were scored more than once, `estimator` reads `wilson_clustered` and
+`parameters` also carries `items`, `observations` and `design_effect`.
 
 Every record carries **the method, its parameters and a citation**. An estimate that does
 not name its estimator is a number a reviewer has to take on trust. With these fields the

@@ -19,16 +19,19 @@ from touchstone.run import ITEMS_NAME
 from touchstone.stats.bootstrap import BCA_REFERENCE, RESAMPLES, bootstrap_bca
 
 __all__ = ["RESAMPLES"]
-from touchstone.stats.calibration import calibration, confident_and_wrong
+from touchstone.stats.calibration import calibration, confident_and_wrong_by_item
 from touchstone.stats.proportion import (
+    CLUSTERED_REFERENCE,
     WILSON_REFERENCE,
     Z_95,
     bonferroni_z,
-    format_rate,
+    clustered_wilson,
+    format_interval,
+    interval,
     wilson,
 )
 from touchstone.stats.replicates import between_replicate
-from touchstone.stats.rollup import Cell, metrics, scores, tally, values
+from touchstone.stats.rollup import Cell, by_item, metrics, scores, values, values_by_item
 
 ESTIMATES_NAME = "estimates.json"
 CONFIDENT = 0.9
@@ -58,9 +61,44 @@ def load_items(path: Path) -> list[ItemRecord]:
 
 
 def _proportion(
-    metric: str, where: Cell, k: int, n: int, pack_id: str | None = None, **parameters: Any
+    metric: str,
+    where: Cell,
+    cells: list[tuple[int, int]],
+    pack_id: str | None = None,
+    **parameters: Any,
 ) -> Estimate:
-    point, low, high = wilson(k, n)
+    """A rate over `cells`, one `(successes, observations)` pair per distinct item.
+
+    Where every item was observed once the rows are the items and the Wilson interval is
+    computed straight off the counts, which is what every bundle before this held. Where
+    any item was observed more than once the rows are not independent and the interval is
+    computed over items instead, through `clustered_wilson`.
+
+    `k` and `n` stay the raw counts either way, because they are what a reader is
+    checking against the rows, and `effective_n` records the denominator the interval was
+    actually computed at. Every estimate carries it, equal to `n` in the unclustered
+    case, so anything recomputing an interval later has one field to read rather than a
+    branch to repeat.
+    """
+    k = sum(successes for successes, _ in cells)
+    n = sum(observations for _, observations in cells)
+    repeated = any(observations > 1 for _, observations in cells)
+
+    if repeated:
+        computed = clustered_wilson(cells)
+        point, low, high = computed.point, computed.low, computed.high
+        estimator, reference = "wilson_clustered", CLUSTERED_REFERENCE
+        extra: dict[str, Any] = {
+            "items": len(cells),
+            "observations": n,
+            "effective_n": computed.effective_n,
+            "design_effect": computed.design_effect,
+        }
+    else:
+        point, low, high = wilson(k, n)
+        estimator, reference = "wilson", WILSON_REFERENCE
+        extra = {"effective_n": float(n)}
+
     return Estimate(
         metric=metric,
         stratum=dict(where),
@@ -70,9 +108,9 @@ def _proportion(
         point=point if n else None,
         low=low,
         high=high,
-        estimator="wilson",
-        parameters={"z": Z_95, "confidence": 0.95, **parameters},
-        reference=WILSON_REFERENCE,
+        estimator=estimator,
+        parameters={"z": Z_95, "confidence": 0.95, **extra, **parameters},
+        reference=reference,
     )
 
 
@@ -80,22 +118,37 @@ def _mean(
     metric: str,
     where: Cell,
     sample: list[float],
+    observations: int,
     seed: int,
     resamples: int,
     pack_id: str | None = None,
 ) -> Estimate:
+    """A mean over `sample`, which is one mean score per distinct item.
+
+    The bootstrap resamples what it is given, so giving it rows would have it draw the
+    same item's score twice as though the second draw were new evidence. It is given
+    items, and `n` stays the row count so that it means the same thing here as it does on
+    a rate, with `effective_n` carrying the denominator the interval was computed over.
+    """
     point, low, high = bootstrap_bca(sample, resamples=resamples, seed=seed)
     return Estimate(
         metric=metric,
         stratum=dict(where),
         pack_id=pack_id,
-        n=len(sample),
+        n=observations,
         k=None,
         point=point,
         low=low,
         high=high,
         estimator="bootstrap_bca",
-        parameters={"resamples": resamples, "seed": seed, "confidence": 0.95},
+        parameters={
+            "resamples": resamples,
+            "seed": seed,
+            "confidence": 0.95,
+            "items": len(sample),
+            "observations": observations,
+            "effective_n": float(len(sample)),
+        },
         reference=BCA_REFERENCE,
     )
 
@@ -143,12 +196,15 @@ def _estimates_for(
     computed = []
     for metric in metrics(items):
         for grouping in groupings:
-            for where, (k, n) in sorted(tally(items, metric, grouping).items()):
-                computed.append(_proportion(metric, where, k, n, pack_id=pack_id))
+            for where, cells in sorted(by_item(items, metric, grouping).items()):
+                computed.append(_proportion(metric, where, cells, pack_id=pack_id))
     for metric in scores(items):
         for grouping in groupings:
-            for where, sample in sorted(values(items, metric, grouping).items()):
-                computed.append(_mean(metric, where, sample, seed, resamples, pack_id=pack_id))
+            rows = values(items, metric, grouping)
+            for where, sample in sorted(values_by_item(items, metric, grouping).items()):
+                computed.append(
+                    _mean(metric, where, sample, len(rows[where]), seed, resamples, pack_id=pack_id)
+                )
     return computed
 
 
@@ -171,9 +227,9 @@ def _calibrate(
             f"cannot calibrate {metric!r}{where}: no item carrying it reports a confidence"
         )
     curve.pack_id = pack_id
-    wrong, scored = confident_and_wrong(items, metric, confident)
+    cells = confident_and_wrong_by_item(items, metric, confident)
     rate = _proportion(
-        f"confident_and_wrong({metric})", (), wrong, scored, pack_id=pack_id, threshold=confident
+        f"confident_and_wrong({metric})", (), cells, pack_id=pack_id, threshold=confident
     )
     return curve, rate
 
@@ -270,14 +326,15 @@ def _adjusted_for_selection(entry: Estimate, comparisons: int) -> Estimate:
     the interval makes the estimate admit that rather than correct it, which is the
     honest half of the fix and the half that does not need a prior.
     """
-    if entry.k is None:
+    if entry.k is None or entry.point is None:
         raise EstimateError(
             f"cannot adjust {entry.metric!r} for selection: the cell carries no counts. "
             "A selected minimum reported with an unadjusted interval is the error this "
             "function exists to prevent, so it is refused rather than printed"
         )
     z = bonferroni_z(comparisons)
-    _, low, high = wilson(entry.k, entry.n, z=z)
+    effective = entry.parameters.get("effective_n", entry.n)
+    low, high = interval(entry.point, float(effective), z)
     return entry.model_copy(
         update={
             "low": low,
@@ -351,7 +408,14 @@ def lines(estimates: Estimates) -> list[str]:
     rendered = []
     for entry in estimates.estimates:
         if entry.k is not None:
-            body = format_rate(entry.k, entry.n)
+            # The stored interval, not a fresh one off k and n. Once an interval can be
+            # widened for clustering or for selection, recomputing it here would print a
+            # number the bundle does not contain.
+            body = (
+                format_interval(entry.point, entry.low, entry.high, entry.n)
+                if entry.point is not None
+                else "undefined (n=0)"
+            )
         else:
             body = (
                 f"{entry.point:.3f} (95% CI {entry.low:.3f}-{entry.high:.3f}, n={entry.n}, "
