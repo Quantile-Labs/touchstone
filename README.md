@@ -271,11 +271,24 @@ uv run pytest -q
 ```
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) first. Commit messages are linted, `main` is
-protected, and changes go in through a pull request. See [Writing a
+protected, changes go in through a pull request, and every commit is signed off under the
+[Developer Certificate of Origin](https://developercertificate.org/). See [Writing a
 pack](https://touchstone.quantilelabs.com/extending/writing-a-pack/) to write a pack.
+
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) applies to every space this project uses, and
+[GOVERNANCE.md](GOVERNANCE.md) says who decides.
+
+## Security
+
+Report a vulnerability privately through the
+[Security tab](https://github.com/Quantile-Labs/touchstone/security) rather than in a
+public issue. [SECURITY.md](SECURITY.md) has what is in scope, what is not, and the two
+known gaps that are already written down.
 
 ## Licence
 
-Apache 2.0. Three runtime dependencies: `pydantic`, `pyyaml`, `typer`. CI installs the
-package with the network switched off and runs it, so the offline claim is tested on every
-change.
+Apache 2.0, with the copyright held by Quantile Labs and an SPDX header on every source
+file. There is no contributor licence agreement, so contributed code cannot be relicensed
+without its authors. Three runtime dependencies: `pydantic`, `pyyaml`, `typer`. CI installs
+the package with the network switched off and runs it, so the offline claim is tested on
+every change.

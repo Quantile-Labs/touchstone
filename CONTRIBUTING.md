@@ -2,6 +2,52 @@
 
 Read this before your first commit. The rules here are enforced by CI, not by review.
 
+Four documents sit beside this one. [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md) is the
+Contributor Covenant and applies to every space this project uses.
+[`SECURITY.md`](SECURITY.md) says how to report a vulnerability, and asks you not to
+open a public issue for one. [`GOVERNANCE.md`](GOVERNANCE.md) says who decides and what
+Quantile Labs has given up the ability to do. [`LICENSE`](LICENSE) is Apache 2.0.
+
+## Signing your work
+
+**Every commit needs a Developer Certificate of Origin sign off.** Pass `-s` and git
+writes the trailer for you:
+
+```bash
+git commit -s -m "add wilson interval to rate estimator"
+```
+
+```
+Signed-off-by: Ada Lovelace <ada@example.com>
+```
+
+That line certifies the [Developer Certificate of Origin](https://developercertificate.org/),
+version 1.1: that you wrote the change or otherwise have the right to submit it under
+Apache 2.0. Use your real name and the email git is configured with, because
+`scripts/check_dco.py` compares the trailer against the commit author and the `dco` CI
+job runs it over every commit in a pull request.
+
+**There is no contributor licence agreement and there will not be one.** A CLA would
+assign Quantile Labs the rights to relicense contributed code without asking you, and
+the independence this project argues for is worth more than that option.
+[`GOVERNANCE.md`](GOVERNANCE.md) has the reasoning.
+
+Fix a commit you forgot to sign with `git commit --amend -s`, or a run of them with
+`git rebase --signoff <base>`.
+
+## Licence headers
+
+Every file in `src/` opens with two lines:
+
+```python
+# SPDX-FileCopyrightText: 2026 Quantile Labs
+# SPDX-License-Identifier: Apache-2.0
+```
+
+A new source file needs them, and `tests/test_spdx_headers.py` fails the build without
+them. A root `LICENSE` covers the repository and does not travel with a file somebody
+vendors into another tree, which is what the header is for.
+
 ## Commit messages
 
 Write like an engineer with work to do. Short, factual, imperative.
@@ -174,6 +220,7 @@ uv run ruff check . && uv run ruff format --check .
 uv run mypy
 uv run pytest
 uv run python scripts/check_commit_msg.py .git/COMMIT_EDITMSG
+uv run python scripts/check_dco.py .git/COMMIT_EDITMSG
 ```
 
 `uv` is the only thing you need installed. It fetches the interpreter and the
