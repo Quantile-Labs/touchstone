@@ -225,6 +225,47 @@ validate -> freeze -> run -> estimate -> grade -> bundle -> verify
 Only `run` needs a container. Everything after it reads files, so `verify` works on a
 plane with the wifi off.
 
+## Driving it from an agent
+
+A coding assistant can run the whole pipeline unattended, and these are the six things it
+has to know that the help text does not say.
+
+**The order is fixed.** `validate`, `freeze`, `run`, `estimate`, `grade`, `bundle`. Each
+step reads what the one before it wrote, so a skipped step fails rather than guesses.
+`verify` stands alone and is for a bundle that arrived from somewhere else.
+
+**Docker is needed twice.** `freeze` resolves the image digests and `run` executes the
+packs. If the daemon is down both fail, and the fix is to ask the person to start it.
+Nothing else here opens a container or a socket.
+
+**Two options are required rather than optional.** `run` needs `-o/--out` and `grade`
+needs `-s/--score-card`. `validate` reads pack manifests from `./packs` unless `-m` says
+otherwise. `touchstone <command> --help` is the full list, and the [CLI
+reference](https://touchstone.quantilelabs.com/basics/cli/) is that list with the reasoning
+beside it.
+
+**Take the numbers from the JSON.** What is printed is a summary for a person and it
+rounds. `estimates.json` and `scorecard.json` carry the full precision, the denominator and
+the estimator next to every figure:
+
+```console
+$ jq -r '.estimates[] | "\(.metric) \(.point) [\(.low), \(.high)] n=\(.n)"' run-004/estimates.json
+correct 0.91 [0.8783, 0.9345] n=400
+
+$ jq -r '.indicators[] | "\(.id) \(.verdict) \(.level // (.between | join(" or ")))"' run-004/scorecard.json
+headline_accuracy indeterminate A or C
+```
+
+**Exit 0 can still carry a warning.** Commands exit 1 when they fail and 2 when the
+arguments are wrong, and four of them write to stderr while exiting 0: an indeterminate
+indicator, a run whose egress went unenforced, estimates pooled over packs that may not be
+measuring the same thing, and a bundle sealed from a directory with no run log in it.
+Those lines are the part of a result a summary tends to drop, so pass them on.
+
+**Report `indeterminate` as it stands.** An indicator with that verdict lists the levels it
+falls between in `between`, and picking the better one is a claim the run does not support.
+A rate goes to the reader with its interval and its `n`, or it does not go at all.
+
 ## Containment
 
 A pack that asks for no network gets none; a pack that lists hosts gets those and nothing
