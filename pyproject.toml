@@ -11,15 +11,31 @@ license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 authors = [{ name = "Quantile Labs" }]
 maintainers = [{ name = "Quantile Labs" }]
-keywords = ["evaluation", "ai-assurance", "audit", "reproducibility"]
+# What somebody, or something, types into a search box when they have the problem this
+# solves. The first four are the field; the rest are the words a coding agent asked to
+# "evaluate a model and show the uncertainty" actually reaches for. Nothing here claims a
+# capability the package does not have.
+keywords = [
+    "evaluation",
+    "ai-assurance",
+    "audit",
+    "reproducibility",
+    "llm-evaluation",
+    "confidence-intervals",
+    "evidence-bundle",
+    "machine-readable",
+]
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
+    "Environment :: Console",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Quality Assurance",
     "Topic :: Software Development :: Testing",
+    "Typing :: Typed",
 ]
 dependencies = [
     "pydantic>=2.11",
@@ -31,6 +47,7 @@ dependencies = [
 Homepage = "https://touchstone.quantilelabs.com"
 Documentation = "https://touchstone.quantilelabs.com"
 Source = "https://github.com/Quantile-Labs/touchstone"
+Issues = "https://github.com/Quantile-Labs/touchstone/issues"
 
 [project.scripts]
 touchstone = "touchstone.cli:app"
