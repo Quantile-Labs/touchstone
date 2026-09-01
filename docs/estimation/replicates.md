@@ -50,7 +50,16 @@ any individual decision, which is what most deployed systems are actually doing.
   "sd": 0.0106,
   "spread": 0.015,
   "unstable_items": 11,
-  "repeated_items": 200
+  "repeated_items": 200,
+  "components": {
+    "completion": 0.01375,
+    "item": 0.022425,
+    "total": 0.036175,
+    "trials": 2.0,
+    "items": 200,
+    "estimator": "anova_moment",
+    "reference": "NIST AI 800-3, Appendix A.3, equation 22. ..."
+  }
 }
 ```
 
@@ -62,10 +71,49 @@ any individual decision, which is what most deployed systems are actually doing.
 | `spread` | `max - min`. The plainest version of the number |
 | `repeated_items` | items seen in more than one replicate |
 | `unstable_items` | of those, how many gave more than one distinct answer |
+| `components` | the variance of a per-item score, split. `null` below two items or where no item was observed twice |
 
 `unstable_items` is counted by `item_id`, which is why [item ids must be
 stable](../components/items.md#item_id) across runs. Without that join key there is no
 churn number at all.
+
+## Which of the two more replicates buys
+
+`components` splits the variance of a per-item score into the part that came from sampling
+completions and the part that came from sampling items. NIST AI 800-3 equation 22, with
+`Pi_i` the success probability of item `i`, `t` the trials per item and `n` the items:
+
+```
+Var[Z_i] = E[Pi_i (1 - Pi_i)] / t   +   Var[Pi_i]
+           completion sampling         item sampling
+
+Var[S]   = Var[Z_i] / n
+```
+
+**Only `completion` falls when a plan buys more replicates, and it falls as `1 / t`.**
+`item` is a property of the pool the pack drew its items from and more trials do not move
+it at all. Past the point where `completion` is small against `item`, another replicate
+buys almost nothing and the same money spent on more items buys the rest of the interval.
+
+Reading the example above. `completion` is 0.01375 at two trials, so four trials would
+put it at 0.00688 and the total at 0.02931. An interval scales with the square root of
+that, so doubling the bill buys about **10 percent** off the width. `item` is 0.022425 and
+four trials leave it at 0.022425, which is where the rest of the width lives. That plan
+wants more items.
+
+The split is a moment estimator over the per-item scores. `completion` is the pooled
+within-item variance over the trials per item, and `item` is the variance across the
+per-item scores with that sampling noise taken back out, floored at zero because a moment
+estimator of a variance can go negative when the truth is near it. `trials` is fractional
+where a replicate lost an item, because the pooling is over `sum(t_i - 1)` rather than
+over a balanced grid.
+
+!!! note "`total` is not the interval"
+
+    `total` is the variance of one item's replicate-averaged score. The variance behind
+    the reported rate is `total / items`, and the interval printed beside the rate is a
+    Wilson interval at an effective sample size rather than a normal approximation off
+    that variance. See [Rates and Wilson](rates.md#the-denominator-is-items-not-rows).
 
 ## How it is seeded
 
@@ -109,4 +157,6 @@ Replicates multiply everything: run time, API spend, item count. `max_items: 200
 
 Two is the useful minimum, the smallest number that produces a spread at all. More
 gives a better `sd`, and past three or four you are usually better off spending the same
-budget on more items.
+budget on more items. `components` is how to stop guessing at where that point sits for a
+particular plan: run two replicates, read `completion` against `item`, and spend on
+whichever one is carrying the variance.

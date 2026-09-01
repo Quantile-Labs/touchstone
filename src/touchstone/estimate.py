@@ -438,4 +438,11 @@ def lines(estimates: Estimates) -> list[str]:
             f"spread {spread.spread:.3f}, {spread.unstable_items} of "
             f"{spread.repeated_items} item(s) unstable"
         )
+        if spread.components is not None:
+            parts = spread.components
+            rendered.append(
+                f"  {scope}{spread.metric} variance over {parts.items} item(s) at "
+                f"{parts.trials:g} trial(s): completion {parts.completion:.5f}, "
+                f"item {parts.item:.5f}, total {parts.total:.5f}"
+            )
     return rendered
