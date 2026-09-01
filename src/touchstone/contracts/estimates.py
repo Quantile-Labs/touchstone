@@ -111,6 +111,40 @@ class Calibration(BaseModel):
     model_config = {"extra": "forbid"}
 
 
+class VarianceComponents(BaseModel):
+    """The two additive sources of variation in a rate, reported apart.
+
+    NIST AI 800-3 equation 22. Only one of them shrinks when a plan buys more trials, so
+    a single total is the wrong number to hand a reader deciding where to spend."""
+
+    completion: float = Field(ge=0.0)
+    """Sampling of completions from the system: `E[Pi_i (1 - Pi_i)] / t`. This is the
+    term more replicates shrink, and it shrinks as `1 / t`."""
+
+    item: float = Field(ge=0.0)
+    """Sampling of items from the superpopulation the pack drew them from: `Var[Pi_i]`.
+    More replicates do not move it at all. Only more items do."""
+
+    total: float = Field(ge=0.0)
+    """`completion + item`, the variance of one item's replicate-averaged score. Divide
+    by `items` for the variance of the rate that was reported."""
+
+    trials: float = Field(gt=0.0)
+    """Observations per item, `t`. Fractional where a replicate lost an item, because
+    the estimator below is pooled over the items rather than assuming a balanced grid."""
+
+    items: int = Field(ge=2)
+    """Distinct items, `n`. Below two there is no between-item variance to estimate."""
+
+    estimator: str = Field(min_length=1)
+    """`anova_moment`. Named so the arithmetic can be redone elsewhere."""
+
+    reference: str = Field(min_length=1)
+    """The published source of the decomposition."""
+
+    model_config = {"extra": "forbid"}
+
+
 class ReplicateVariance(BaseModel):
     """How much of a result is the system and how much is the run."""
 
@@ -133,6 +167,12 @@ class ReplicateVariance(BaseModel):
 
     repeated_items: int = Field(default=0, ge=0)
     """Items seen in more than one replicate. The denominator for the line above."""
+
+    components: VarianceComponents | None = None
+    """The variance of a per-item score split into the part more trials shrink and the
+    part they do not. None where the split is not identifiable, which is fewer than two
+    items or no item observed twice: `sd` above still describes the run, and a split
+    computed from one item would be a number with nothing behind it."""
 
     model_config = {"extra": "forbid"}
 

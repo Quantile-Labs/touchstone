@@ -468,6 +468,15 @@
   "pooled": true,
   "replicate_variance": [
     {
+      "components": {
+        "completion": 0.0,
+        "estimator": "anova_moment",
+        "item": 0.22598870056497175,
+        "items": 60,
+        "reference": "NIST AI 800-3, Appendix A.3, equation 22. doi:10.6028/NIST.AI.800-3. The two additive sources of variation in a score, from sampling completions per item and from sampling items.",
+        "total": 0.22598870056497175,
+        "trials": 2.0
+      },
       "mean": 0.6666666666666666,
       "metric": "correct",
       "pack_id": null,
@@ -487,6 +496,15 @@
       "unstable_items": 0
     },
     {
+      "components": {
+        "completion": 0.0,
+        "estimator": "anova_moment",
+        "item": 0.22988505747126436,
+        "items": 30,
+        "reference": "NIST AI 800-3, Appendix A.3, equation 22. doi:10.6028/NIST.AI.800-3. The two additive sources of variation in a score, from sampling completions per item and from sampling items.",
+        "total": 0.22988505747126436,
+        "trials": 2.0
+      },
       "mean": 0.6666666666666666,
       "metric": "correct",
       "pack_id": "credit_pack",
@@ -506,6 +524,15 @@
       "unstable_items": 0
     },
     {
+      "components": {
+        "completion": 0.0,
+        "estimator": "anova_moment",
+        "item": 0.22988505747126436,
+        "items": 30,
+        "reference": "NIST AI 800-3, Appendix A.3, equation 22. doi:10.6028/NIST.AI.800-3. The two additive sources of variation in a score, from sampling completions per item and from sampling items.",
+        "total": 0.22988505747126436,
+        "trials": 2.0
+      },
       "mean": 0.6666666666666666,
       "metric": "correct",
       "pack_id": "flood_pack",
@@ -525,5 +552,5 @@
       "unstable_items": 0
     }
   ],
-  "touchstone_version": "0.2.1"
+  "touchstone_version": "0.3.0"
 }
