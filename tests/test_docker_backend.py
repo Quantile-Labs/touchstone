@@ -20,6 +20,7 @@ from touchstone.errors import BackendError
 
 PACK = Path(__file__).resolve().parents[1] / "packs" / "example_pack"
 IMAGE = "touchstone-example-pack:test"
+BASE = "python:3.12-slim"
 SYSTEMS = json.dumps({"system_under_test": {"type": "llm_api"}})
 
 
@@ -39,6 +40,20 @@ def image() -> str:
         ["docker", "build", "-q", "-t", IMAGE, str(PACK)], check=True, capture_output=True
     )
     return IMAGE
+
+
+@pytest.fixture(scope="module", autouse=True)
+def base_image() -> None:
+    """Put BASE in the local store, because the tests below run it without building it.
+
+    They used to inherit it from the pack build, which is a bet on which builder ran:
+    BuildKit keeps the base layers of a build in its own cache and never writes the
+    image into the store `docker image inspect` reads, so the bet loses on any runner
+    whose docker defaults to it. The inspect guard keeps a machine that already holds
+    the image off the network.
+    """
+    if subprocess.run(["docker", "image", "inspect", BASE], capture_output=True).returncode:
+        subprocess.run(["docker", "pull", BASE], check=True, capture_output=True)
 
 
 @pytest.fixture
@@ -86,7 +101,7 @@ def test_a_timeout_is_labelled_as_one(backend, tmp_path):
     result = backend.run(
         spec(
             tmp_path,
-            "python:3.12-slim",
+            BASE,
             run_id="touchstone-test-slow",
             args=["python", "-c", "import time; time.sleep(60)"],
             timeout_seconds=3,
@@ -127,7 +142,7 @@ def test_a_declared_allowlist_is_enforced_and_cannot_be_bypassed(backend, tmp_pa
     result = backend.run(
         spec(
             tmp_path,
-            "python:3.12-slim",
+            BASE,
             run_id="touchstone-test-egress",
             args=["python", "-c", REACH],
             egress=["example.com"],
@@ -146,7 +161,7 @@ def test_the_proxy_log_of_what_was_attempted_lands_in_the_output(backend, tmp_pa
     backend.run(
         spec(
             tmp_path,
-            "python:3.12-slim",
+            BASE,
             run_id="touchstone-test-egress-log",
             args=["python", "-c", REACH],
             egress=["example.com"],
@@ -162,7 +177,7 @@ def test_the_proxy_and_its_network_do_not_outlive_the_run(backend, tmp_path):
     backend.run(
         spec(
             tmp_path,
-            "python:3.12-slim",
+            BASE,
             run_id=run_id,
             args=["python", "-c", "pass"],
             egress=["example.com"],
@@ -185,7 +200,7 @@ def test_a_declared_host_that_is_not_a_hostname_is_refused(backend, tmp_path):
         backend.run(
             spec(
                 tmp_path,
-                "python:3.12-slim",
+                BASE,
                 egress=["example.com\nhttp_access allow all"],
             )
         )
@@ -206,7 +221,7 @@ def test_a_pack_that_exceeds_its_memory_is_killed_and_named_as_such(backend, tmp
     result = backend.run(
         spec(
             tmp_path,
-            "python:3.12-slim",
+            BASE,
             run_id="touchstone-test-oom",
             args=["python", "-c", "b = bytearray(400 * 1024 * 1024); print(len(b))"],
             timeout_seconds=90,
@@ -222,7 +237,7 @@ def test_a_pack_that_stays_inside_its_memory_is_not_marked(backend, tmp_path):
     result = backend.run(
         spec(
             tmp_path,
-            "python:3.12-slim",
+            BASE,
             run_id="touchstone-test-within",
             args=["python", "-c", "b = bytearray(8 * 1024 * 1024); print(len(b))"],
             timeout_seconds=90,
@@ -250,7 +265,7 @@ def test_a_pack_cannot_fork_its_way_past_the_process_limit(backend, tmp_path):
     backend.run(
         spec(
             tmp_path,
-            "python:3.12-slim",
+            BASE,
             run_id="touchstone-test-pids",
             args=["python", "-c", forker],
             timeout_seconds=90,
