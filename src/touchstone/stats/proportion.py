@@ -114,6 +114,28 @@ def clustered_wilson(cells: Sequence[tuple[int, int]], z: float = Z_95) -> Clust
     variance is the variance across those per-item scores over the item count, so the
     item is the sampled unit and the replicate is not.
 
+    That choice of unit is a choice of estimand, and NIST AI 800-3 Appendix A.3,
+    doi:10.6028/NIST.AI.800-3, names the two on offer. They share this point estimate and
+    differ in variance alone. Benchmark accuracy is the rate on this fixed list of items,
+    whose estimator variance `sum_i z_i (1 - z_i) / (n^2 (t - 1))` carries the within-item
+    term by itself, since a list that is the whole population contributes no sampling
+    variance of its own. Generalized accuracy is the rate on items drawn the way these
+    were, whose estimator variance `Var[Z_i] / n` carries the between-item term as well.
+
+    What this function reports is generalized accuracy, because the claim it is computed
+    for is a claim about a system rather than about a list: a score card grades a system
+    against a threshold, and whoever relies on that grade is meeting items nobody has
+    seen. The other estimand stays available to anybody holding a bundle, since
+    `stats.replicates.variance_components` splits the same variance into its two additive
+    parts and benchmark accuracy is the completion part over the item count.
+
+    The row-counting form the paragraph above measures is neither of them, and A.3.1
+    titles it "An Incorrect Standard Error Calculation". It is wrong in both directions at
+    once, too wide for benchmark accuracy because it folds in a between-item term that
+    estimand does not carry, and too narrow for generalized accuracy wherever an item was
+    scored more than once, because it scales that same term by `1 / (n t)` when it belongs
+    at `1 / n`.
+
     That variance is carried into a Wilson interval through an effective sample size
     rather than a normal approximation, because the rates this tool reports sit near zero
     and one often enough that the normal approximation is the thing Wilson was chosen to

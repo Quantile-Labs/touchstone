@@ -15,6 +15,7 @@ from touchstone.estimate import (
     worst_stratum,
     write_estimates,
 )
+from touchstone.stats.bootstrap import bootstrap_bca
 
 
 def _items(n=100, thin=3):
@@ -106,6 +107,30 @@ def test_a_continuous_score_gets_a_bootstrap_interval_and_no_numerator():
     assert entry.k is None
     assert entry.estimator == "bootstrap_bca"
     assert entry.low < entry.point < entry.high
+
+
+def test_a_repeated_score_is_bootstrapped_over_items_rather_than_rows():
+    """The continuous half of the clustering defect, guarded at the caller.
+
+    The bootstrap resamples whatever sample it is handed, so handing it the rows would
+    draw the same item's score again as though the second draw were new evidence, which
+    is the standard error NIST AI 800-3 Appendix A.3.1 names computed by a different
+    route. Forty items scored three times each are forty observations, and the interval
+    the run reports is accordingly about the square root of three wider than the one the
+    rows would have bought.
+    """
+    items = [
+        ItemRecord(item_id=f"q{index}", score={"rubric": float(index % 5)}, replicate=replicate)
+        for index in range(40)
+        for replicate in range(3)
+    ]
+    entry = _by_cell(estimate(items, seed=7), "rubric")[()]
+    _, low, high = bootstrap_bca([item.score["rubric"] for item in items], seed=7)
+
+    assert entry.n == 120
+    assert entry.parameters["items"] == 40
+    assert entry.parameters["effective_n"] == 40.0
+    assert (entry.high - entry.low) > 1.5 * (high - low)
 
 
 def test_estimates_are_reproducible_from_the_same_records_and_seed():
