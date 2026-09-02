@@ -48,6 +48,14 @@ def variance_components(cells: Sequence[tuple[int, int]]) -> VarianceComponents 
     dominates, and one total cannot answer it: the first term falls as `1 / t` and the
     second does not move at all.
 
+    The same two terms name the two estimands Appendix A.3 distinguishes, so a bundle
+    carrying this split carries both of them. An estimate of benchmark accuracy, the rate
+    on this fixed list of items, has variance `completion / n`, and an estimate of
+    generalized accuracy, the rate on items drawn the way these were, has variance
+    `total / n`. The second is the one `stats.proportion.clustered_wilson` puts an
+    interval around, which it reaches through the raw sample variance across the per-item
+    scores, and that equals `total` unless the item floor below bit.
+
     The completion term is the pooled within-item variance divided by the trials per
     item, which is the ANOVA moment estimator, and it carries a `t - 1` rather than a `t`
     for a reason worth writing down. With `z = k / t` and `k` binomial over `t` trials,

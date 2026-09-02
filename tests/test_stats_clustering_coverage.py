@@ -15,7 +15,9 @@ Seeded, so a failure here is a change in the arithmetic rather than a bad aftern
 """
 
 import random
-from statistics import fmean
+from statistics import fmean, variance
+
+import pytest
 
 from touchstone.stats.proportion import clustered_wilson, wilson
 
@@ -125,3 +127,78 @@ def test_the_effective_size_stays_between_the_items_and_the_rows():
             computed = clustered_wilson(cells)
             assert 80.0 <= computed.effective_n <= float(80 * replicates)
             assert computed.design_effect >= 1.0 - 1e-12
+
+
+def _drawn(replicates, items=ITEMS, seed=11):
+    """One draw of `items` cells, difficulties spread, so the between-item term is real."""
+    rng = random.Random(seed)
+    cells = []
+    for _ in range(items):
+        rate = rng.choice(SUPERPOPULATION)
+        cells.append((sum(1 for _ in range(replicates) if rng.random() < rate), replicates))
+    return cells
+
+
+def _naive_variance(cells):
+    """The A.3.1 calculation: the sample variance over every row, over the row count.
+
+    Built out of the rows themselves rather than reduced to `p (1 - p) / (n t)`, so what
+    the tests below reject is the calculation the report names rather than an algebraic
+    stand-in a later reader would have to check for themselves.
+    """
+    rows = [
+        float(hit)
+        for successes, observations in cells
+        for hit in [1] * successes + [0] * (observations - successes)
+    ]
+    return variance(rows) / len(rows)
+
+
+def _benchmark_variance(cells):
+    """`sum_i z_i (1 - z_i) / (n^2 (t - 1))`, the within-item term carried by itself."""
+    items = len(cells)
+    return sum((k / t) * (1 - k / t) / (items * items * (t - 1)) for k, t in cells if t > 1)
+
+
+def _shipped_variance(computed):
+    """The variance the reported interval rests on, read back off the effective size."""
+    return computed.point * (1 - computed.point) / computed.effective_n
+
+
+def test_the_interval_reports_generalized_accuracy_and_not_the_row_count():
+    """`Var[Z_i] / n` over items, which is the estimand a score card grades against.
+
+    NIST AI 800-3 Appendix A.3.1 gives the row-counting standard error a name and a
+    section of its own, and this is the regression test that it does not come back. The
+    identity is exact rather than approximate because the effective size is defined as
+    the one at which a Wilson interval carries that variance, so a change anywhere in the
+    denominator moves it. Both clamps are asserted to be off first, since a clamped
+    effective size is a different arithmetic and would pass the comparison for the wrong
+    reason.
+    """
+    cells = _drawn(4)
+    computed = clustered_wilson(cells)
+    scores = [k / t for k, t in cells]
+    rows = sum(t for _, t in cells)
+
+    assert len(cells) < computed.effective_n < rows, "clamped, so the identity is untested"
+    assert _shipped_variance(computed) == pytest.approx(variance(scores) / len(cells), rel=1e-12)
+
+    _, low, high = wilson(sum(k for k, _ in cells), rows)
+    assert _naive_variance(cells) < _shipped_variance(computed)
+    assert (computed.high - computed.low) > (high - low)
+
+
+def test_the_narrower_benchmark_accuracy_estimand_is_not_the_one_reported():
+    """The other correct estimand, and the reason it is not the one on offer here.
+
+    Benchmark accuracy is the rate on this fixed list of items, so its variance carries
+    the within-item term alone and is narrower wherever the items differ in difficulty.
+    Narrower is not better: a score card grades a system against a threshold, and the
+    reader relying on that grade is meeting items nobody has seen, so the estimand has to
+    be the one whose variance admits that the list was itself a sample.
+    """
+    cells = _drawn(4)
+    computed = clustered_wilson(cells)
+
+    assert _benchmark_variance(cells) < _shipped_variance(computed)

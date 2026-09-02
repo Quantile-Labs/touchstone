@@ -101,6 +101,24 @@ actually computed over.
 Continuous scores get the same treatment: the bootstrap resamples items rather than rows,
 for the same reason and in the same direction.
 
+## Which rate the interval is for
+
+Two quantities share the point estimate above and differ in how much they admit the result
+could have come out otherwise. One is the rate on this fixed list of items, whose
+uncertainty is the answers the system might have given on those items. The other is the
+rate on items drawn the way these were, whose uncertainty also covers the list itself
+having been a sample, so it carries the spread between items as well and is the wider of
+the two.
+
+Touchstone reports the second, because a score card grades a system against a threshold
+and whoever relies on that grade is meeting items nobody has seen. The narrower figure
+stays available from the same bundle: `components` under `replicate_variance` splits the
+variance of a per-item score into a completion part and an item part, and the fixed-list
+figure is the completion part over the item count. [Replicates](replicates.md) has that
+split.
+
+> NIST AI 800-3, Appendix A.3. doi:10.6028/NIST.AI.800-3
+
 ## What is in the denominator
 
 An item that does not report a metric is **not in that metric's denominator**. It was not
