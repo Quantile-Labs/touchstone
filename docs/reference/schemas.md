@@ -20,6 +20,11 @@ show what each one means, and flag a mistake before the command is run.
 | `manifest.yaml` | [`pack-manifest.schema.json`](../schemas/pack-manifest.schema.json) | `contracts.manifest.Manifest` |
 | `audit.yaml` | [`audit.schema.json`](../schemas/audit.schema.json) | `contracts.audit.AuditResponses` |
 
+One more is published for a file nobody writes. `--json` output has
+[`envelope.schema.json`](../schemas/envelope.schema.json), generated the same way, because
+the reader who most needs a schema is the one parsing output they did not author. See
+[Machine-readable output](../basics/cli.md#machine-readable-output).
+
 The pack manifest is named `pack-manifest` because a bundle also holds a `MANIFEST.json`,
 and the two describe different things.
 

@@ -21,6 +21,7 @@ from pydantic import BaseModel
 
 from touchstone.contracts import Manifest, Plan
 from touchstone.contracts.audit import AuditResponses
+from touchstone.contracts.diagnostics import Envelope
 from touchstone.contracts.scorecard import ScoreCard
 
 SCHEMAS = Path(__file__).resolve().parents[1] / "docs" / "schemas"
@@ -32,9 +33,10 @@ keep resolving for as long as any plan in the wild points at it."""
 DIALECT = "https://json-schema.org/draft/2020-12/schema"
 
 # Filename stem, the model behind it, the title an editor shows, and what the file is.
+# The first four are written by a person; the last is written by a command.
 # The titles say `pack manifest` and not `manifest`, because a bundle holds a MANIFEST.json
 # that is a different thing and a reader hovering a key should not have to work out which.
-AUTHORED: list[tuple[str, type[BaseModel], str, str]] = [
+SCHEMAS_FOR: list[tuple[str, type[BaseModel], str, str]] = [
     (
         "plan",
         Plan,
@@ -63,6 +65,15 @@ AUTHORED: list[tuple[str, type[BaseModel], str, str]] = [
         "The levels a person assessed for the indicators no bundle can answer on its "
         "own, and the evidence behind each. Passed to `touchstone grade --audit`.",
     ),
+    # Not authored by anybody. A command writes it, and it is here because the reader who
+    # needs a schema most is the one parsing output they did not write.
+    (
+        "envelope",
+        Envelope,
+        "Touchstone command envelope",
+        "What `validate`, `verify`, `estimate` and `grade` write to stdout under "
+        "`--json`: the problems found, where each one is, and what the command produced.",
+    ),
 ]
 
 
@@ -90,7 +101,7 @@ def main(argv: list[str]) -> int:
     SCHEMAS.mkdir(parents=True, exist_ok=True)
 
     stale = []
-    for stem, model, title, description in AUTHORED:
+    for stem, model, title, description in SCHEMAS_FOR:
         path = SCHEMAS / f"{stem}.schema.json"
         wanted = build(stem, model, title, description)
         if checking:
@@ -107,10 +118,10 @@ def main(argv: list[str]) -> int:
                 print(f"  {path.relative_to(SCHEMAS.parents[1])}", file=sys.stderr)
             print("run: uv run python scripts/gen_schemas.py", file=sys.stderr)
             return 1
-        print(f"{SCHEMAS}: {len(AUTHORED)} schema(s) up to date")
+        print(f"{SCHEMAS}: {len(SCHEMAS_FOR)} schema(s) up to date")
         return 0
 
-    print(f"{SCHEMAS}: {len(AUTHORED)} schema(s) written")
+    print(f"{SCHEMAS}: {len(SCHEMAS_FOR)} schema(s) written")
     return 0
 
 

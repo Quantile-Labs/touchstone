@@ -1,0 +1,132 @@
+{
+  "$defs": {
+    "Problem": {
+      "additionalProperties": false,
+      "description": "One thing wrong, or one thing worth saying, in one place.",
+      "properties": {
+        "code": {
+          "description": "Stable, and the field to branch on. The message is written for a person and gets\nrewritten whenever it reads badly; this does not.",
+          "pattern": "^[a-z0-9_]{1,48}$",
+          "title": "Code",
+          "type": "string"
+        },
+        "column": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "1-indexed, counting the way an editor counts. Both absent rather than zero where\nthe check cannot say where it is looking: a position of 0 is a position, and a reader\nthat trusts it puts a squiggle on the first character of the file.",
+          "title": "Column"
+        },
+        "line": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Line"
+        },
+        "message": {
+          "description": "Exactly what the human output prints, so the two cannot say different things.",
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The file, relative to where the command was invoked. None where the problem is\nabout a bundle rather than about one file in it.",
+          "title": "Path"
+        },
+        "severity": {
+          "default": "error",
+          "enum": [
+            "error",
+            "warning"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "subject": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "The pack id, indicator id or file name the problem is about, lifted out of the\nmessage so a caller can group by it without parsing English.",
+          "title": "Subject"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "title": "Problem",
+      "type": "object"
+    }
+  },
+  "$id": "https://touchstone.quantilelabs.com/schemas/envelope.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "What `validate`, `verify`, `estimate` and `grade` write to stdout under `--json`: the problems found, where each one is, and what the command produced.",
+  "properties": {
+    "command": {
+      "title": "Command",
+      "type": "string"
+    },
+    "envelope": {
+      "default": 1,
+      "title": "Envelope",
+      "type": "integer"
+    },
+    "ok": {
+      "description": "False when any problem is an error. A caller should still read the exit code, which\nsays the same thing and is what a shell sees.",
+      "title": "Ok",
+      "type": "boolean"
+    },
+    "problems": {
+      "items": {
+        "$ref": "#/$defs/Problem"
+      },
+      "title": "Problems",
+      "type": "array"
+    },
+    "result": {
+      "additionalProperties": true,
+      "description": "What the command produced, which for `estimate` and `grade` is where it wrote the\nnumbers rather than the numbers themselves. `estimates.json` and `scorecard.json` are\nalready contracts with their own shapes, and serialising them a second way here would\nbe two answers to one question, drifting from the release they first disagree in.",
+      "title": "Result",
+      "type": "object"
+    },
+    "touchstone_version": {
+      "title": "Touchstone Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "touchstone_version",
+    "command",
+    "ok"
+  ],
+  "title": "Touchstone command envelope",
+  "type": "object"
+}
