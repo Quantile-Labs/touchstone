@@ -1,12 +1,49 @@
 ---
 title: Status
-description: What is settled in 0.3.0, what is not, and what is planned.
+description: What is settled in 0.4.0, what is not, and what is planned.
 ---
 
 # Status
 
 Early, and saying so.
 { .lede }
+
+## 0.4.0
+
+**A plan or a pack manifest carrying a key the contract does not declare now fails to
+load.** Six nested models accepted anything: a `packs` entry and a `systems` entry in a
+plan, and the `input_systems`, `input_schema`, `strata` and `network` declarations in a
+manifest. The promise that an unknown key raises rather than being dropped held at the top
+of a plan and nowhere inside it, which is where most of the keys are. A misspelled
+`replicates` ran the pack once and reported a rate with no replicate variance beside it,
+and a misspelled `egress` was a pack asking for the network and silently getting none. A
+pack image whose manifest has such a key now fails at `freeze` rather than running with the
+wrong declaration.
+
+**`validate`, `verify`, `estimate` and `grade` take `--json`.** One envelope on stdout,
+carrying a stable `code`, the file, and the line and column for each problem, so a CI job
+or an editor branches on an identifier rather than matching prose. The exit codes are
+unchanged and the human output is unchanged. An indeterminate grade arrives as a warning
+and `ok` stays true. See [Machine-readable
+output](../basics/cli.md#machine-readable-output).
+
+**Three functions in `src/` changed shape.** `plan_check.check`, `bundle.verify` and
+`grade.check` return `list[Problem]` rather than `list[str]`, and each takes an optional
+path that fills in the position. Anything importing this package rather than running the
+commands reads `.message` where it used to read the string.
+
+**The four files a person writes have published schemas.** Generated from the same pydantic
+models `validate` uses and served with this site, so an editor with a YAML language server
+gives completion, hover text and inline validation that cannot drift from what the tool
+enforces. `--json` output has one too. See [Editor schemas](../reference/schemas.md).
+
+No bundle changes shape, and no hash of an unchanged bundle moves. `touchstone_version`
+stamps `0.4.0`.
+
+```console
+$ touchstone version
+touchstone 0.4.0
+```
 
 ## 0.3.0
 
@@ -28,11 +65,6 @@ once rather than once per replicate.
 
 **Re-read a bundle rather than comparing a 0.2.1 estimate to a 0.3.0 one.** The rows are
 untouched and `estimate` recomputes from them, so an old bundle can be brought forward.
-
-```console
-$ touchstone version
-touchstone 0.3.0
-```
 
 Still classified `Development Status :: 2 - Pre-Alpha` on PyPI, which is accurate.
 

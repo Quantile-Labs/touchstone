@@ -205,7 +205,7 @@ The prose output is the default and is unchanged.
 ```console
 $ touchstone validate plan.yaml --json
 {
-  "touchstone_version": "0.3.0",
+  "touchstone_version": "0.4.0",
   "envelope": 1,
   "command": "validate",
   "ok": false,
@@ -249,5 +249,5 @@ ignores what it does not recognise keeps working.
 
 ```console
 $ touchstone version
-touchstone 0.3.0
+touchstone 0.4.0
 ```

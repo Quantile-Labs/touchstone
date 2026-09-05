@@ -50,7 +50,7 @@ sha256 dd02c96f00ed44c64c2bd4867d86d03ae7155ddf720cb8e45c628409b4692bba
 ```json
 {
   "bundle_format": 1,
-  "touchstone_version": "0.3.0",
+  "touchstone_version": "0.4.0",
   "sealed_utc": "2026-08-27T09:21:44Z",
   "run_ledger": "complete",
   "sha256": "dd02c96f00ed44c64c2bd4867d86d03ae7155ddf720cb8e45c628409b4692bba",

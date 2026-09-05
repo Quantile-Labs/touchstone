@@ -253,13 +253,16 @@ says what the evidence supports; nothing in it amounts to an approval.
 
 ## Status
 
-Early, and saying so. 0.3.0 is the current release, all seven commands work and are
-tested doing it, and this document describes the code that is on PyPI. What is not settled is the
-score card format, so `grade` applies whatever ladder the card gives it rather than one
-built in, and `examples/scorecard.yaml` shows the shape rather than a rubric anyone should
-adopt. The package is `touchstone-dqi` because `touchstone` was taken on PyPI. DQI is the
-deployment quality index this is being built to carry, which is separate work and is not
-published, so nothing here grades against it.
+Early, and saying so. 0.4.0 is the current release, all seven commands work and are
+tested doing it, and this document describes the code that is on PyPI. The four files a
+person writes have published [JSON
+Schemas](https://touchstone.quantilelabs.com/reference/schemas/), so an editor with a YAML
+language server checks a plan as it is typed, and the four commands that check something
+take `--json`. What is not settled is the score card format, so `grade` applies whatever
+ladder the card gives it rather than one built in, and `examples/scorecard.yaml` shows the
+shape rather than a rubric anyone should adopt. The package is `touchstone-dqi` because
+`touchstone` was taken on PyPI. DQI is the deployment quality index this is being built to
+carry, which is separate work and is not published, so nothing here grades against it.
 
 ## Contributing
 
