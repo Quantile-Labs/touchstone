@@ -157,12 +157,10 @@ def test_estimate_points_at_what_it_wrote_rather_than_repeating_it(tmp_path):
     assert isinstance(payload["result"]["estimates"], int), "a count, not the estimates"
 
 
-def test_an_indeterminate_grade_is_a_warning_and_the_command_still_succeeded(tmp_path):
+def test_an_indeterminate_grade_is_a_warning_and_the_command_still_succeeded(graded):
     """A caller that treats every problem as a failure fails a run that measured what it
     set out to measure and reported honestly that the interval spans a boundary."""
-    from tests.test_grade_cli import build
-
-    run_dir, card = build(tmp_path)
+    run_dir, card = graded
 
     payload, status = envelope("grade", str(run_dir), "--score-card", str(card), "--json")
 
@@ -176,11 +174,9 @@ def test_an_indeterminate_grade_is_a_warning_and_the_command_still_succeeded(tmp
     assert card.read_text().splitlines()[warning["line"] - 1].strip().startswith("- id:")
 
 
-def test_a_score_card_naming_a_metric_the_bundle_lacks_fails_with_a_code(tmp_path):
-    from tests.test_grade_cli import SCORE_CARD, build
-
-    run_dir, card = build(tmp_path)
-    card.write_text(SCORE_CARD.replace("name: correct", "name: never_computed"))
+def test_a_score_card_naming_a_metric_the_bundle_lacks_fails_with_a_code(graded):
+    run_dir, card = graded
+    card.write_text(card.read_text().replace("name: correct", "name: never_computed"))
 
     payload, status = envelope("grade", str(run_dir), "--score-card", str(card), "--json")
 

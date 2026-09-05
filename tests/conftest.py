@@ -78,3 +78,75 @@ def frozen(tmp_path) -> Path:
     lock_dir = tmp_path / "lock"
     freeze_plan.write_lock(freeze_plan.freeze(Plan.model_validate(PLAN), StubBackend()), lock_dir)
     return lock_dir
+
+
+ESTIMATES = {
+    "touchstone_version": "test",
+    "items": 400,
+    "packs": ["example_pack"],
+    "pooled": False,
+    "estimates": [
+        {
+            "metric": "correct",
+            "pack_id": "example_pack",
+            "stratum": {},
+            "n": 400,
+            "point": 0.91,
+            "low": 0.8783,
+            "high": 0.9345,
+            "k": 364,
+            "estimator": "wilson",
+            "parameters": {"z": 1.959963984540054},
+            "reference": "Wilson 1927",
+        }
+    ],
+}
+
+LOCK = {
+    "lock_format": 3,
+    "plan_name": "example",
+    "access_tier": "black_box",
+    "root_seed": 7,
+    "systems": {},
+    "packs": [
+        {
+            "id": "example_pack",
+            "image": "example_pack@sha256:" + "a" * 64,
+            "calibrates": None,
+            "emits_items": True,
+            "seeds": [1],
+        }
+    ],
+}
+
+SCORE_CARD = """
+score_card_name: "DQI test card"
+levels: ["A", "B", "C", "D", "E", "F", "G", "H"]
+tier_ceilings:
+  black_box: "A"
+indicators:
+  - id: headline_accuracy
+    name: "Headline accuracy with interval"
+    metric: {source: estimate, name: correct, pack_id: example_pack}
+    assessment:
+      - {level: "A", condition: greater_equal_ci_lower, threshold: 0.90}
+      - {level: "C", condition: greater_equal_ci_lower, threshold: 0.70}
+"""
+
+
+@pytest.fixture
+def graded(tmp_path) -> tuple[Path, Path]:
+    """A run directory holding estimates and a lock, and a score card to apply to it.
+
+    Here rather than in one test module because two of them grade a run now, and a test
+    importing another test module works only while the repository root happens to be on
+    `sys.path`. It is on a laptop and it is not in CI.
+    """
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "estimates.json").write_text(json.dumps(ESTIMATES))
+    (run_dir / "plan.lock.json").write_text(json.dumps(LOCK))
+    (run_dir / "PLAN.sha256").write_text("2005a468" + "0" * 56 + "  plan.lock.json\n")
+    card = tmp_path / "card.yaml"
+    card.write_text(SCORE_CARD)
+    return run_dir, card

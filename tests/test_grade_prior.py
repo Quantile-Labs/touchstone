@@ -125,7 +125,7 @@ indicators:
 
 
 def build(tmp_path, name, point):
-    from test_grade_cli import ESTIMATES, LOCK
+    from conftest import ESTIMATES, LOCK
 
     estimates = json.loads(json.dumps(ESTIMATES))
     estimates["estimates"][0]["point"] = point

@@ -180,7 +180,7 @@ indicators:
 
 
 def run_dir(tmp_path):
-    from test_grade_cli import ESTIMATES, LOCK
+    from conftest import ESTIMATES, LOCK
 
     directory = tmp_path / "run"
     directory.mkdir()
