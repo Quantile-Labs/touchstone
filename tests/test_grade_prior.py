@@ -90,7 +90,7 @@ def test_a_metric_absent_from_the_earlier_bundle_says_which_bundle():
         prior=Prior(estimates=bundle(rate("covered", 0.5, 0.44, 0.56))),
     )
 
-    assert any("the prior bundle" in problem for problem in problems)
+    assert any("the prior bundle" in problem.message for problem in problems)
 
 
 def test_both_plan_hashes_are_recorded():

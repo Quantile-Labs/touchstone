@@ -42,7 +42,7 @@ def validate(
             path.parent.name: plan_check.load_manifest(path)
             for path in sorted(manifests.glob("*/manifest.yaml"))
         }
-        problems = plan_check.check(plan, found)
+        problems = plan_check.check(plan, found, plan_path)
     except TouchstoneError as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
@@ -50,7 +50,7 @@ def validate(
     if problems:
         typer.echo(f"{plan_path}: {len(problems)} problem(s)", err=True)
         for problem in problems:
-            typer.echo(f"  {problem}", err=True)
+            typer.echo(f"  {problem.message}", err=True)
         raise typer.Exit(1)
 
     typer.echo(f"{plan_path}: ok, {len(plan.packs)} pack(s)")
@@ -70,7 +70,7 @@ def verify(
     if failures:
         typer.echo(f"{bundle_dir}: {len(failures)} failure(s)", err=True)
         for failure in failures:
-            typer.echo(f"  {failure}", err=True)
+            typer.echo(f"  {failure.message}", err=True)
         raise typer.Exit(1)
 
     typer.echo(f"{bundle_dir}: verified")
@@ -254,10 +254,10 @@ def grade(
         responses = grade_run.load_audit(audit) if audit else None
         before = grade_run.load_prior(prior) if prior else None
 
-        problems = grade_run.check(card, estimates, tier, responses, before)
+        problems = grade_run.check(card, estimates, tier, responses, before, score_card)
         if problems:
             for problem in problems:
-                typer.echo(problem, err=True)
+                typer.echo(problem.message, err=True)
             raise typer.Exit(1)
 
         audit_sha256 = None

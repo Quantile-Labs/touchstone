@@ -62,8 +62,8 @@ def test_a_metric_that_was_never_computed_is_an_error_not_a_zero():
         bundle(rate("correct", 0.9, 0.85, 0.93)),
     )
     assert problems
-    assert "never_reported" in problems[0]
-    assert "not a zero" in problems[0]
+    assert "never_reported" in problems[0].message
+    assert "not a zero" in problems[0].message
 
 
 def test_a_pack_that_never_ran_is_an_error():
@@ -71,7 +71,7 @@ def test_a_pack_that_never_ran_is_an_error():
         card({"name": "correct", "pack_id": "some_other_pack"}, PASSES),
         bundle(rate("correct", 0.9, 0.85, 0.93)),
     )
-    assert any("some_other_pack" in problem for problem in problems)
+    assert any("some_other_pack" in problem.message for problem in problems)
 
 
 def test_an_interval_condition_against_a_source_with_no_interval_is_refused():
@@ -95,7 +95,7 @@ def test_an_interval_condition_against_a_source_with_no_interval_is_refused():
             ],
         ),
     )
-    assert any("carries no interval" in problem for problem in problems)
+    assert any("carries no interval" in problem.message for problem in problems)
 
 
 def test_an_interval_condition_against_an_expression_is_refused():
@@ -109,7 +109,7 @@ def test_an_interval_condition_against_an_expression_is_refused():
         ),
         bundle(rate("correct", 0.9, 0.85, 0.93)),
     )
-    assert any("no interval by design" in problem for problem in problems)
+    assert any("no interval by design" in problem.message for problem in problems)
 
 
 def test_an_expression_variable_with_no_value_is_refused():
@@ -123,7 +123,8 @@ def test_an_expression_variable_with_no_value_is_refused():
         ),
         bundle(rate("correct", 0.9, 0.85, 0.93)),
     )
-    assert any("'b' is in the expression and not in values" in problem for problem in problems)
+    said = [problem.message for problem in problems]
+    assert any("'b' is in the expression and not in values" in line for line in said)
 
 
 def test_a_declared_value_the_expression_never_reads_is_refused():
@@ -141,7 +142,8 @@ def test_a_declared_value_the_expression_never_reads_is_refused():
         ),
         bundle(rate("correct", 0.9, 0.85, 0.93)),
     )
-    assert any("'stale' is in values and not in the expression" in problem for problem in problems)
+    said = [problem.message for problem in problems]
+    assert any("'stale' is in values and not in the expression" in line for line in said)
 
 
 def test_a_pooled_figure_on_a_multi_pack_run_has_to_name_its_pack():
@@ -153,7 +155,7 @@ def test_a_pooled_figure_on_a_multi_pack_run_has_to_name_its_pack():
             pooled=True,
         ),
     )
-    assert any("Name a pack" in problem for problem in problems)
+    assert any("Name a pack" in problem.message for problem in problems)
 
 
 def test_a_clean_score_card_reports_no_problems():
@@ -420,7 +422,7 @@ def test_check_skips_a_reference_that_tier_will_never_follow():
 
 def test_the_same_reference_is_still_checked_at_a_tier_that_can_ask():
     problems = check(tiered_card(), bundle(rate("correct", 0.9, 0.85, 0.93)), "grey_box")
-    assert any("confidence_weighted" in problem for problem in problems)
+    assert any("confidence_weighted" in problem.message for problem in problems)
 
 
 def test_an_indicator_ceiling_overrides_the_card_for_that_indicator_alone():
