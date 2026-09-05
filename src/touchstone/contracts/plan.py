@@ -13,10 +13,14 @@ class PackRef(BaseModel):
     params: dict[str, object] = Field(default_factory=dict)
     replicates: int = Field(default=1, ge=1)
 
+    model_config = {"extra": "forbid"}
+
 
 class System(BaseModel):
     type: str
     params: dict[str, object] = Field(default_factory=dict)
+
+    model_config = {"extra": "forbid"}
 
 
 class Plan(BaseModel):
