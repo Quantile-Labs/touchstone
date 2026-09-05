@@ -28,28 +28,42 @@ def manifests(**overrides):
     return {"procedural_ng": Manifest.model_validate(data)}
 
 
+def messages(problems):
+    """The sentences alone. Every problem is a `Problem` now, and most of these tests are
+    about what the reader is told rather than about where it points."""
+    return [problem.message for problem in problems]
+
+
 def test_accepts_a_valid_plan():
     assert check(Plan.model_validate(PLAN), manifests()) == []
 
 
 def test_rejects_an_unknown_parameter():
     plan = Plan.model_validate(PLAN | {"packs": [PLAN["packs"][0] | {"params": {"nope": 1}}]})
-    assert check(plan, manifests()) == ["procedural_ng: pack does not accept parameter 'nope'"]
+    problems = check(plan, manifests())
+    assert [(problem.code, problem.message) for problem in problems] == [
+        ("parameter_unknown", "procedural_ng: pack does not accept parameter 'nope'")
+    ]
 
 
 def test_rejects_a_missing_required_system():
     plan = Plan.model_validate(PLAN | {"packs": [PLAN["packs"][0] | {"systems": {}}]})
     problems = check(plan, manifests())
-    assert "procedural_ng: missing required system 'system_under_test'" in problems
+    assert "procedural_ng: missing required system 'system_under_test'" in messages(problems)
+    assert "system_missing" in {problem.code for problem in problems}
 
 
 def test_rejects_a_system_not_defined_in_the_plan():
     pack = PLAN["packs"][0] | {"systems": {"system_under_test": "ghost"}}
     plan = Plan.model_validate(PLAN | {"packs": [pack]})
     problems = check(plan, manifests())
-    assert "procedural_ng: system 'ghost' is not defined in the plan" in problems
+    assert "procedural_ng: system 'ghost' is not defined in the plan" in messages(problems)
+    assert "system_undefined" in {problem.code for problem in problems}
 
 
 def test_rejects_a_plan_naming_an_unknown_pack():
     plan = Plan.model_validate(PLAN)
-    assert check(plan, {}) == ["procedural_ng: no manifest found"]
+    problems = check(plan, {})
+    assert [(problem.code, problem.message) for problem in problems] == [
+        ("pack_manifest_missing", "procedural_ng: no manifest found")
+    ]

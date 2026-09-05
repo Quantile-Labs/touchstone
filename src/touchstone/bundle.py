@@ -19,6 +19,7 @@ from touchstone.contracts.bundle import (
     BundleManifest,
     FileEntry,
 )
+from touchstone.contracts.diagnostics import Problem
 from touchstone.errors import BundleError
 
 MANIFEST_NAME = "MANIFEST.json"
@@ -129,20 +130,32 @@ def load_manifest(bundle_dir: Path) -> BundleManifest:
         raise BundleError(f"{MANIFEST_NAME} is malformed: {exc}") from exc
 
 
-def verify(bundle_dir: Path) -> list[str]:
-    """Re-check every file against MANIFEST.json. Returns the list of failures."""
+def verify(bundle_dir: Path) -> list[Problem]:
+    """Re-check every file against MANIFEST.json. Returns every failure, not the first.
+
+    A failure names the file it is about in `subject` and `path`, and carries no line: a
+    hash is a fact about a whole file and pointing at a line inside one would suggest the
+    tool knows which byte moved, which it does not.
+    """
     manifest = load_manifest(bundle_dir)
     failures = []
 
     if bundle_hash(manifest.files) != manifest.sha256:
-        failures.append("bundle hash does not match the recorded file list")
+        failures.append(
+            Problem(
+                code="bundle_hash_mismatch",
+                message="bundle hash does not match the recorded file list",
+                path=str(bundle_dir / MANIFEST_NAME),
+                subject=MANIFEST_NAME,
+            )
+        )
 
     for entry in manifest.files:
         target = bundle_dir / entry.path
         if not target.is_file():
-            failures.append(f"missing: {entry.path}")
+            failures.append(_missing(bundle_dir, entry.path, "file_missing", "missing"))
         elif sha256_file(target) != entry.sha256:
-            failures.append(f"hash mismatch: {entry.path}")
+            failures.append(_missing(bundle_dir, entry.path, "file_hash_mismatch", "hash mismatch"))
 
     recorded = {entry.path for entry in manifest.files}
     for path in sorted(bundle_dir.rglob("*")):
@@ -150,6 +163,12 @@ def verify(bundle_dir: Path) -> list[str]:
             continue
         name = path.relative_to(bundle_dir).as_posix()
         if name != MANIFEST_NAME and name not in recorded:
-            failures.append(f"not recorded: {name}")
+            failures.append(_missing(bundle_dir, name, "file_not_recorded", "not recorded"))
 
     return failures
+
+
+def _missing(bundle_dir: Path, name: str, code: str, label: str) -> Problem:
+    """One failure about one file. The message keeps the `label: path` shape the human
+    output has always printed, so the sentence a reader sees is unchanged."""
+    return Problem(code=code, message=f"{label}: {name}", path=str(bundle_dir / name), subject=name)

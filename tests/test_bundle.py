@@ -54,19 +54,24 @@ def test_refuses_to_seal_a_symlink(tmp_path):
 def test_detects_a_modified_file(tmp_path):
     root = sealed(tmp_path, {"items.jsonl": '{"score": 0.87}\n'})
     (root / "items.jsonl").write_text('{"score": 0.88}\n')
-    assert bundle.verify(root) == ["hash mismatch: items.jsonl"]
+    failures = bundle.verify(root)
+    assert [(f.code, f.subject, f.message) for f in failures] == [
+        ("file_hash_mismatch", "items.jsonl", "hash mismatch: items.jsonl")
+    ]
 
 
 def test_detects_a_missing_file(tmp_path):
     root = sealed(tmp_path, {"items.jsonl": "x"})
     (root / "items.jsonl").unlink()
-    assert bundle.verify(root) == ["missing: items.jsonl"]
+    failures = bundle.verify(root)
+    assert [(f.code, f.subject) for f in failures] == [("file_missing", "items.jsonl")]
 
 
 def test_detects_an_unrecorded_file(tmp_path):
     root = sealed(tmp_path, {"items.jsonl": "x"})
     (root / "extra.txt").write_text("added later")
-    assert bundle.verify(root) == ["not recorded: extra.txt"]
+    failures = bundle.verify(root)
+    assert [(f.code, f.subject) for f in failures] == [("file_not_recorded", "extra.txt")]
 
 
 def test_detects_an_edited_manifest_entry(tmp_path):
@@ -75,7 +80,7 @@ def test_detects_an_edited_manifest_entry(tmp_path):
     record = json.loads(path.read_text())
     record["files"][0]["sha256"] = "0" * 64
     path.write_text(json.dumps(record))
-    assert "bundle hash does not match the recorded file list" in bundle.verify(root)
+    assert "bundle_hash_mismatch" in {failure.code for failure in bundle.verify(root)}
 
 
 def test_fails_closed_without_a_manifest(tmp_path):

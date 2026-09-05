@@ -109,13 +109,13 @@ def test_a_response_for_an_indicator_the_card_computes_is_refused():
         responses(indicator="headline"),
     )
 
-    assert any("computes from the bundle" in problem for problem in problems)
+    assert any("computes from the bundle" in problem.message for problem in problems)
 
 
 def test_a_response_naming_an_indicator_the_card_never_declared_is_refused():
     problems = check(card(), bundle(), "black_box", responses(indicator="invented"))
 
-    assert any("does not declare" in problem for problem in problems)
+    assert any("does not declare" in problem.message for problem in problems)
 
 
 def test_an_audit_answering_a_different_indicator_leaves_this_one_unassessed():

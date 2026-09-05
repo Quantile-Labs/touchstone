@@ -16,16 +16,18 @@ worse one. It is `indeterminate`, reported with the two levels it lies between.
 
 import json
 import shutil
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
 import yaml
 from pydantic import ValidationError
 
-from touchstone import __version__, expressions
+from touchstone import __version__, expressions, positions
 from touchstone import estimate as estimate_items
 from touchstone.bundle import sha256_file
 from touchstone.contracts.audit import AUDIT_NAME, AuditResponse, AuditResponses
+from touchstone.contracts.diagnostics import Problem
 from touchstone.contracts.estimates import Estimate, Estimates
 from touchstone.contracts.scorecard import (
     INTERVAL_CONDITIONS,
@@ -642,13 +644,36 @@ def _missing(indicator_id: str, ref: MetricRef, kind: str) -> str:
     )
 
 
+def indicator_at(
+    score_card: ScoreCard, source: str | None, indicator_id: str, *rest: Sequence[positions.Step]
+) -> tuple[int, int] | None:
+    """Where an indicator was written in the score card, or None.
+
+    `rest` are finer targets tried in order before falling back to the indicator's own
+    `id` and then to the whole block, so a problem about one rule points at that rule and
+    a problem about the indicator still lands somewhere useful when the card is shaped
+    differently from what the caller guessed.
+    """
+    index = next(
+        (at for at, indicator in enumerate(score_card.indicators) if indicator.id == indicator_id),
+        None,
+    )
+    if index is None:
+        return None
+    candidates: list[Sequence[positions.Step]] = [("indicators", index, *step) for step in rest]
+    candidates.append(("indicators", index, "id"))
+    candidates.append(("indicators", index))
+    return positions.first(source, *candidates)
+
+
 def check(
     score_card: ScoreCard,
     estimates: Estimates,
     access_tier: str = "",
     audit: AuditResponses | None = None,
     prior: Prior | None = None,
-) -> list[str]:
+    score_card_path: Path | None = None,
+) -> list[Problem]:
     """Cross-check a score card against a bundle. Returns every problem, not the first.
 
     Run before anything is graded, so a score card with four broken references reports
@@ -657,8 +682,27 @@ def check(
     An indicator the score card marks unassessable at `access_tier` is skipped, because the
     metric it names is one this tier had no way to produce and its absence is the score
     card being right rather than wrong.
+
+    `score_card_path` is what lets a problem name the line the indicator was written on.
+    Without it the problems are the same problems, carrying no position.
     """
-    problems = []
+    source = positions.load_source(score_card_path) if score_card_path is not None else None
+    where = str(score_card_path) if score_card_path is not None else None
+    problems: list[Problem] = []
+
+    def report(code: str, subject: str, message: str, *rest: Sequence[positions.Step]) -> None:
+        found = indicator_at(score_card, source, subject, *rest)
+        problems.append(
+            Problem(
+                code=code,
+                message=message,
+                path=where,
+                line=found[0] if found else None,
+                column=found[1] if found else None,
+                subject=subject,
+            )
+        )
+
     if audit is not None:
         declared = {indicator.id for indicator in score_card.indicators}
         audited = {
@@ -668,14 +712,18 @@ def check(
         }
         for answered in sorted(audit.responses):
             if answered not in declared:
-                problems.append(
+                report(
+                    "audit_indicator_undeclared",
+                    answered,
                     f"{audit.audit_name} answers {answered!r}, which this score card does "
-                    "not declare. It is a typo or an audit of a different card"
+                    "not declare. It is a typo or an audit of a different card",
                 )
             elif answered not in audited:
-                problems.append(
+                report(
+                    "audit_indicator_computed",
+                    answered,
                     f"{audit.audit_name} answers {answered!r}, which this score card "
-                    "computes from the bundle. An assessor cannot overrule a measurement"
+                    "computes from the bundle. An assessor cannot overrule a measurement",
                 )
 
     for indicator in score_card.indicators:
@@ -686,24 +734,39 @@ def check(
             continue
         has_interval = isinstance(metric, MetricRef) and metric.source in INTERVAL_SOURCES
 
-        for rule in indicator.assessment:
+        for position, rule in enumerate(indicator.assessment):
             if rule.condition in INTERVAL_CONDITIONS and not has_interval:
                 carries = (
                     "an expression, which carries no interval by design"
                     if isinstance(metric, Expression)
                     else f"source {metric.source!r}, which carries no interval"
                 )
-                problems.append(
-                    f"{indicator.id}: rule {rule.level} uses {rule.condition} against {carries}"
+                report(
+                    "interval_condition_without_interval",
+                    indicator.id,
+                    f"{indicator.id}: rule {rule.level} uses {rule.condition} against {carries}",
+                    ("assessment", position, "condition"),
+                    ("assessment", position),
                 )
 
         if isinstance(metric, Expression):
             used = expressions.names(metric.expression)
             declared = set(metric.values)
             for name in sorted(used - declared):
-                problems.append(f"{indicator.id}: {name!r} is in the expression and not in values")
+                report(
+                    "expression_name_undeclared",
+                    indicator.id,
+                    f"{indicator.id}: {name!r} is in the expression and not in values",
+                    ("metric", "expression"),
+                )
             for name in sorted(declared - used):
-                problems.append(f"{indicator.id}: {name!r} is in values and not in the expression")
+                report(
+                    "expression_value_unused",
+                    indicator.id,
+                    f"{indicator.id}: {name!r} is in values and not in the expression",
+                    ("metric", "values", name),
+                    ("metric", "values"),
+                )
 
         for ref in _refs(metric):
             if ref.bundle == "prior" and prior is None:
@@ -715,7 +778,7 @@ def check(
                     ref, _where(ref, estimates, frozenset(), prior)[0], frozenset(), indicator.id
                 )
             except ScoreCardError as exc:
-                problems.append(str(exc))
+                report("metric_not_found", indicator.id, str(exc), ("metric",))
     return problems
 
 

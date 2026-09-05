@@ -30,3 +30,22 @@ class EstimateError(TouchstoneError):
 class ScoreCardError(TouchstoneError):
     """The score card is malformed, names something the bundle does not hold, or asks for
     a condition the evidence cannot answer."""
+
+
+CODES = {
+    "PlanError": "plan_error",
+    "BundleError": "bundle_error",
+    "AnchorError": "anchor_error",
+    "BackendError": "backend_error",
+    "EstimateError": "estimate_error",
+    "ScoreCardError": "score_card_error",
+}
+"""One stable identifier per error class, for the `--json` output. Keyed by name rather
+than by class so that adding an error without adding its code is a missing key here and
+not a silent fall through to something that reads as deliberate."""
+
+
+def code(exc: TouchstoneError) -> str:
+    """The identifier a caller branches on. `touchstone_error` for anything unmapped,
+    which is a signal that CODES is behind the exception hierarchy."""
+    return CODES.get(type(exc).__name__, "touchstone_error")
