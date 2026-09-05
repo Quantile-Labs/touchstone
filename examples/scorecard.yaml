@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://touchstone.quantilelabs.com/schemas/scorecard.schema.json
 # An example score card, and not a standard.
 #
 # The levels, the thresholds and the ceilings below are invented to show the shape of the

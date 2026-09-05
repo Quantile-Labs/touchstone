@@ -1,0 +1,110 @@
+{
+  "$defs": {
+    "PackRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[a-z0-9_]{1,32}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "image": {
+          "title": "Image",
+          "type": "string"
+        },
+        "params": {
+          "additionalProperties": true,
+          "title": "Params",
+          "type": "object"
+        },
+        "replicates": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Replicates",
+          "type": "integer"
+        },
+        "systems": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Systems",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "image"
+      ],
+      "title": "PackRef",
+      "type": "object"
+    },
+    "System": {
+      "additionalProperties": false,
+      "properties": {
+        "params": {
+          "additionalProperties": true,
+          "title": "Params",
+          "type": "object"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type"
+      ],
+      "title": "System",
+      "type": "object"
+    }
+  },
+  "$id": "https://touchstone.quantilelabs.com/schemas/plan.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "What to run, against which systems, and at which access tier. Read by `touchstone validate` and frozen by `touchstone freeze`.",
+  "properties": {
+    "access_tier": {
+      "description": "No claim in the report may exceed the tier declared here.",
+      "title": "Access Tier",
+      "type": "string"
+    },
+    "packs": {
+      "items": {
+        "$ref": "#/$defs/PackRef"
+      },
+      "title": "Packs",
+      "type": "array"
+    },
+    "plan_name": {
+      "title": "Plan Name",
+      "type": "string"
+    },
+    "seed": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Seed"
+    },
+    "systems": {
+      "additionalProperties": {
+        "$ref": "#/$defs/System"
+      },
+      "title": "Systems",
+      "type": "object"
+    }
+  },
+  "required": [
+    "plan_name",
+    "access_tier",
+    "systems",
+    "packs"
+  ],
+  "title": "Touchstone plan",
+  "type": "object"
+}

@@ -1,0 +1,67 @@
+{
+  "$defs": {
+    "AuditResponse": {
+      "additionalProperties": false,
+      "description": "One indicator, as a person assessed it.",
+      "properties": {
+        "evidence": {
+          "description": "What was examined. Required: an audit level with nothing behind it is an opinion,\nand this is the field a reviewer argues with.",
+          "minLength": 1,
+          "title": "Evidence",
+          "type": "string"
+        },
+        "level": {
+          "description": "A level from the score card's own ladder. One that is not on it is an error rather\nthan a rounding, because the assessor and the card would then disagree about the\nvocabulary and the grade would be meaningless.",
+          "minLength": 1,
+          "title": "Level",
+          "type": "string"
+        }
+      },
+      "required": [
+        "level",
+        "evidence"
+      ],
+      "title": "AuditResponse",
+      "type": "object"
+    }
+  },
+  "$id": "https://touchstone.quantilelabs.com/schemas/audit.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The levels a person assessed for the indicators no bundle can answer on its own, and the evidence behind each. Passed to `touchstone grade --audit`.",
+  "properties": {
+    "assessed_utc": {
+      "minLength": 1,
+      "title": "Assessed Utc",
+      "type": "string"
+    },
+    "assessor": {
+      "description": "Who assessed it. Named, because an audit outcome is a person's judgment and a\njudgment with no author cannot be questioned.",
+      "minLength": 1,
+      "title": "Assessor",
+      "type": "string"
+    },
+    "audit_name": {
+      "minLength": 1,
+      "title": "Audit Name",
+      "type": "string"
+    },
+    "responses": {
+      "additionalProperties": {
+        "$ref": "#/$defs/AuditResponse"
+      },
+      "description": "Indicator id to what was found. An id the score card does not declare is an error:\nit is either a typo or an audit of a different card, and both produce a bundle whose\ngrades came from somewhere nobody can identify.",
+      "minProperties": 1,
+      "title": "Responses",
+      "type": "object"
+    }
+  },
+  "required": [
+    "audit_name",
+    "assessor",
+    "assessed_utc",
+    "responses"
+  ],
+  "title": "Touchstone audit responses",
+  "type": "object"
+}

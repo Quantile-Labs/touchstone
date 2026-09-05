@@ -1,0 +1,311 @@
+{
+  "$defs": {
+    "AuditRef": {
+      "additionalProperties": false,
+      "description": "An indicator a person assesses, not one the engine computes.\n\nIt reads nothing from `estimates.json` and carries no ladder: the assessor supplies the\nlevel and the engine's job is to check it against the score card's own levels and cap\nit by the access tier, which is where `artefact_provenance` gets its limit. The\nresponse arrives in a separate file, keyed by indicator id, so the judgment and the\nrubric are written by different people at different times.",
+      "properties": {
+        "question": {
+          "description": "What the assessor was asked, in the card rather than in the responses, so two audits\nof the same index answered the same question.",
+          "minLength": 1,
+          "title": "Question",
+          "type": "string"
+        },
+        "source": {
+          "const": "audit",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "question"
+      ],
+      "title": "AuditRef",
+      "type": "object"
+    },
+    "Expression": {
+      "additionalProperties": false,
+      "description": "An arithmetic combination of several metrics, evaluated without `eval`.",
+      "properties": {
+        "expression": {
+          "minLength": 1,
+          "title": "Expression",
+          "type": "string"
+        },
+        "values": {
+          "additionalProperties": {
+            "$ref": "#/$defs/MetricRef"
+          },
+          "description": "Variable name in the expression to the metric it stands for.",
+          "minProperties": 1,
+          "title": "Values",
+          "type": "object"
+        }
+      },
+      "required": [
+        "expression",
+        "values"
+      ],
+      "title": "Expression",
+      "type": "object"
+    },
+    "Indicator": {
+      "additionalProperties": false,
+      "properties": {
+        "assessment": {
+          "description": "Ordered, best level first. The first rule that holds decides the grade.\n\nEmpty only for an audit indicator, where the ladder is the assessor's and a rule here\nwould be a threshold applied to a judgment that never produced a number.",
+          "items": {
+            "$ref": "#/$defs/Rule"
+          },
+          "title": "Assessment",
+          "type": "array"
+        },
+        "id": {
+          "pattern": "^[a-z0-9_]{1,32}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "metric": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MetricRef"
+            },
+            {
+              "$ref": "#/$defs/Expression"
+            },
+            {
+              "$ref": "#/$defs/AuditRef"
+            }
+          ],
+          "title": "Metric"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "tier_ceilings": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Overrides the score card's map for this indicator alone.\n\nA tier mapped to `null` is one where this indicator is **not assessable**: it returns\n`ungraded` naming the tier, and the metric it would have read is never looked for, so\na bundle that legitimately does not hold it is not an error.\n\nRequired because the ceiling is a property of the pair. A black box evaluation can\nmeasure headline accuracy completely and cannot measure calibration at all, and one\nceiling for a whole card either caps the first for no reason or lets the second be\nclaimed on evidence that does not exist.",
+          "title": "Tier Ceilings"
+        }
+      },
+      "required": [
+        "id",
+        "metric"
+      ],
+      "title": "Indicator",
+      "type": "object"
+    },
+    "MetricRef": {
+      "additionalProperties": false,
+      "description": "Which number in `estimates.json` an indicator is about.",
+      "properties": {
+        "bundle": {
+          "default": "this",
+          "description": "Which evaluation to read it from.\n\n`prior` reaches into the bundle before this one, which is how movement is graded: a\ndrift indicator is an expression over the same metric in both. Every other command\nhere is a pure function of one bundle and stays that way. This is the one reference\nthat is not, and it is explicit in the score card rather than implied by a flag, so a\nreader can see which numbers came from where.",
+          "enum": [
+            "this",
+            "prior"
+          ],
+          "title": "Bundle",
+          "type": "string"
+        },
+        "higher_is_better": {
+          "default": true,
+          "description": "`worst_stratum` only: which end of the ranking the weakest cell is at.",
+          "title": "Higher Is Better",
+          "type": "boolean"
+        },
+        "keys": {
+          "description": "`worst_stratum` only: search cells keyed by exactly these stratum keys.\n\nWithout it every cell carrying any stratum is a candidate, so two indicators that mean\nto ask about different dimensions ask the same question and return the same cell. An\nindex with a geographic indicator and a language indicator needs them to differ.\n\nA bundle whose rollup was crossed holds cells of more than one shape, and a coarse cell\ncontains the finer ones inside it, so ranking them together compares a group against\npart of itself. `grade` refuses that rather than picking a shape on the author's\nbehalf, which makes this field required in practice on any run given several keys.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Keys",
+          "type": "array"
+        },
+        "min_n": {
+          "default": 30,
+          "description": "`worst_stratum` only: the smallest cell allowed to be the worst one.",
+          "minimum": 1,
+          "title": "Min N",
+          "type": "integer"
+        },
+        "name": {
+          "description": "The metric key, as the pack reported it.",
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "pack_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "None selects the pooled figure. On a multi-pack run that is rarely what is meant,\nand `grade` says so rather than grading two packs as though they measured one thing.",
+          "title": "Pack Id"
+        },
+        "source": {
+          "default": "estimate",
+          "enum": [
+            "estimate",
+            "worst_stratum",
+            "calibration",
+            "replicate_variance"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "stratum": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Empty is the whole sample. Ignored by `worst_stratum`, which searches cells.",
+          "title": "Stratum",
+          "type": "object"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "MetricRef",
+      "type": "object"
+    },
+    "Rule": {
+      "additionalProperties": false,
+      "description": "One rung of the ladder: the level this awards, and what has to hold to award it.",
+      "properties": {
+        "condition": {
+          "enum": [
+            "greater_equal",
+            "greater_than",
+            "less_equal",
+            "less_than",
+            "equal_to",
+            "greater_equal_ci_lower",
+            "less_equal_ci_upper",
+            "threshold_crossed_by_interval"
+          ],
+          "title": "Condition",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "level": {
+          "minLength": 1,
+          "title": "Level",
+          "type": "string"
+        },
+        "threshold": {
+          "description": "Every condition here compares against a number, so this is required. A rule with no\nthreshold would be a rule that always holds, which is a typo, not a rubric.",
+          "title": "Threshold",
+          "type": "number"
+        }
+      },
+      "required": [
+        "level",
+        "condition",
+        "threshold"
+      ],
+      "title": "Rule",
+      "type": "object"
+    }
+  },
+  "$id": "https://touchstone.quantilelabs.com/schemas/scorecard.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The rubric as data: the ladder, its thresholds and the ceilings that stop a claim exceeding its evidence. Applied by `touchstone grade --score-card`.",
+  "properties": {
+    "indicators": {
+      "items": {
+        "$ref": "#/$defs/Indicator"
+      },
+      "minItems": 1,
+      "title": "Indicators",
+      "type": "array"
+    },
+    "levels": {
+      "description": "Ordered best first. Every level named by a rule or a ceiling has to appear here.",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 2,
+      "title": "Levels",
+      "type": "array"
+    },
+    "score_card_name": {
+      "minLength": 1,
+      "title": "Score Card Name",
+      "type": "string"
+    },
+    "summary_only_ceiling": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "The best level a metric from a pack that emitted no items may reach. None leaves it\nuncapped, which 02-DESIGN.md section 3.4 advises against.",
+      "title": "Summary Only Ceiling"
+    },
+    "tier_ceilings": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Access tier to the best level it may reach. The tier vocabulary is the score card's,\nnot this engine's, so a new tier is a YAML change. A tier absent from this map is\nuncapped, which has to be written down rather than assumed: an unrecognised tier is a\nhard error in `grade.py`.",
+      "title": "Tier Ceilings",
+      "type": "object"
+    }
+  },
+  "required": [
+    "score_card_name",
+    "levels",
+    "indicators"
+  ],
+  "title": "Touchstone score card",
+  "type": "object"
+}

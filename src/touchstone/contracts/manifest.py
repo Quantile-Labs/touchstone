@@ -35,7 +35,7 @@ class Network(BaseModel):
     egress: list[str] = Field(default_factory=list)
     """Hosts this pack may reach. Empty means no egress."""
 
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "use_attribute_docstrings": True}
 
 
 class Resources(BaseModel):
@@ -57,7 +57,7 @@ class Resources(BaseModel):
     """Processes. ASQI caps neither, so a pack that forks in a loop takes the host down
     while staying inside its memory limit."""
 
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "use_attribute_docstrings": True}
 
 
 class Manifest(BaseModel):
@@ -84,4 +84,4 @@ class Manifest(BaseModel):
     about the pack's schema, not a choice a reader makes. Binning a confidence against an
     unrelated boolean gives an ECE that reads as authoritative and means nothing."""
 
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "use_attribute_docstrings": True}

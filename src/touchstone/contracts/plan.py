@@ -32,4 +32,4 @@ class Plan(BaseModel):
     systems: dict[str, System]
     packs: list[PackRef]
 
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "use_attribute_docstrings": True}
