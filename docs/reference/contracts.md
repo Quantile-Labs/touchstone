@@ -42,6 +42,10 @@ quietly dropped.
 
 ::: touchstone.contracts.diagnostics
 
+## Conformance
+
+::: touchstone.contracts.report
+
 ## Audit responses
 
 ::: touchstone.contracts.audit

@@ -12,11 +12,12 @@ from touchstone import anchor as anchor_plan
 from touchstone import estimate as estimate_items
 from touchstone import freeze as freeze_plan
 from touchstone import grade as grade_run
+from touchstone import report as report_bundle
 from touchstone import run as run_plan
 from touchstone.backends.docker import DockerBackend
 from touchstone.contracts.diagnostics import Envelope, Problem
 from touchstone.contracts.scorecard import GradedIndicator
-from touchstone.errors import TouchstoneError
+from touchstone.errors import BundleError, TouchstoneError
 
 app = typer.Typer(add_completion=False, help="Evaluation runs that produce verifiable evidence.")
 
@@ -426,6 +427,73 @@ def grade(
             "Reporting the better one would be a claim this run cannot support",
             err=True,
         )
+
+
+@app.command()
+def report(
+    bundle_dir: Annotated[Path, typer.Argument(exists=True, file_okay=False)],
+    conformance: Annotated[
+        str,
+        typer.Option(
+            "--conformance",
+            "-c",
+            help="Which practice set to state conformance against",
+        ),
+    ] = report_bundle.PROFILE,
+    out: Annotated[
+        Path | None,
+        typer.Option(
+            "--out",
+            "-o",
+            help="Where to write the PDF. Defaults to <bundle>.pdf beside the bundle, "
+            "never inside it, because a file the manifest does not record fails verify",
+        ),
+    ] = None,
+    as_json: AsJson = False,
+) -> None:
+    """State what a bundle holds against each practice, as a PDF. Offline, no Docker."""
+    destination = out or bundle_dir.resolve().parent / f"{bundle_dir.resolve().name}.pdf"
+    try:
+        if conformance != report_bundle.PROFILE:
+            raise BundleError(
+                f"{conformance} is not a practice set this knows. The only one is "
+                f"{report_bundle.PROFILE}"
+            )
+        stated = report_bundle.write(bundle_dir, destination)
+    except TouchstoneError as exc:
+        if as_json:
+            _emit(_raised("report", exc, path=str(bundle_dir)))
+            raise typer.Exit(1) from exc
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+    if as_json:
+        _emit(
+            _envelope(
+                "report",
+                [
+                    Problem(
+                        code="practice_not_met",
+                        message=f"{finding.code}: {finding.detail}",
+                        severity="warning",
+                        path=str(bundle_dir),
+                        subject=finding.practice or finding.code,
+                    )
+                    for finding in stated.findings
+                    if finding.status == "not met"
+                ],
+                path=str(destination),
+                profile=stated.profile,
+                met=stated.met,
+                not_met=stated.unmet,
+                verified=stated.verified,
+            )
+        )
+        return
+
+    typer.echo(f"{destination}: {len(stated.findings)} practice item(s), {stated.unmet} not met")
+    for line in report_bundle.lines(stated):
+        typer.echo(line)
 
 
 @app.command(name="bundle")
