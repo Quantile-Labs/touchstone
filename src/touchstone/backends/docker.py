@@ -21,11 +21,12 @@ from datetime import UTC, datetime
 from typing import Any
 
 import yaml
+from pydantic import ValidationError
 
 from touchstone.backends import egress
 from touchstone.backends.base import MANIFEST_PATH, ContainerBackend, RunResult, RunSpec
 from touchstone.contracts import Manifest
-from touchstone.errors import BackendError
+from touchstone.errors import BackendError, PlanError
 
 SIGKILL_EXIT = 137
 """128 plus SIGKILL. What docker reports for a killed container, what ASQI reports for a
@@ -288,7 +289,14 @@ class DockerBackend(ContainerBackend):
             )
             if done.returncode != 0:
                 return None
-            return Manifest.model_validate(_untar_one(done.stdout))
+            try:
+                return Manifest.model_validate(_untar_one(done.stdout))
+            except (yaml.YAMLError, ValidationError) as exc:
+                # None means the image declares nothing, and `freeze` says so. A manifest
+                # that is present and wrong is a different fact and gets its own sentence,
+                # in the same shape `plan_check` uses for one read off disk, because a
+                # pydantic traceback is not an answer to give somebody freezing a plan.
+                raise PlanError(f"{manifest_path} in {image}: {exc}") from exc
         finally:
             self._cli("rm", "--force", container)
 

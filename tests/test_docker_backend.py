@@ -16,10 +16,11 @@ import pytest
 from touchstone.backends import DockerBackend, RunSpec
 from touchstone.contracts import ItemRecord
 from touchstone.contracts.manifest import Resources
-from touchstone.errors import BackendError
+from touchstone.errors import BackendError, PlanError
 
 PACK = Path(__file__).resolve().parents[1] / "packs" / "example_pack"
 IMAGE = "touchstone-example-pack:test"
+MALFORMED = "touchstone-malformed-manifest:test"
 BASE = "python:3.12-slim"
 SYSTEMS = json.dumps({"system_under_test": {"type": "llm_api"}})
 
@@ -288,6 +289,41 @@ def test_reads_the_manifest_without_running_the_image(backend, image):
     manifest = backend.extract_manifest(image)
     assert manifest.name == "example_pack"
     assert {stratum.name for stratum in manifest.strata} == {"language", "difficulty"}
+
+
+@pytest.fixture(scope="module")
+def image_with_a_malformed_manifest(tmp_path_factory) -> str:
+    """An image declaring `egres` where it means `egress`, and nothing else wrong."""
+    context = tmp_path_factory.mktemp("malformed")
+    (context / "manifest.yaml").write_text(
+        'name: "typo_pack"\nversion: "1.0"\nnetwork:\n  egres: ["api.example.com"]\n'
+    )
+    (context / "Dockerfile").write_text(f"FROM {BASE}\nCOPY manifest.yaml /app/manifest.yaml\n")
+    subprocess.run(
+        ["docker", "build", "-q", "-t", MALFORMED, str(context)], check=True, capture_output=True
+    )
+    return MALFORMED
+
+
+def test_a_manifest_that_is_present_and_wrong_is_not_read_as_an_absent_one(
+    backend, image_with_a_malformed_manifest
+):
+    """`None` from here makes `freeze` say the image declares nothing, which for a pack
+    that declared a host and misspelled the key is the opposite of what happened. The
+    misspelling is the case with teeth: `egres` is a pack asking for the network and
+    getting none, and before the manifest forbade unknown keys it was accepted in silence.
+    """
+    with pytest.raises(PlanError, match="egres"):
+        backend.extract_manifest(image_with_a_malformed_manifest)
+
+
+def test_the_error_names_the_image_and_the_file_inside_it(backend, image_with_a_malformed_manifest):
+    """A pydantic traceback reaching the terminal is not an answer. Somebody freezing a
+    plan across several packs needs to know which image the bad file is in."""
+    with pytest.raises(PlanError) as raised:
+        backend.extract_manifest(image_with_a_malformed_manifest)
+    assert "/app/manifest.yaml" in str(raised.value)
+    assert MALFORMED in str(raised.value)
 
 
 def test_reports_which_images_are_present(backend, image):
