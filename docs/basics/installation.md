@@ -17,7 +17,7 @@ The command it installs, the package you import, and the name of the project are
 
 ```console
 $ touchstone version
-touchstone 0.3.0
+touchstone 0.4.0
 ```
 
 ## What needs Docker

@@ -160,7 +160,7 @@ metric: {source: replicate_variance, name: correct, pack_id: example_pack}
 
 ```json
 {
-  "touchstone_version": "0.3.0",
+  "touchstone_version": "0.4.0",
   "score_card_name": "example",
   "access_tier": "black_box",
   "levels": ["A", "B", "C", "unfit"],
