@@ -7,18 +7,68 @@ from typing import Annotated
 
 import typer
 
-from touchstone import __version__, bundle, plan_check
+from touchstone import __version__, bundle, errors, plan_check, positions
 from touchstone import anchor as anchor_plan
 from touchstone import estimate as estimate_items
 from touchstone import freeze as freeze_plan
 from touchstone import grade as grade_run
 from touchstone import run as run_plan
 from touchstone.backends.docker import DockerBackend
+from touchstone.contracts.diagnostics import Envelope, Problem
+from touchstone.contracts.scorecard import GradedIndicator
 from touchstone.errors import TouchstoneError
 
 app = typer.Typer(add_completion=False, help="Evaluation runs that produce verifiable evidence.")
 
 NOT_YET = "not implemented yet, see the pipeline table in README.md"
+
+AsJson = Annotated[
+    bool,
+    typer.Option(
+        "--json",
+        help="Write one machine-readable envelope to stdout instead of prose. The shape "
+        "is Envelope in contracts/diagnostics.py, and the exit code is unchanged",
+    ),
+]
+"""Off everywhere. A person at a terminal is the default reader and stays the default
+reader; this is for whatever is reading over their shoulder."""
+
+
+def _envelope(command: str, problems: list[Problem], **result: object) -> Envelope:
+    return Envelope(
+        touchstone_version=__version__,
+        command=command,
+        ok=not any(problem.severity == "error" for problem in problems),
+        problems=problems,
+        result=result,
+    )
+
+
+def _emit(envelope: Envelope) -> None:
+    """Envelope to stdout, whole and on its own, so a caller can pipe the command into a
+    parser without filtering the prose the commands otherwise write to both streams."""
+    typer.echo(envelope.model_dump_json(indent=2))
+
+
+def _straddled(indicator: GradedIndicator, card: Path, at: tuple[int, int] | None) -> Problem:
+    """An indeterminate verdict, as a warning. The command succeeded and the grade is
+    real, so a caller that treats this as a failure fails a run that measured what it set
+    out to measure and said honestly that the interval spans a boundary."""
+    return Problem(
+        code="indeterminate",
+        message=indicator.reason or f"{indicator.id}: indeterminate",
+        severity="warning",
+        subject=indicator.id,
+        path=str(card),
+        line=at[0] if at else None,
+        column=at[1] if at else None,
+    )
+
+
+def _raised(command: str, exc: TouchstoneError, **result: object) -> Envelope:
+    """An envelope for the one error that stopped the command. It carries no position,
+    because an exception knows what went wrong and not where it was written."""
+    return _envelope(command, [Problem(code=errors.code(exc), message=str(exc))], **result)
 
 
 @app.command()
@@ -34,6 +84,7 @@ def validate(
         Path,
         typer.Option("--manifests", "-m", help="Directory holding <pack_id>/manifest.yaml"),
     ] = Path("packs"),
+    as_json: AsJson = False,
 ) -> None:
     """Check a plan against the manifests of the packs it names."""
     try:
@@ -44,8 +95,17 @@ def validate(
         }
         problems = plan_check.check(plan, found, plan_path)
     except TouchstoneError as exc:
+        if as_json:
+            _emit(_raised("validate", exc, path=str(plan_path)))
+            raise typer.Exit(1) from exc
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
+
+    if as_json:
+        _emit(_envelope("validate", problems, path=str(plan_path), packs=len(plan.packs)))
+        if problems:
+            raise typer.Exit(1)
+        return
 
     if problems:
         typer.echo(f"{plan_path}: {len(problems)} problem(s)", err=True)
@@ -59,13 +119,24 @@ def validate(
 @app.command()
 def verify(
     bundle_dir: Annotated[Path, typer.Argument(exists=True, file_okay=False)],
+    as_json: AsJson = False,
 ) -> None:
     """Re-check every file in a bundle against its recorded hash. Offline."""
     try:
+        manifest = bundle.load_manifest(bundle_dir)
         failures = bundle.verify(bundle_dir)
     except TouchstoneError as exc:
+        if as_json:
+            _emit(_raised("verify", exc, path=str(bundle_dir)))
+            raise typer.Exit(1) from exc
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
+
+    if as_json:
+        _emit(_envelope("verify", failures, path=str(bundle_dir), files=len(manifest.files)))
+        if failures:
+            raise typer.Exit(1)
+        return
 
     if failures:
         typer.echo(f"{bundle_dir}: {len(failures)} failure(s)", err=True)
@@ -174,6 +245,7 @@ def estimate(
     resamples: Annotated[
         int, typer.Option("--resamples", help="Bootstrap resamples for continuous scores")
     ] = estimate_items.RESAMPLES,
+    as_json: AsJson = False,
 ) -> None:
     """Compute rates and intervals, by stratum. Offline, no Docker."""
     try:
@@ -184,20 +256,42 @@ def estimate(
         )
         path = estimate_items.write_estimates(estimates, run_dir)
     except TouchstoneError as exc:
+        if as_json:
+            _emit(_raised("estimate", exc, path=str(run_dir)))
+            raise typer.Exit(1) from exc
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
+
+    pooled = (
+        f"{len(estimates.packs)} packs contributed: {', '.join(estimates.packs)}. Lines "
+        "without a pack pool them, and packs reporting the same outcome are not "
+        "measuring the same thing. Quote the per-pack lines"
+    )
+
+    if as_json:
+        warnings = (
+            [Problem(code="packs_pooled", message=pooled, severity="warning", path=str(path))]
+            if estimates.pooled
+            else []
+        )
+        _emit(
+            _envelope(
+                "estimate",
+                warnings,
+                path=str(path),
+                estimates=len(estimates.estimates),
+                items=estimates.items,
+                packs=list(estimates.packs),
+            )
+        )
+        return
 
     typer.echo(f"{path}: {len(estimates.estimates)} estimate(s) from {estimates.items} item(s)")
     for line in estimate_items.lines(estimates):
         typer.echo(line)
 
     if estimates.pooled:
-        typer.echo(
-            f"{len(estimates.packs)} packs contributed: {', '.join(estimates.packs)}. Lines "
-            "without a pack pool them, and packs reporting the same outcome are not "
-            "measuring the same thing. Quote the per-pack lines",
-            err=True,
-        )
+        typer.echo(pooled, err=True)
 
 
 @app.command()
@@ -237,15 +331,20 @@ def grade(
             "first evaluation of a system honestly is",
         ),
     ] = None,
+    as_json: AsJson = False,
 ) -> None:
     """Apply a score card and produce DQI indicators. Offline, no Docker."""
     try:
         if prior is not None and prior.resolve() == run_dir.resolve():
-            typer.echo(
+            circular = (
                 f"{prior} is the bundle being graded. Movement measured against itself is "
-                "zero by construction, which would read as a system that has not drifted",
-                err=True,
+                "zero by construction, which would read as a system that has not drifted"
             )
+            if as_json:
+                problem = Problem(code="prior_is_this_bundle", message=circular, path=str(prior))
+                _emit(_envelope("grade", [problem], path=str(run_dir)))
+                raise typer.Exit(1)
+            typer.echo(circular, err=True)
             raise typer.Exit(1)
 
         card = grade_run.load_scorecard(score_card)
@@ -256,6 +355,9 @@ def grade(
 
         problems = grade_run.check(card, estimates, tier, responses, before, score_card)
         if problems:
+            if as_json:
+                _emit(_envelope("grade", problems, path=str(run_dir)))
+                raise typer.Exit(1)
             for problem in problems:
                 typer.echo(problem.message, err=True)
             raise typer.Exit(1)
@@ -276,10 +378,34 @@ def grade(
         )
         path = grade_run.write_scorecard(scorecard, run_dir)
     except TouchstoneError as exc:
+        if as_json:
+            _emit(_raised("grade", exc, path=str(run_dir)))
+            raise typer.Exit(1) from exc
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
 
     counted = Counter(indicator.verdict for indicator in scorecard.indicators)
+
+    if as_json:
+        source = positions.load_source(score_card)
+        _emit(
+            _envelope(
+                "grade",
+                [
+                    _straddled(
+                        indicator, score_card, grade_run.indicator_at(card, source, indicator.id)
+                    )
+                    for indicator in scorecard.indicators
+                    if indicator.verdict == "indeterminate"
+                ],
+                path=str(path),
+                indicators=len(scorecard.indicators),
+                access_tier=scorecard.access_tier,
+                verdicts=dict(counted),
+            )
+        )
+        return
+
     typer.echo(
         f"{path}: {len(scorecard.indicators)} indicator(s) at access tier {scorecard.access_tier}"
     )

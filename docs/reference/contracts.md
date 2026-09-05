@@ -38,6 +38,10 @@ quietly dropped.
 
 ::: touchstone.contracts.scorecard
 
+## Command output
+
+::: touchstone.contracts.diagnostics
+
 ## Audit responses
 
 ::: touchstone.contracts.audit

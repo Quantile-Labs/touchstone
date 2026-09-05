@@ -35,6 +35,7 @@ touchstone validate [OPTIONS] PLAN_PATH
 |---|---|
 | `PLAN_PATH` | the plan file. Required. |
 | `--manifests`, `-m` | directory holding `<pack_id>/manifest.yaml`. Default `packs`. |
+| `--json` | write one machine-readable envelope to stdout instead of prose. See [Machine-readable output](#machine-readable-output). |
 
 Reads each pack's manifest and confirms the plan supplies the systems it requires, that
 parameters are the declared types, and that any stratum named exists. Nothing runs.
@@ -116,6 +117,7 @@ touchstone estimate [OPTIONS] RUN_DIR
 | `--calibrate`, `-c` | override the outcome each pack declared its confidence is about. Repeat for more. |
 | `--seed` | seed for the bootstrap, so its interval reproduces. Default `0`. |
 | `--resamples` | bootstrap resamples for continuous scores. Default `2000`. |
+| `--json` | write one machine-readable envelope to stdout instead of prose. See [Machine-readable output](#machine-readable-output). |
 
 Without `--calibrate` the frozen plan decides, and a pack that declared nothing is not
 calibrated at all. See [Calibration](../estimation/calibration.md) and [Strata and
@@ -137,6 +139,7 @@ touchstone grade [OPTIONS] RUN_DIR --score-card FILE
 | `--score-card`, `-s` | the card to apply: the ladder, its thresholds and its ceilings. **Required.** |
 | `--audit`, `-a` | responses for indicators a person assesses rather than the bundle reports. |
 | `--prior`, `-p` | the bundle from the evaluation before this one, for indicators that grade movement. |
+| `--json` | write one machine-readable envelope to stdout instead of prose. See [Machine-readable output](#machine-readable-output). |
 
 `--audit` responses are copied into the run, so the grade stays recomputable from it.
 Without it those indicators are `ungraded`, which is a true statement. Without `--prior`,
@@ -186,9 +189,59 @@ touchstone verify [OPTIONS] BUNDLE_DIR
 | | |
 |---|---|
 | `BUNDLE_DIR` | the bundle. Required. |
+| `--json` | write one machine-readable envelope to stdout instead of prose. See [Machine-readable output](#machine-readable-output). |
 
 Exits non-zero on the first mismatch. See [Verifying a
 bundle](../bundles/verifying.md).
+
+---
+
+## Machine-readable output
+
+`validate`, `verify`, `estimate` and `grade` take `--json`. The command writes one envelope
+to stdout, writes nothing else to either stream, and exits with the code it always would.
+The prose output is the default and is unchanged.
+
+```console
+$ touchstone validate plan.yaml --json
+{
+  "touchstone_version": "0.3.0",
+  "envelope": 1,
+  "command": "validate",
+  "ok": false,
+  "problems": [
+    {
+      "code": "parameter_unknown",
+      "message": "example_pack: pack does not accept parameter 'nope'",
+      "severity": "error",
+      "path": "plan.yaml",
+      "line": 25,
+      "column": 7,
+      "subject": "example_pack"
+    }
+  ],
+  "result": {"path": "plan.yaml", "packs": 1}
+}
+```
+
+Branch on `code`. It is stable, and `message` is the sentence the human output prints,
+which gets rewritten whenever it reads badly. `line` and `column` are 1-indexed and are
+absent rather than zero where a check cannot say where it is looking, which is every
+failure `verify` reports: a hash is a fact about a whole file.
+
+`severity` is `error` or `warning`. A warning is a finding the command succeeded past, so
+an indeterminate grade arrives as one and `ok` stays true. Treating the two the same fails
+runs that measured exactly what they set out to measure.
+
+`result` is what the command produced. For `estimate` and `grade` that is where the numbers
+were written rather than the numbers themselves, because `estimates.json` and
+`scorecard.json` are contracts of their own and a second copy here would be a second shape
+to keep in step.
+
+The schema is [`envelope.schema.json`](../schemas/envelope.schema.json), and the model
+behind it is `contracts/diagnostics.py`. `envelope` is the version of the shape: it goes up
+when a field is removed or changes meaning, and not when one is added, so a reader that
+ignores what it does not recognise keeps working.
 
 ---
 
