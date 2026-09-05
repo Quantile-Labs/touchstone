@@ -196,9 +196,41 @@ bundle](../bundles/verifying.md).
 
 ---
 
+## `report`
+
+State what a bundle holds against each practice item, as a PDF.
+
+```console
+$ touchstone report ./run-004
+./run-004.pdf: 10 practice item(s), 3 not met
+              met    3.1.3  Every reported figure carries an interval and names the method
+          not met    3.2.3  The cost of producing the result is recorded
+```
+
+```text
+touchstone report [OPTIONS] BUNDLE_DIR
+```
+
+| | |
+|---|---|
+| `BUNDLE_DIR` | the bundle. Required. |
+| `--conformance`, `-c` | the practice set to state conformance against. Default `nist-ai-800-2`. |
+| `--out`, `-o` | where to write the PDF. Defaults to `<bundle>.pdf` beside the bundle. |
+| `--json` | write one machine-readable envelope to stdout instead of prose. See [Machine-readable output](#machine-readable-output). |
+
+Every figure in the document is read from `estimates.json` and `scorecard.json` and none is
+recomputed, so the statement and the bundle cannot disagree. The file has no creation date
+and no document identifier, so the same bundle produces the same bytes and the statement
+can be hashed.
+
+Writing inside the bundle is refused. A file the manifest does not record makes `verify`
+report the bundle as tampered with. See [Reporting](../bundles/reporting.md).
+
+---
+
 ## Machine-readable output
 
-`validate`, `verify`, `estimate` and `grade` take `--json`. The command writes one envelope
+`validate`, `verify`, `estimate`, `grade` and `report` take `--json`. The command writes one envelope
 to stdout, writes nothing else to either stream, and exits with the code it always would.
 The prose output is the default and is unchanged.
 

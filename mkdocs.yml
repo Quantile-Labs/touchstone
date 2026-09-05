@@ -133,6 +133,7 @@ nav:
   - Bundles:
       - Anatomy: bundles/anatomy.md
       - Verifying: bundles/verifying.md
+      - Reporting: bundles/reporting.md
       - Anchoring: bundles/anchoring.md
       - Re-analysis: bundles/reanalysis.md
   - Extending:
