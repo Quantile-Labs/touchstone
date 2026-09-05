@@ -12,6 +12,8 @@ class SystemInput(BaseModel):
     required: bool = True
     description: str | None = None
 
+    model_config = {"extra": "forbid"}
+
 
 class Parameter(BaseModel):
     name: str
@@ -19,15 +21,21 @@ class Parameter(BaseModel):
     required: bool = False
     description: str | None = None
 
+    model_config = {"extra": "forbid"}
+
 
 class Stratum(BaseModel):
     name: str
     values: list[str] | None = None
 
+    model_config = {"extra": "forbid"}
+
 
 class Network(BaseModel):
     egress: list[str] = Field(default_factory=list)
     """Hosts this pack may reach. Empty means no egress."""
+
+    model_config = {"extra": "forbid"}
 
 
 class Resources(BaseModel):
