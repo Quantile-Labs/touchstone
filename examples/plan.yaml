@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://touchstone.quantilelabs.com/schemas/plan.schema.json
 # The plan the README walks through. Build the image it names first:
 #
 #     docker build -t example_pack:1.0 packs/example_pack

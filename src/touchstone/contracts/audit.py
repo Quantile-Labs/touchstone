@@ -33,7 +33,7 @@ class AuditResponse(BaseModel):
     """What was examined. Required: an audit level with nothing behind it is an opinion,
     and this is the field a reviewer argues with."""
 
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "use_attribute_docstrings": True}
 
 
 class AuditResponses(BaseModel):
@@ -51,4 +51,4 @@ class AuditResponses(BaseModel):
     it is either a typo or an audit of a different card, and both produce a bundle whose
     grades came from somewhere nobody can identify."""
 
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "use_attribute_docstrings": True}

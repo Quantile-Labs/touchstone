@@ -140,6 +140,7 @@ nav:
       - Backend protocol: extending/backends.md
   - Reference:
       - Contracts: reference/contracts.md
+      - Editor schemas: reference/schemas.md
   - Project:
       - What this does not prove: project/limits.md
       - Status: project/status.md

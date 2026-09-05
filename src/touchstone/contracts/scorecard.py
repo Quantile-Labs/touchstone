@@ -84,7 +84,7 @@ class MetricRef(BaseModel):
     higher_is_better: bool = True
     """`worst_stratum` only: which end of the ranking the weakest cell is at."""
 
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "use_attribute_docstrings": True}
 
 
 class Expression(BaseModel):
@@ -94,7 +94,7 @@ class Expression(BaseModel):
     values: dict[str, MetricRef] = Field(min_length=1)
     """Variable name in the expression to the metric it stands for."""
 
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "use_attribute_docstrings": True}
 
 
 class AuditRef(BaseModel):
@@ -112,7 +112,7 @@ class AuditRef(BaseModel):
     """What the assessor was asked, in the card rather than in the responses, so two audits
     of the same index answered the same question."""
 
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "use_attribute_docstrings": True}
 
 
 class Rule(BaseModel):
@@ -126,7 +126,7 @@ class Rule(BaseModel):
 
     description: str | None = None
 
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "use_attribute_docstrings": True}
 
 
 class Indicator(BaseModel):
@@ -162,7 +162,7 @@ class Indicator(BaseModel):
             raise ValueError(f"{self.id}: assessment is empty and there is nothing to grade with")
         return self
 
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "use_attribute_docstrings": True}
 
 
 class ScoreCard(BaseModel):
@@ -213,7 +213,7 @@ class ScoreCard(BaseModel):
         """Position in the ladder. Lower is better, because `levels` is best first."""
         return self.levels.index(level)
 
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "use_attribute_docstrings": True}
 
 
 Verdict = Literal["graded", "indeterminate", "ungraded"]
@@ -241,7 +241,7 @@ class Measured(BaseModel):
     summary_only: bool = False
     """True when the pack behind this number emitted no items. Its ceiling applies."""
 
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "use_attribute_docstrings": True}
 
 
 class GradedIndicator(BaseModel):
@@ -293,7 +293,7 @@ class GradedIndicator(BaseModel):
     """The assessor's answer, where this indicator was audited rather than computed. Kept
     whole, so the level and the evidence behind it travel together into the report."""
 
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "use_attribute_docstrings": True}
 
 
 class Scorecard(BaseModel):
@@ -326,4 +326,4 @@ class Scorecard(BaseModel):
 
     indicators: list[GradedIndicator] = Field(default_factory=list)
 
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "use_attribute_docstrings": True}

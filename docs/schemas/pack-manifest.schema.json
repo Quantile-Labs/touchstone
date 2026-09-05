@@ -1,0 +1,244 @@
+{
+  "$defs": {
+    "Network": {
+      "additionalProperties": false,
+      "properties": {
+        "egress": {
+          "description": "Hosts this pack may reach. Empty means no egress.",
+          "items": {
+            "type": "string"
+          },
+          "title": "Egress",
+          "type": "array"
+        }
+      },
+      "title": "Network",
+      "type": "object"
+    },
+    "Parameter": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "required": {
+          "default": false,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "type": {
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "type"
+      ],
+      "title": "Parameter",
+      "type": "object"
+    },
+    "Resources": {
+      "additionalProperties": false,
+      "description": "The blast radius of one pack, declared by the pack.\n\nASQI caps memory at 2g and CPU at two cores, and does it as a global default a pack\ncannot express a need for: a pack that genuinely wants 8g has nowhere to say so, and\nthe operator raises the cap for every pack at once or not at all. Declaring it here\nmakes the ceiling per pack, reviewable in the frozen plan, and the defaults below match\nASQI's so a pack that says nothing behaves the same under both.",
+      "properties": {
+        "cpus": {
+          "default": 2.0,
+          "exclusiveMinimum": 0,
+          "title": "Cpus",
+          "type": "number"
+        },
+        "memory_mb": {
+          "default": 2048,
+          "description": "Swap is pinned to this same figure at run time. A memory cap that leaves swap open\nis a cap the container walks straight through.",
+          "minimum": 64,
+          "title": "Memory Mb",
+          "type": "integer"
+        },
+        "pids": {
+          "default": 512,
+          "description": "Processes. ASQI caps neither, so a pack that forks in a loop takes the host down\nwhile staying inside its memory limit.",
+          "minimum": 16,
+          "title": "Pids",
+          "type": "integer"
+        }
+      },
+      "title": "Resources",
+      "type": "object"
+    },
+    "Stratum": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "values": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Values"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "Stratum",
+      "type": "object"
+    },
+    "SystemInput": {
+      "additionalProperties": false,
+      "properties": {
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "required": {
+          "default": true,
+          "title": "Required",
+          "type": "boolean"
+        },
+        "type": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "title": "Type"
+        }
+      },
+      "required": [
+        "name",
+        "type"
+      ],
+      "title": "SystemInput",
+      "type": "object"
+    }
+  },
+  "$id": "https://touchstone.quantilelabs.com/schemas/pack-manifest.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "What a pack declares about itself: the systems and parameters it needs, the strata it emits, and the egress and resources it is allowed.",
+  "properties": {
+    "calibrates": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Which outcome the `confidence` on an item record is a claim about.\n\nAn item carries one confidence, so it is a claim about one outcome, and only the pack\nknows which. Declared here rather than passed at analysis time because it is a fact\nabout the pack's schema, not a choice a reader makes. Binning a confidence against an\nunrelated boolean gives an ECE that reads as authoritative and means nothing.",
+      "title": "Calibrates"
+    },
+    "description": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Description"
+    },
+    "emits_items": {
+      "default": true,
+      "description": "False means summary only. Such metrics carry no interval and are capped when graded.",
+      "title": "Emits Items",
+      "type": "boolean"
+    },
+    "input_schema": {
+      "items": {
+        "$ref": "#/$defs/Parameter"
+      },
+      "title": "Input Schema",
+      "type": "array"
+    },
+    "input_systems": {
+      "items": {
+        "$ref": "#/$defs/SystemInput"
+      },
+      "title": "Input Systems",
+      "type": "array"
+    },
+    "locale": {
+      "description": "Informational. The engine never branches on it.",
+      "items": {
+        "type": "string"
+      },
+      "title": "Locale",
+      "type": "array"
+    },
+    "name": {
+      "title": "Name",
+      "type": "string"
+    },
+    "network": {
+      "$ref": "#/$defs/Network"
+    },
+    "resources": {
+      "$ref": "#/$defs/Resources"
+    },
+    "strata": {
+      "items": {
+        "$ref": "#/$defs/Stratum"
+      },
+      "title": "Strata",
+      "type": "array"
+    },
+    "version": {
+      "title": "Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "version"
+  ],
+  "title": "Touchstone pack manifest",
+  "type": "object"
+}
