@@ -136,7 +136,7 @@ They are recorded in `plan.lock.json`, so a rerun matches rather than being asse
 
 ```yaml title="examples/scorecard.yaml"
 - id: run_to_run_stability
-  name: "How far the rate moved between replicates"
+  name: "Variation between repeated runs"
   metric:
     source: replicate_variance
     name: correct

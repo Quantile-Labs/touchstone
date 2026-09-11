@@ -12,8 +12,10 @@ says so, and names the two levels the evidence sits between.
 { .lede }
 
 ```console
-headline_accuracy: indeterminate, A or C  [0.91, 0.8783 to 0.9345, n=400]
-    the interval spans the A boundary of 0.9, so the grade is A or C and the evidence does not say which
+Correct answers over the whole sample (headline_accuracy)
+  Grade: A or C, inconclusive
+  Score: 0.91, likely range 0.8783 to 0.9345, 400 results
+  Reason: The likely range crosses the A threshold (0.9), so the grade is A or C
 ```
 
 ## What happened there
@@ -57,7 +59,7 @@ decide, before someone builds a decision on it.
   "level": null,
   "between": ["A", "C"],
   "rule": {"level": "A", "condition": "greater_equal_ci_lower", "threshold": 0.9},
-  "reason": "the interval spans the A boundary of 0.9, so the grade is A or C",
+  "reason": "the likely range crosses the A threshold (0.9), so the grade is A or C",
   "value": 0.91,
   "measured": [{"value": 0.91, "low": 0.8783, "high": 0.9345, "n": 400}]
 }
@@ -76,8 +78,8 @@ If the straddled rung is the last one that could have held, `between` carries a 
 level:
 
 ```text
-the interval spans the unfit boundary of 0.3, and no lower rule holds,
-so the grade is unfit or no grade at all
+the likely range crosses the unfit threshold (0.3) and no lower rule applies,
+so the grade is unfit or none
 ```
 
 ## A ceiling can settle it
@@ -96,7 +98,7 @@ interval was never deciding anything that mattered.
   "ceiling": "C",
   "ceiling_reason": "access_tier",
   "between": [],
-  "reason": "access_tier caps this at C, which is at or below both ends of A to C, so the interval no longer decides the grade"
+  "reason": "the likely range allows A or C, and black box access is capped at C"
 }
 ```
 

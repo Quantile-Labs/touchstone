@@ -182,7 +182,8 @@
             "estimate",
             "worst_stratum",
             "calibration",
-            "replicate_variance"
+            "replicate_variance",
+            "paired_difference"
           ],
           "title": "Source",
           "type": "string"

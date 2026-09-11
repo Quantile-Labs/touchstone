@@ -63,7 +63,7 @@ def test_a_metric_that_was_never_computed_is_an_error_not_a_zero():
     )
     assert problems
     assert "never_reported" in problems[0].message
-    assert "not a zero" in problems[0].message
+    assert "no estimate named" in problems[0].message
 
 
 def test_a_pack_that_never_ran_is_an_error():
@@ -109,7 +109,7 @@ def test_an_interval_condition_against_an_expression_is_refused():
         ),
         bundle(rate("correct", 0.9, 0.85, 0.93)),
     )
-    assert any("no interval by design" in problem.message for problem in problems)
+    assert any("an expression, which has no interval" in problem.message for problem in problems)
 
 
 def test_an_expression_variable_with_no_value_is_refused():
@@ -155,7 +155,7 @@ def test_a_pooled_figure_on_a_multi_pack_run_has_to_name_its_pack():
             pooled=True,
         ),
     )
-    assert any("Name a pack" in problem.message for problem in problems)
+    assert any("Set pack_id" in problem.message for problem in problems)
 
 
 def test_a_clean_score_card_reports_no_problems():
@@ -219,10 +219,10 @@ def test_an_expression_prints_its_own_value_and_not_its_first_input():
     scored = scorecard.indicators[0]
 
     assert scored.value == pytest.approx(0.03)
-    printed = lines(scorecard)[0]
-    assert "0.03 = clean - operational" in printed
+    printed = "\n".join(lines(scorecard))
+    assert "Score: 0.03 (clean - operational)" in printed
     assert "0.93" not in printed, "the clean rate is an input, not the graded value"
-    assert "0.89 to 0.955" not in printed, "an expression carries no interval"
+    assert "likely range" not in printed, "an expression carries no interval"
 
 
 def test_a_plain_reference_still_prints_its_interval_and_denominator():
@@ -233,7 +233,11 @@ def test_a_plain_reference_still_prints_its_interval_and_denominator():
     )
 
     assert scorecard.indicators[0].value == pytest.approx(0.9)
-    assert lines(scorecard)[0].endswith("[0.9, 0.85 to 0.93, n=200]")
+    assert lines(scorecard) == [
+        "indicator",
+        "  Grade: A",
+        "  Score: 0.9, likely range 0.85 to 0.93, 200 results",
+    ]
 
 
 def test_summary_only_evidence_is_capped():
@@ -370,7 +374,7 @@ def nested_bundle():
 def test_a_worst_stratum_over_nested_cells_needs_the_dimension_named():
     """Ranking `language=pcm` against the crossed cells inside it compares a group with
     part of itself, and the lowest slice always wins."""
-    with pytest.raises(ScoreCardError, match="part of itself"):
+    with pytest.raises(ScoreCardError, match="Set `keys`"):
         grade(worst_over([]), nested_bundle(), "black_box")
 
 
@@ -413,7 +417,7 @@ def test_an_indicator_unassessable_at_this_tier_is_ungraded_not_an_error():
 
     assert scored.indicators[0].verdict == "ungraded"
     assert scored.indicators[0].level is None
-    assert "black_box" in (scored.indicators[0].reason or "")
+    assert "black box access" in (scored.indicators[0].reason or "")
 
 
 def test_check_skips_a_reference_that_tier_will_never_follow():

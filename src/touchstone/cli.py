@@ -315,9 +315,8 @@ def grade(
             "-a",
             exists=True,
             dir_okay=False,
-            help="Responses for the indicators a person assesses rather than the bundle "
-            "reports. Copied into the run, so the grade stays recomputable from it. "
-            "Without this those indicators are ungraded, which is a true statement",
+            help="Responses for the indicators a person assesses. Copied into the run so "
+            "the grade can be recomputed. Without it those indicators are ungraded",
         ),
     ] = None,
     prior: Annotated[
@@ -327,9 +326,8 @@ def grade(
             "-p",
             exists=True,
             file_okay=False,
-            help="The bundle from the evaluation before this one, for indicators that "
-            "grade movement. Without it those indicators are ungraded, which is what a "
-            "first evaluation of a system honestly is",
+            help="The bundle from the previous evaluation, for indicators that grade "
+            "movement. Without it those indicators are ungraded",
         ),
     ] = None,
     as_json: AsJson = False,
@@ -337,10 +335,7 @@ def grade(
     """Apply a score card and produce DQI indicators. Offline, no Docker."""
     try:
         if prior is not None and prior.resolve() == run_dir.resolve():
-            circular = (
-                f"{prior} is the bundle being graded. Movement measured against itself is "
-                "zero by construction, which would read as a system that has not drifted"
-            )
+            circular = f"{prior} is the bundle being graded. Pass a different bundle to --prior"
             if as_json:
                 problem = Problem(code="prior_is_this_bundle", message=circular, path=str(prior))
                 _emit(_envelope("grade", [problem], path=str(run_dir)))
@@ -376,6 +371,7 @@ def grade(
             responses,
             audit_sha256,
             before,
+            grade_run.run_items(run_dir) if before else None,
         )
         path = grade_run.write_scorecard(scorecard, run_dir)
     except TouchstoneError as exc:
@@ -407,24 +403,29 @@ def grade(
         )
         return
 
-    typer.echo(
-        f"{path}: {len(scorecard.indicators)} indicator(s) at access tier {scorecard.access_tier}"
-    )
+    typer.echo(f"Score card: {scorecard.score_card_name}")
+    typer.echo(f"Access: {scorecard.access_tier.replace('_', ' ')}")
     if scorecard.audit_name:
-        typer.echo(f"audit {scorecard.audit_name}, sha256 {scorecard.audit_sha256}")
+        typer.echo(f"Assessor responses: {scorecard.audit_name} (sha256 {scorecard.audit_sha256})")
     if scorecard.prior_plan_sha256 is not None:
-        typer.echo(
-            f"compared against {prior}, plan {scorecard.prior_plan_sha256[:8]} "
-            f"against this run's {(scorecard.plan_sha256 or 'unknown')[:8]}"
+        this_plan = (scorecard.plan_sha256 or "unknown")[:8]
+        earlier_plan = scorecard.prior_plan_sha256[:8]
+        plans = (
+            "same plan"
+            if this_plan == earlier_plan
+            else f"different plans, {this_plan} and {earlier_plan}"
         )
+        typer.echo(f"Compared with: {prior} ({plans})")
+    typer.echo(f"Saved to: {path}")
+    typer.echo("")
     for line in grade_run.lines(scorecard):
         typer.echo(line)
 
     if counted["indeterminate"]:
+        typer.echo("", err=True)
         typer.echo(
-            f"{counted['indeterminate']} indicator(s) indeterminate: the interval spans a "
-            "grade boundary, so the evidence does not choose between the levels shown. "
-            "Reporting the better one would be a claim this run cannot support",
+            f"{counted['indeterminate']} grade(s) inconclusive: the likely range crosses a grade "
+            "threshold. A larger test would narrow the range",
             err=True,
         )
 

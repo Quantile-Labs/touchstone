@@ -124,7 +124,7 @@ def test_an_audit_answering_a_different_indicator_leaves_this_one_unassessed():
     ).indicators[0]
 
     assert scored.verdict == "ungraded"
-    assert "nobody has assessed it" in scored.reason
+    assert "has no response for this indicator" in scored.reason
 
 
 def test_an_audit_indicator_may_not_carry_rules():
@@ -141,7 +141,7 @@ def test_an_audit_indicator_may_not_carry_rules():
             ],
         )
 
-    assert "assessor" in str(raised.value)
+    assert "takes no assessment rules" in str(raised.value)
 
 
 def test_a_computed_indicator_still_needs_rules():
@@ -152,13 +152,15 @@ def test_a_computed_indicator_still_needs_rules():
             indicators=[{"id": "headline", "metric": {"name": "correct"}}],
         )
 
-    assert "nothing to grade with" in str(raised.value)
+    assert "assessment is empty" in str(raised.value)
 
 
 def test_an_audited_indicator_prints_its_level_without_a_number():
     scorecard = grade(card(), bundle(), "black_box", audit=responses(level="B"))
 
-    assert lines(scorecard)[0] == "artefact_provenance: B"
+    printed = lines(scorecard)
+    assert printed[1] == "  Grade: B"
+    assert not any(line.startswith("  Score:") for line in printed)
 
 
 AUDIT_FILE = {

@@ -86,6 +86,10 @@ assessment:
 
 Asking for an interval condition on an expression raises.
 
+Movement of one metric since the prior bundle has its own source, which does carry an
+interval, because it can join the two runs item by item. See
+[`paired_difference`](prior.md#movement-with-an-interval).
+
 !!! warning "This means an expression indicator has the failure mode the rest of the tool avoids"
 
     A gap of 0.04 between two rates each measured on 60 items is not meaningfully different

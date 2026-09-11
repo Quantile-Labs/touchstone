@@ -36,11 +36,14 @@ INTERVAL_CONDITIONS = frozenset(
 """Conditions that read `low` or `high`. A source that carries no interval cannot satisfy
 one, and asking is a plan error rather than a false answer."""
 
-Source = Literal["estimate", "worst_stratum", "calibration", "replicate_variance"]
+Source = Literal[
+    "estimate", "worst_stratum", "calibration", "replicate_variance", "paired_difference"
+]
 
-INTERVAL_SOURCES = frozenset({"estimate", "worst_stratum"})
-"""The two that carry a Wilson or BCa interval. An ECE and a replicate spread are single
-numbers: neither has a sampling distribution this codebase is willing to assert."""
+INTERVAL_SOURCES = frozenset({"estimate", "worst_stratum", "paired_difference"})
+"""The three that carry an interval: a Wilson or BCa one, and for a paired difference an
+interval over the change itself. An ECE and a replicate spread are single numbers: neither
+has a sampling distribution this codebase is willing to assert."""
 
 
 class MetricRef(BaseModel):
@@ -83,6 +86,14 @@ class MetricRef(BaseModel):
 
     higher_is_better: bool = True
     """`worst_stratum` only: which end of the ranking the weakest cell is at."""
+
+    @model_validator(mode="after")
+    def _a_paired_difference_reads_both_bundles(self) -> "MetricRef":
+        if self.source == "paired_difference" and self.bundle == "prior":
+            raise ValueError(
+                f"{self.name}: paired_difference reads both bundles. Remove `bundle: prior`"
+            )
+        return self
 
     model_config = {"extra": "forbid", "use_attribute_docstrings": True}
 
@@ -155,11 +166,9 @@ class Indicator(BaseModel):
     def _assessment_matches_the_metric(self) -> "Indicator":
         audited = isinstance(self.metric, AuditRef)
         if audited and self.assessment:
-            raise ValueError(
-                f"{self.id}: an audit indicator is graded by its assessor, not by rules"
-            )
+            raise ValueError(f"{self.id}: an audit indicator takes no assessment rules")
         if not audited and not self.assessment:
-            raise ValueError(f"{self.id}: assessment is empty and there is nothing to grade with")
+            raise ValueError(f"{self.id}: assessment is empty. Add at least one rule")
         return self
 
     model_config = {"extra": "forbid", "use_attribute_docstrings": True}
@@ -222,6 +231,30 @@ is a finding. `ungraded` is no rule holding at all, or nothing to grade, which i
 different finding and is not the same as the worst level."""
 
 
+class Difference(BaseModel):
+    """How a movement between two bundles got its interval."""
+
+    comparison: Literal["paired", "unpaired"]
+    """`paired` where both bundles ran the same frozen plan and hold the same items, and the
+    interval is over the per-item differences. `unpaired` everywhere else, with the two
+    stored intervals combined as though independent."""
+
+    reason: str = Field(min_length=1)
+    """What was joined, or why nothing could be. A reader comparing two figures needs this
+    before the number, so `grade` prints it under an indicator that fell back."""
+
+    estimator: str = Field(min_length=1)
+    """`paired_clt`, `wilson_difference` or `limits_difference`."""
+
+    parameters: dict[str, float | int | str] = Field(default_factory=dict)
+    """The two figures the difference was taken between, and for a paired one the items
+    joined, the standard error and z."""
+
+    reference: str = Field(min_length=1)
+
+    model_config = {"extra": "forbid", "use_attribute_docstrings": True}
+
+
 class Measured(BaseModel):
     """The number an indicator was decided on, and where in the bundle it came from."""
 
@@ -240,6 +273,11 @@ class Measured(BaseModel):
 
     summary_only: bool = False
     """True when the pack behind this number emitted no items. Its ceiling applies."""
+
+    difference: Difference | None = None
+    """Set where the source was `paired_difference`, saying whether the two bundles were
+    paired and why. An unpaired interval read as a paired one is a narrower interval with
+    nothing behind it, so the choice travels with the number."""
 
     model_config = {"extra": "forbid", "use_attribute_docstrings": True}
 

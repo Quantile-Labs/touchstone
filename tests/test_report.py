@@ -21,6 +21,13 @@ from touchstone import report
 from touchstone import run as run_plan
 from touchstone.cli import app
 from touchstone.contracts.environment import Environment, PackCost, RunCost
+from touchstone.contracts.scorecard import (
+    Difference,
+    GradedIndicator,
+    Measured,
+    MetricRef,
+    Scorecard,
+)
 from touchstone.errors import BundleError
 
 runner = CliRunner()
@@ -141,6 +148,61 @@ def test_the_report_reads_the_cost_a_run_writes(frozen, tmp_path):
 
     assert finding.status == "met"
     assert "example_pack tokens 24" in finding.detail
+
+
+def with_movement(bundle_dir: Path, *comparisons: str) -> None:
+    measured = [
+        Measured(
+            ref=MetricRef(source="paired_difference", name="correct"),
+            value=0.05,
+            low=0.01,
+            high=0.09,
+            n=400,
+            difference=Difference(
+                comparison=comparison,
+                reason=f"{comparison} for this test",
+                estimator="test",
+                reference="test",
+            ),
+        )
+        for comparison in comparisons
+    ]
+    scorecard = Scorecard(
+        touchstone_version="test",
+        score_card_name="test",
+        access_tier="black_box",
+        levels=["A", "B"],
+        plan_sha256="a" * 64,
+        prior_plan_sha256="a" * 64,
+        indicators=[GradedIndicator(id="held", verdict="graded", level="A", measured=measured)],
+    )
+    (bundle_dir / "scorecard.json").write_text(scorecard.model_dump_json())
+
+
+def movement_finding(bundle_dir: Path):
+    return next(f for f in report.conformance(bundle_dir).findings if f.code == "paired_difference")
+
+
+def test_movement_estimated_as_a_paired_difference_meets_the_item(bundle):
+    with_movement(bundle, "paired")
+    finding = movement_finding(bundle)
+    assert finding.status == "met"
+    assert "paired for this test" in finding.detail
+
+
+def test_one_unpaired_movement_is_enough_to_fail_the_item(bundle):
+    with_movement(bundle, "paired", "unpaired")
+    finding = movement_finding(bundle)
+    assert finding.status == "not met"
+    assert "1 of 2 movement figures" in finding.detail
+    assert "unpaired for this test" in finding.detail
+
+
+def test_movement_graded_with_no_paired_source_does_not_meet_the_item(bundle):
+    with_movement(bundle)
+    finding = movement_finding(bundle)
+    assert finding.status == "not met"
+    assert "no indicator reads a paired_difference" in finding.detail
 
 
 def test_every_practice_item_appears_exactly_once(bundle):

@@ -107,7 +107,7 @@ what the pack said its confidence meant.
 
 ```yaml title="examples/scorecard.yaml"
 - id: calibration
-  name: "Expected calibration error of the system's own confidence"
+  name: "Gap between stated confidence and accuracy"
   metric:
     source: calibration
     name: correct

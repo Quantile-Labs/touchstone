@@ -20,7 +20,7 @@ def test_grade_writes_a_scorecard_and_reports_the_indeterminate_case(graded):
     result = runner.invoke(app, ["grade", str(run_dir), "--score-card", str(card)])
 
     assert result.exit_code == 0, result.output
-    assert "indeterminate" in result.output
+    assert "Grade: A or C, inconclusive" in result.output
 
     written = json.loads((run_dir / "scorecard.json").read_text())
     assert written["access_tier"] == "black_box"

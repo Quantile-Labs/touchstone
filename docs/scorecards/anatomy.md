@@ -102,7 +102,7 @@ metric:
 
 | Field | Default | Notes |
 |---|---|---|
-| `source` | `estimate` | One of `estimate`, `worst_stratum`, `calibration`, `replicate_variance`. |
+| `source` | `estimate` | One of `estimate`, `worst_stratum`, `calibration`, `replicate_variance`, `paired_difference`. |
 | `name` | none | Required. The metric key, as the pack reported it. |
 | `pack_id` | `null` | `null` selects the **pooled** figure. |
 | `stratum` | `{}` | Empty is the whole sample. Ignored by `worst_stratum`. |
@@ -123,6 +123,7 @@ metric:
 |---|---|
 | `estimate` | **yes**, Wilson or BCa |
 | `worst_stratum` | **yes**, Bonferroni-widened |
+| `paired_difference` | **yes**, over the change, paired where the two runs can be |
 | `calibration` | no |
 | `replicate_variance` | no |
 
@@ -130,7 +131,7 @@ An ECE and a replicate spread are single numbers; neither has a sampling distrib
 codebase is willing to assert. Asking for an interval condition on one is a **plan error**,
 raised, rather than a false answer. See [Conditions](conditions.md).
 
-## The four `metric.source` values
+## The five `metric.source` values
 
 ```yaml title="a rate over the whole sample"
 metric: {source: estimate, name: correct, pack_id: example_pack}
@@ -153,6 +154,12 @@ metric: {source: calibration, name: correct, pack_id: example_pack}
 ```yaml title="how far the rate moved between replicates"
 metric: {source: replicate_variance, name: correct, pack_id: example_pack}
 ```
+
+```yaml title="how far the rate moved since the prior bundle, with an interval"
+metric: {source: paired_difference, name: correct, pack_id: example_pack}
+```
+
+Needs `--prior`. See [Comparing to a prior bundle](prior.md#movement-with-an-interval).
 
 ## What comes out
 
