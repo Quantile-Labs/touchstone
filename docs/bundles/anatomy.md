@@ -16,7 +16,7 @@ run-004/
 ├── MANIFEST.json        every file below, with its SHA-256 and size
 ├── PLAN.sha256          the plan hash, checkable with shasum alone
 ├── plan.lock.json       image digests, seeds, declared egress, resource ceilings
-├── environment.json     what it ran on, and whether egress was enforced
+├── environment.json     what it ran on, what it cost, whether egress was enforced
 ├── items.jsonl          one row per test item, stamped with the pack that produced it
 ├── estimates.json       every rate with its interval, method, parameters, denominator
 ├── scorecard.json       the grade each indicator got, and what decided it
@@ -124,7 +124,7 @@ Bumped when the layout changes in a way an older `verify` cannot read. Currently
 |---|---|
 | `plan.lock.json` | what was run: image digests, seeds, declared egress, resource ceilings, access tier |
 | `PLAN.sha256` | the plan hash on its own, checkable with `shasum -c` |
-| `environment.json` | what it ran on, and whether egress was enforced |
+| `environment.json` | what it ran on, what it cost, whether egress was enforced |
 | `items.jsonl` | the observations. Everything else is derived from this |
 | `estimates.json` | the rates, with method, parameters and citation beside each |
 | `scorecard.json` | the grades, the rules that decided them, and the ceilings that bit |

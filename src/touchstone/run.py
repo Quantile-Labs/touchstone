@@ -12,6 +12,8 @@ import json
 import platform
 import shutil
 import sys
+import time
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -21,6 +23,7 @@ from touchstone import __version__
 from touchstone.backends.base import ContainerBackend, RunResult, RunSpec
 from touchstone.contracts import Environment
 from touchstone.contracts.bundle import LEDGER_DIR, RUN_FINISHED, RUNLOG_NAME
+from touchstone.contracts.environment import PackCost, RunCost
 from touchstone.contracts.lock import PlanLock
 from touchstone.contracts.manifest import Resources
 from touchstone.errors import TouchstoneError
@@ -120,6 +123,61 @@ def collect_items(out_dir: Path, owners: dict[str, str]) -> tuple[int, int]:
     return len(lines), overwritten
 
 
+def _since(began: float) -> float:
+    return round(time.monotonic() - began, 3)
+
+
+def _figures(cost: object) -> dict[str, float]:
+    """A row's `cost` as figures. Empty when it holds none or holds anything but numbers,
+    because a total over whichever values happened to parse is a number nobody reported."""
+    if not isinstance(cost, dict) or not cost:
+        return {}
+    if any(
+        isinstance(value, bool) or not isinstance(value, int | float) for value in cost.values()
+    ):
+        return {}
+    return {str(key): float(value) for key, value in cost.items()}
+
+
+def tally_cost(out_dir: Path, todo: list[Unit], wall: dict[str, float]) -> RunCost:
+    """Wall time per pack from the harness's clock, and each pack's row costs summed.
+
+    Read back from the merged items.jsonl, so the totals are the ones anybody holding the
+    bundle gets by adding up the rows. Rows are not validated until `estimate`, and a
+    malformed one must not cost a run whose packs have already finished, so a `cost` that
+    is not a map of figures counts as a row that reported none.
+    """
+    rows: Counter[str] = Counter()
+    costed: Counter[str] = Counter()
+    totals: defaultdict[str, defaultdict[str, float]] = defaultdict(lambda: defaultdict(float))
+    for line in (out_dir / ITEMS_NAME).read_text().splitlines():
+        if not line.strip():
+            continue
+        record: dict[str, Any] = json.loads(line)
+        pack_id = record["pack_id"]
+        rows[pack_id] += 1
+        figures = _figures(record.get("cost"))
+        if figures:
+            costed[pack_id] += 1
+        for key, value in figures.items():
+            totals[pack_id][key] += value
+
+    packs = []
+    for pack_id in dict.fromkeys(unit.pack_id for unit in todo):
+        run_ids = [unit.run_id for unit in todo if unit.pack_id == pack_id]
+        packs.append(
+            PackCost(
+                pack_id=pack_id,
+                units=len(run_ids),
+                wall_seconds=round(sum(wall[run_id] for run_id in run_ids), 3),
+                items=rows[pack_id],
+                items_costed=costed[pack_id],
+                totals={key: round(value, 6) for key, value in sorted(totals[pack_id].items())},
+            )
+        )
+    return RunCost(wall_seconds=round(sum(wall.values()), 3), packs=packs)
+
+
 def copy_plan(lock_dir: Path, out_dir: Path) -> None:
     """Put the frozen plan and its hash in the run, because the bundle has to hold them.
 
@@ -152,6 +210,7 @@ def write_environment(
     backend: ContainerBackend,
     plan_hash: str,
     results: list[RunResult],
+    cost: RunCost,
 ) -> None:
     environment = Environment(
         touchstone_version=__version__,
@@ -162,6 +221,7 @@ def write_environment(
         plan_hash=plan_hash,
         image_digests=sorted({result.image_digest for result in results}),
         egress_enforced=_overall_egress(results),
+        cost=cost,
     )
     (out_dir / ENVIRONMENT_NAME).write_text(
         json.dumps(environment.model_dump(), indent=2, sort_keys=True) + "\n"
@@ -193,6 +253,7 @@ def run(
 
     failures = []
     results: list[RunResult] = []
+    wall: dict[str, float] = {}
     for unit in todo:
         ledger.record("unit_started", run_id=unit.run_id, image=unit.image, seed=unit.seed)
         spec = RunSpec(
@@ -206,13 +267,18 @@ def run(
             resources=unit.resources,
             allow_unenforced_egress=allow_unenforced_egress,
         )
+        began = time.monotonic()
         try:
             result = backend.run(spec)
         except TouchstoneError as exc:
-            ledger.record("unit_failed", run_id=unit.run_id, error=str(exc))
+            wall[unit.run_id] = _since(began)
+            ledger.record(
+                "unit_failed", run_id=unit.run_id, error=str(exc), wall_seconds=wall[unit.run_id]
+            )
             failures.append(f"{unit.run_id}: {exc}")
             continue
 
+        wall[unit.run_id] = _since(began)
         results.append(result)
         ledger.record(
             "unit_finished",
@@ -221,6 +287,7 @@ def run(
             image_digest=result.image_digest,
             termination=result.termination,
             egress_enforced=result.egress_enforced,
+            wall_seconds=wall[unit.run_id],
         )
         if result.exit_code != 0:
             reason = result.termination or f"exit {result.exit_code}"
@@ -231,7 +298,7 @@ def run(
     if overwritten:
         ledger.record("pack_id_overwritten", records=overwritten)
     copy_plan(lock_dir, out_dir)
-    write_environment(out_dir, backend, plan_hash, results)
+    write_environment(out_dir, backend, plan_hash, results, tally_cost(out_dir, todo, wall))
     ledger.record(
         RUN_FINISHED,
         items=count,

@@ -42,7 +42,7 @@ handed it.
 | `outcome` | map of string→bool | Booleans, become rates with a denominator. |
 | `score` | map of string→float | Continuous measures, become means with intervals. |
 | `confidence` | float 0-1, optional | Enables calibration and the confident-and-wrong rate. |
-| `cost` | map of string→float | Tokens, latency. |
+| `cost` | map of string→float | What the item spent: tokens, latency, money. Summed per pack by `run`. |
 | `trace_ref` | string, optional | Path inside the bundle to the full prompt and response. |
 | `replicate` | integer ≥ 0 | Which repeat this is. Between-replicate variance needs it. |
 
@@ -96,6 +96,22 @@ An item carries one confidence, so it is a claim about one outcome, and only the
 which. A pack that declares nothing is never calibrated, because an ECE binned against an
 unrelated boolean is a meaningless number that reads as an authoritative one. See
 [Calibration](../estimation/calibration.md).
+
+### `cost`
+
+What producing this row spent, as named figures. The keys are the pack's, the same way
+stratum keys are:
+
+```json
+{"item_id": "q.017", "outcome": {"correct": true}, "cost": {"input_tokens": 412, "output_tokens": 96, "usd": 0.0021}}
+```
+
+`run` sums each key over one pack's rows into
+[`environment.json`](../running/run.md#cost), beside the wall time it measured itself. Only
+the pack can see what a call to the system under test cost, so a pack that leaves this out
+produces a bundle recording how long the run took and nothing about what it spent, and
+[`touchstone report`](../bundles/reporting.md) says so. A `cost` holding anything but
+numbers is counted as a row that reported none.
 
 ### `trace_ref`
 

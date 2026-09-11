@@ -19,6 +19,7 @@ from pathlib import Path
 
 from touchstone import __version__, document
 from touchstone import bundle as bundle_files
+from touchstone.contracts.environment import Environment
 from touchstone.contracts.estimates import Estimates
 from touchstone.contracts.lock import PlanLock
 from touchstone.contracts.report import Finding, Report
@@ -26,6 +27,7 @@ from touchstone.contracts.scorecard import Scorecard
 from touchstone.errors import BundleError
 from touchstone.estimate import ESTIMATES_NAME
 from touchstone.freeze import LOCK_NAME
+from touchstone.run import ENVIRONMENT_NAME
 
 PROFILE = "nist-ai-800-2"
 SOURCE = "NIST AI 800-2 ipd, Practices 3.1 to 3.3. doi:10.6028/NIST.AI.800-2.ipd"
@@ -58,6 +60,7 @@ class Contents:
     estimates: Estimates | None
     scorecard: Scorecard | None
     lock: PlanLock | None
+    environment: Environment | None
     manifest: dict[str, object] | None
 
 
@@ -65,10 +68,12 @@ def load(bundle_dir: Path) -> Contents:
     estimates_raw = _read(bundle_dir / ESTIMATES_NAME)
     scorecard_raw = _read(bundle_dir / SCORECARD_NAME)
     lock_raw = _read(bundle_dir / LOCK_NAME)
+    environment_raw = _read(bundle_dir / ENVIRONMENT_NAME)
     return Contents(
         estimates=Estimates.model_validate(estimates_raw) if estimates_raw else None,
         scorecard=Scorecard.model_validate(scorecard_raw) if scorecard_raw else None,
         lock=PlanLock.model_validate(lock_raw) if lock_raw else None,
+        environment=Environment.model_validate(environment_raw) if environment_raw else None,
         manifest=_read(bundle_dir / bundle_files.MANIFEST_NAME),
     )
 
@@ -113,7 +118,7 @@ def conformance(bundle_dir: Path, contents: Contents | None = None) -> Report:
             _uncertainty(estimates),
             _variation(estimates),
             _item_results(bundle_dir, manifest_raw),
-            _costs(),
+            _costs(held.environment),
             _code_and_image(lock),
             _claims_qualified(scorecard),
             _estimand(estimates),
@@ -212,16 +217,73 @@ def _item_results(bundle_dir: Path, manifest: dict[str, object] | None) -> Findi
     )
 
 
-def _costs() -> Finding:
+def _figure(value: float) -> str:
+    """`48,000` for a count of tokens and `0.0021` for a spend, from one float."""
+    return f"{value:,.0f}" if value.is_integer() else f"{value:,.6g}"
+
+
+def _costs(environment: Environment | None) -> Finding:
+    """Met only when every row from every pack carries a cost.
+
+    Wall time is the harness's half and is always there. Tokens and spend are the half a
+    reader pricing a narrower interval needs, and only a pack can see them, so a bundle
+    holding wall time alone has recorded what the run took and not what it cost.
+    """
+    requirement = "The cost of producing the result is recorded"
+    if environment is None or environment.cost is None:
+        holds = (
+            f"no {ENVIRONMENT_NAME}"
+            if environment is None
+            else f"an {ENVIRONMENT_NAME} written before cost was recorded"
+        )
+        return Finding(
+            code="costs_recorded",
+            practice="3.2.3",
+            requirement=requirement,
+            status="not met",
+            detail=(
+                f"the bundle holds {holds}, so nothing in it records tokens, wall time or "
+                "spend. A reader cannot tell what a narrower interval would have cost to buy"
+            ),
+            evidence=[] if environment is None else [ENVIRONMENT_NAME],
+        )
+
+    cost = environment.cost
+    took = (
+        f"{cost.wall_seconds:,.1f} seconds of wall time across "
+        f"{_count(sum(pack.units for pack in cost.packs), 'unit')}"
+    )
+    short = [
+        f"{pack.pack_id} put a cost on {pack.items_costed} of {_count(pack.items, 'row')}"
+        for pack in cost.packs
+        if not pack.items or pack.items_costed < pack.items
+    ]
+    if short or not cost.packs:
+        return Finding(
+            code="costs_recorded",
+            practice="3.2.3",
+            requirement=requirement,
+            status="not met",
+            detail=(
+                f"{took} is recorded, and what the rows spent is not: "
+                f"{'; '.join(short) or 'no pack is recorded'}. Tokens and spend are only "
+                "visible to the pack, which reports them on each row"
+            ),
+            evidence=[ENVIRONMENT_NAME],
+        )
+
+    spent = "; ".join(
+        f"{pack.pack_id} "
+        + ", ".join(f"{key} {_figure(value)}" for key, value in pack.totals.items())
+        for pack in cost.packs
+    )
     return Finding(
         code="costs_recorded",
         practice="3.2.3",
-        requirement="The cost of producing the result is recorded",
-        status="not met",
-        detail=(
-            "nothing in the bundle records tokens, wall time or spend. A reader cannot tell "
-            "what a wider interval would have cost to buy"
-        ),
+        requirement=requirement,
+        status="met",
+        detail=f"{took}, and a cost on every row. {spent}",
+        evidence=[ENVIRONMENT_NAME, ITEMS_NAME],
     )
 
 

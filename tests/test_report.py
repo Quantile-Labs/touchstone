@@ -14,10 +14,13 @@ import zlib
 from pathlib import Path
 
 import pytest
+from conftest import StubBackend
 from typer.testing import CliRunner
 
 from touchstone import report
+from touchstone import run as run_plan
 from touchstone.cli import app
+from touchstone.contracts.environment import Environment, PackCost, RunCost
 from touchstone.errors import BundleError
 
 runner = CliRunner()
@@ -64,8 +67,80 @@ def test_a_complete_bundle_still_fails_the_items_this_tool_does_not_satisfy(bund
     stated = report.conformance(bundle)
     failing = {finding.code for finding in stated.findings if finding.status == "not met"}
 
-    assert "costs_recorded" in failing, "nothing in a bundle records what the run cost"
     assert "assumption_checks" in failing, "the bundle records the estimator, not its premises"
+
+
+def cost_finding(bundle_dir: Path):
+    return next(f for f in report.conformance(bundle_dir).findings if f.code == "costs_recorded")
+
+
+def with_cost(bundle_dir: Path, cost: RunCost | None) -> None:
+    environment = Environment(
+        touchstone_version="test",
+        python="3.12",
+        platform="test",
+        backend="stub",
+        isolation="none",
+        plan_hash="0" * 64,
+        cost=cost,
+    )
+    (bundle_dir / "environment.json").write_text(environment.model_dump_json())
+
+
+def one_pack(items_costed: int, totals: dict[str, float]) -> RunCost:
+    pack = PackCost(
+        pack_id="example_pack",
+        units=2,
+        wall_seconds=12.5,
+        items=400,
+        items_costed=items_costed,
+        totals=totals,
+    )
+    return RunCost(wall_seconds=12.5, packs=[pack])
+
+
+def test_a_bundle_with_no_environment_cannot_say_what_the_run_cost(bundle):
+    finding = cost_finding(bundle)
+    assert finding.status == "not met"
+    assert "no environment.json" in finding.detail
+
+
+def test_an_environment_written_before_cost_was_recorded_records_none(bundle):
+    with_cost(bundle, None)
+    finding = cost_finding(bundle)
+    assert finding.status == "not met"
+    assert "before cost was recorded" in finding.detail
+
+
+def test_wall_time_without_what_every_row_spent_does_not_meet_the_item(bundle):
+    """One row short is enough. A total over 399 of 400 rows undercounts by an amount
+    nobody knows, and a reader pricing the run from it is pricing the wrong run."""
+    with_cost(bundle, one_pack(items_costed=399, totals={"input_tokens": 47880.0}))
+    finding = cost_finding(bundle)
+
+    assert finding.status == "not met"
+    assert "12.5 seconds of wall time across 2 units" in finding.detail
+    assert "example_pack put a cost on 399 of 400 rows" in finding.detail
+
+
+def test_a_cost_on_every_row_meets_the_item_and_states_the_totals(bundle):
+    with_cost(bundle, one_pack(items_costed=400, totals={"input_tokens": 48000.0, "usd": 0.0021}))
+    finding = cost_finding(bundle)
+
+    assert finding.status == "met"
+    assert "input_tokens 48,000" in finding.detail
+    assert "usd 0.0021" in finding.detail
+    assert finding.evidence == ["environment.json", "items.jsonl"]
+
+
+def test_the_report_reads_the_cost_a_run_writes(frozen, tmp_path):
+    """The two halves meet here: what `run` writes is what `report` reads."""
+    out = tmp_path / "out"
+    run_plan.run(frozen, out, StubBackend(cost={"tokens": 12}))
+    finding = cost_finding(out)
+
+    assert finding.status == "met"
+    assert "example_pack tokens 24" in finding.detail
 
 
 def test_every_practice_item_appears_exactly_once(bundle):

@@ -82,7 +82,7 @@ limits](limits.md).
 | `runs/<run_id>/items.jsonl` | the rows one unit produced, untouched |
 | `runs/<run_id>.egress.log` | every request that unit made, allowed or denied |
 | `items.jsonl` | all units merged, `pack_id` stamped |
-| `environment.json` | what it ran on, and whether egress was enforced |
+| `environment.json` | what it ran on, what it cost, whether egress was enforced |
 | `ledger/RUNLOG.jsonl` | append-only, written as each event happened |
 | `plan.lock.json`, `PLAN.sha256` | copied from the lock directory |
 
@@ -97,7 +97,20 @@ limits](limits.md).
   "isolation": "container",
   "plan_hash": "81c63db1…",
   "image_digests": ["example_pack@sha256:…"],
-  "egress_enforced": true
+  "egress_enforced": true,
+  "cost": {
+    "wall_seconds": 34.412,
+    "packs": [
+      {
+        "pack_id": "example_pack",
+        "units": 2,
+        "wall_seconds": 34.412,
+        "items": 400,
+        "items_costed": 0,
+        "totals": {}
+      }
+    ]
+  }
 }
 ```
 
@@ -109,3 +122,21 @@ that is the access-tier argument applied to the runtime.
 `egress_enforced` is across the whole run. It is `false` if **any** unit was granted a
 network it declared but the backend could not restrict. A claim that a pack was contained
 is not available then. See [Containment](containment.md).
+
+### `cost`
+
+The block has two parts, and they come from different places.
+
+`wall_seconds` is the harness's own measurement, taken on a monotonic clock around every
+unit. A unit that failed still counts, because a unit that died after an hour of API calls
+spent the hour. The ledger carries the same figure on each unit's line.
+
+`totals` comes from the pack. The harness cannot see tokens or spend, so a pack reports them
+on each row's [`cost`](../components/items.md#cost) and `run` sums each key over that
+pack's rows. It never sums across packs, since two packs both reporting `tokens` need not be
+counting the same tokenizer's tokens.
+
+`items_costed` is how many rows carried a cost. Where it falls short of `items`, the totals
+undercount by an amount nobody knows, and [`touchstone report`](../bundles/reporting.md)
+marks the cost item not met. `example_pack` calls no real system and reports no cost, so a
+tutorial run records how long it took and nothing about what it spent.
