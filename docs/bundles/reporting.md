@@ -47,29 +47,35 @@ against an earlier evaluation is estimated as a paired difference.
 ## It reports failures as failures
 
 A statement listing only what passed is marketing, and the first reviewer who diffs it
-against the practice list will say so. Two items fail on every bundle this tool produces
+against the practice list will say so. One item fails on every bundle this tool produces
 today.
-
-**Costs are not recorded.** Nothing in a bundle holds tokens, wall time or spend, so a
-reader cannot tell what a narrower interval would have cost to buy.
 
 **Assumption checks are not recorded.** The bundle names the estimator that ran and not
 whether its premises hold. A Wilson interval over a sample that is not exchangeable is
 arithmetic on the wrong model, and nothing here would say so.
 
-A third fails until `example_pack` reaches a registry: an image pinned by digest is
-identified, and a reader holding the bundle and no registry still cannot pull it.
+Two more fail on the tutorial bundle, and both come down to the pack.
+
+**Costs are recorded in part.** `run` measures the wall time of every unit and writes it to
+`environment.json`. Tokens and spend are only visible to the pack, which reports them on
+each row's [`cost`](../components/items.md#cost), and the item is met only when every row
+from every pack carries one. `example_pack` calls no real system and reports no cost, so
+its bundles record how long the run took and nothing about what it spent.
+
+**The image is not obtainable.** An image pinned by digest is identified, and a reader
+holding the bundle and no registry still cannot pull it. This fails until `example_pack`
+reaches a registry.
 
 An empty directory produces a statement in which eight of the ten items fail. That is the
 intended behaviour and there is a test for it.
 
 ## Nothing on the page is recomputed
 
-Every figure is read from `estimates.json` and `scorecard.json`. The document sets numbers
-and never derives them, because a second implementation of the arithmetic sitting in the
-one output nobody thinks to re-check is how two figures for the same thing get published.
-A test pulls the text back out of the finished PDF and maps every rate, bound and
-denominator on it to a field in the bundle.
+Every figure is read from `estimates.json`, `scorecard.json` and `environment.json`. The
+document sets numbers and never derives them, because a second implementation of the
+arithmetic sitting in the one output nobody thinks to re-check is how two figures for the
+same thing get published. A test pulls the text back out of the finished PDF and maps every
+rate, bound and denominator on it to a field in the bundle.
 
 ## The file
 

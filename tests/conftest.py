@@ -34,18 +34,26 @@ class StubBackend:
     isolation = "none"
 
     def __init__(
-        self, exit_code: int = 0, termination: str | None = None, egress=(), resources=None
+        self,
+        exit_code: int = 0,
+        termination: str | None = None,
+        egress=(),
+        resources=None,
+        cost=None,
     ):
         self.exit_code = exit_code
         self.termination = termination
         self.egress = list(egress)
         self.resources = resources or Resources()
+        self.cost = cost
         self.seen: list[RunSpec] = []
 
     def run(self, spec: RunSpec) -> RunResult:
         self.seen.append(spec)
         spec.output_dir.mkdir(parents=True, exist_ok=True)
         record = {"item_id": f"{spec.pack_id}.{spec.replicate}", "replicate": spec.replicate}
+        if self.cost is not None:
+            record["cost"] = self.cost
         (spec.output_dir / "items.jsonl").write_text(json.dumps(record) + "\n")
         return RunResult(
             run_id=spec.run_id,

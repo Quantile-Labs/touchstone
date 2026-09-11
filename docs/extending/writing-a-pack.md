@@ -116,7 +116,7 @@ market works without a change to the engine.
 | `outcome` | booleans, become rates with a denominator |
 | `score` | continuous measures, become means with intervals |
 | `confidence` | optional, enables calibration and confident-and-wrong |
-| `cost` | tokens, latency |
+| `cost` | what the item spent: tokens, latency, money |
 | `trace_ref` | path to the full prompt and response |
 | `replicate` | which repeat this is |
 
@@ -124,6 +124,11 @@ Emit the observation, not the average. Touchstone computes every statistic from 
 records so that a reader can recompute them from the bundle without trusting the pack.
 `touchstone estimate` turns booleans into rates with a Wilson interval and scores into
 means with a BCa bootstrap interval, grouped by whichever `stratum` keys are asked for.
+
+Put a `cost` on every row when the system under test charges for a call. The harness times
+each unit and cannot see a token or an invoice, so the pack is the only place spend can
+come from, and `touchstone report` marks cost as not met on a bundle where any row went
+without one.
 
 A `confidence` is a claim about one particular outcome, and only the pack knows which, so
 the manifest names it:

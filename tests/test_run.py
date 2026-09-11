@@ -12,12 +12,18 @@ from conftest import DIGEST, StubBackend
 
 from touchstone import freeze as freeze_plan
 from touchstone import run as run_plan
-from touchstone.errors import PlanError
+from touchstone.contracts import Environment
+from touchstone.errors import BackendError, PlanError
 
 
 def ledger(out_dir: Path) -> list[dict]:
     path = out_dir / run_plan.LEDGER_DIR / run_plan.RUNLOG_NAME
     return [json.loads(line) for line in path.read_text().splitlines()]
+
+
+def cost_of(out_dir: Path):
+    path = out_dir / run_plan.ENVIRONMENT_NAME
+    return Environment.model_validate_json(path.read_text()).cost
 
 
 def test_runs_one_unit_per_replicate(frozen, tmp_path):
@@ -87,6 +93,68 @@ def test_a_timeout_is_named_in_the_failure(frozen, tmp_path):
         frozen, tmp_path / "out", StubBackend(exit_code=137, termination="timeout")
     )
     assert all("timeout" in failure for failure in failures)
+
+
+def test_the_ledger_records_how_long_each_unit_took(frozen, tmp_path):
+    out = tmp_path / "out"
+    run_plan.run(frozen, out, StubBackend())
+    finished = [entry for entry in ledger(out) if entry["event"] == "unit_finished"]
+    assert len(finished) == 2
+    assert all(entry["wall_seconds"] >= 0 for entry in finished)
+
+
+def test_the_environment_totals_the_wall_time_the_ledger_records(frozen, tmp_path):
+    """Two records of one fact, written at different moments, so they had better agree."""
+    out = tmp_path / "out"
+    run_plan.run(frozen, out, StubBackend())
+    per_unit = [entry["wall_seconds"] for entry in ledger(out) if "wall_seconds" in entry]
+    cost = cost_of(out)
+
+    assert cost.wall_seconds == pytest.approx(sum(per_unit), abs=1e-3)
+    assert [(pack.pack_id, pack.units) for pack in cost.packs] == [("example_pack", 2)]
+
+
+def test_a_pack_that_reports_no_cost_is_recorded_as_reporting_none(frozen, tmp_path):
+    out = tmp_path / "out"
+    run_plan.run(frozen, out, StubBackend())
+    [pack] = cost_of(out).packs
+    assert (pack.items, pack.items_costed, pack.totals) == (2, 0, {})
+
+
+def test_the_cost_on_each_row_is_summed_within_its_pack(frozen, tmp_path):
+    out = tmp_path / "out"
+    run_plan.run(frozen, out, StubBackend(cost={"input_tokens": 120, "output_tokens": 30}))
+    [pack] = cost_of(out).packs
+    assert pack.items_costed == 2
+    assert pack.totals == {"input_tokens": 240.0, "output_tokens": 60.0}
+
+
+def test_a_cost_that_is_not_figures_counts_as_none_and_the_run_still_finishes(frozen, tmp_path):
+    """A malformed row is `estimate`'s to refuse. Raising here would discard a run whose
+    packs had already finished, which is the failure `copy_plan` once caused."""
+    out = tmp_path / "out"
+    assert run_plan.run(frozen, out, StubBackend(cost={"tokens": "many"})) == []
+
+    [pack] = cost_of(out).packs
+    assert (pack.items_costed, pack.totals) == (0, {})
+    assert ledger(out)[-1]["event"] == "run_finished"
+
+
+class UnreachableBackend(StubBackend):
+    def run(self, spec):
+        self.seen.append(spec)
+        raise BackendError("the daemon went away")
+
+
+def test_a_unit_that_failed_still_counts_toward_what_the_run_took(frozen, tmp_path):
+    out = tmp_path / "out"
+    run_plan.run(frozen, out, UnreachableBackend())
+
+    failed = [entry for entry in ledger(out) if entry["event"] == "unit_failed"]
+    assert len(failed) == 2
+    assert all("wall_seconds" in entry for entry in failed)
+    [pack] = cost_of(out).packs
+    assert (pack.units, pack.items) == (2, 0)
 
 
 def test_refuses_a_plan_that_was_never_frozen(tmp_path):
