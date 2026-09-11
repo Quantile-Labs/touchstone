@@ -19,6 +19,8 @@ import shutil
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from statistics import fmean
+from typing import Literal
 
 import yaml
 from pydantic import ValidationError
@@ -26,6 +28,7 @@ from pydantic import ValidationError
 from touchstone import __version__, expressions, positions
 from touchstone import estimate as estimate_items
 from touchstone.bundle import sha256_file
+from touchstone.contracts import ItemRecord
 from touchstone.contracts.audit import AUDIT_NAME, AuditResponse, AuditResponses
 from touchstone.contracts.diagnostics import Problem
 from touchstone.contracts.estimates import Estimate, Estimates
@@ -33,6 +36,7 @@ from touchstone.contracts.scorecard import (
     INTERVAL_CONDITIONS,
     INTERVAL_SOURCES,
     AuditRef,
+    Difference,
     Expression,
     GradedIndicator,
     Indicator,
@@ -46,6 +50,9 @@ from touchstone.contracts.scorecard import (
 from touchstone.errors import ScoreCardError
 from touchstone.estimate import ESTIMATES_NAME
 from touchstone.freeze import HASH_NAME, LOCK_NAME, load_lock
+from touchstone.run import ITEMS_NAME
+from touchstone.stats import paired
+from touchstone.stats.proportion import Z_95
 
 SCORECARD_NAME = "scorecard.json"
 
@@ -61,6 +68,9 @@ class Prior:
     estimates: Estimates
     summary_only: frozenset[str] = frozenset()
     plan_sha256: str | None = None
+    items: list[ItemRecord] | None = None
+    """None where the earlier bundle holds no items.jsonl, which leaves a paired difference
+    nothing to join and sends it to the unpaired comparison."""
 
 
 def load_scorecard(path: Path) -> ScoreCard:
@@ -86,10 +96,25 @@ def grade(
     audit: AuditResponses | None = None,
     audit_sha256: str | None = None,
     prior: Prior | None = None,
+    items: list[ItemRecord] | None = None,
 ) -> Scorecard:
-    """Every indicator, decided against the estimates and capped by the access tier."""
+    """Every indicator, decided against the estimates and capped by the access tier.
+
+    `items` is this bundle's records, read only by a paired difference, which joins them on
+    `item_id` against the prior bundle's.
+    """
     graded = [
-        _indicator(indicator, score_card, estimates, access_tier, summary_only, audit, prior)
+        _indicator(
+            indicator,
+            score_card,
+            estimates,
+            access_tier,
+            summary_only,
+            audit,
+            prior,
+            items,
+            plan_sha256,
+        )
         for indicator in score_card.indicators
     ]
     return Scorecard(
@@ -127,9 +152,8 @@ def _tier_ceiling(indicator: Indicator, score_card: ScoreCard, access_tier: str)
     if access_tier not in score_card.tier_ceilings:
         known = ", ".join(sorted(score_card.tier_ceilings))
         raise ScoreCardError(
-            f"the plan declares access tier {access_tier!r} and the score card sets no "
-            f"ceiling for it. Tiers with a ceiling: {known}. Refusing rather than grading "
-            "an unrecognised tier as though it were unrestricted"
+            f"the plan's access tier {access_tier!r} has no ceiling in this score card. "
+            f"Tiers with a ceiling: {known}. Add {access_tier!r} to tier_ceilings"
         )
     return score_card.tier_ceilings[access_tier]
 
@@ -142,6 +166,8 @@ def _indicator(
     summary_only: frozenset[str],
     audit: AuditResponses | None = None,
     prior: Prior | None = None,
+    items: list[ItemRecord] | None = None,
+    plan_sha256: str | None = None,
 ) -> GradedIndicator:
     ceiling = _tier_ceiling(indicator, score_card, access_tier)
     if ceiling is NOT_ASSESSABLE:
@@ -153,8 +179,7 @@ def _indicator(
             name=indicator.name,
             verdict="ungraded",
             reason=(
-                f"not assessable at access tier {access_tier}, which is what the score card "
-                "says about this indicator rather than anything this run found"
+                f"the score card does not grade this at {access_tier.replace('_', ' ')} access"
             ),
         )
 
@@ -163,21 +188,19 @@ def _indicator(
     if isinstance(metric, AuditRef):
         return _audited(indicator, score_card, capped, audit)
 
-    if prior is None and any(ref.bundle == "prior" for ref in _refs(metric)):
+    if prior is None and any(_needs_prior(ref) for ref in _refs(metric)):
         # Not an error and not a failing grade. A first evaluation of a system has nothing
         # to have moved from, and saying so is the true statement.
         return GradedIndicator(
             id=indicator.id,
             name=indicator.name,
             verdict="ungraded",
-            reason=(
-                "compares this evaluation with the one before it and no prior bundle was "
-                "given. Pass --prior to grade it, and on a first evaluation there is "
-                "nothing to compare against"
-            ),
+            reason="requires a previous test for comparison. Run grade with --prior",
         )
 
-    measured, expression = _measure(metric, indicator.id, estimates, summary_only, prior)
+    measured, expression = _measure(
+        metric, indicator.id, estimates, summary_only, prior, items, plan_sha256
+    )
     value, low, high = _value_of(metric, measured)
     applied = _applied_ceiling(score_card, capped, measured)
 
@@ -192,7 +215,7 @@ def _indicator(
         )
 
     decided = _walk(indicator.assessment, value, low, high)
-    return _cap(indicator, decided, score_card, applied, measured, expression, value)
+    return _cap(indicator, decided, score_card, applied, measured, expression, value, access_tier)
 
 
 def _audited(
@@ -215,10 +238,7 @@ def _audited(
             id=indicator.id,
             name=indicator.name,
             verdict="ungraded",
-            reason=(
-                "assessed by a person and no audit responses were supplied. Pass "
-                "--audit to grade it, and until then it is unassessed rather than failed"
-            ),
+            reason="graded by an assessor. Run grade with --audit and their responses",
         )
 
     response = audit.responses.get(indicator.id)
@@ -227,10 +247,7 @@ def _audited(
             id=indicator.id,
             name=indicator.name,
             verdict="ungraded",
-            reason=(
-                f"{audit.audit_name} answers {len(audit.responses)} indicator(s) and not "
-                f"this one, so nobody has assessed it"
-            ),
+            reason=f"{audit.audit_name} has no response for this indicator",
         )
 
     if response.level not in score_card.levels:
@@ -258,9 +275,8 @@ def _audited(
 def _off_the_ladder(indicator_id: str, response: AuditResponse, score_card: ScoreCard) -> str:
     ladder = ", ".join(score_card.levels)
     return (
-        f"{indicator_id}: the audit records level {response.level!r} and the score card's "
-        f"ladder is {ladder}. An assessor and a card that disagree about the vocabulary "
-        "produce a grade that means nothing, so this is an error rather than a nearest match"
+        f"{indicator_id}: the audit records level {response.level!r}, which is not on the "
+        f"score card's ladder ({ladder})"
     )
 
 
@@ -289,9 +305,8 @@ def _walk(assessment: list[Rule], value: float, low: float | None, high: float |
                 rule=straddled,
                 between=(straddled.level, rule.level),
                 reason=(
-                    f"the interval spans the {straddled.level} boundary of "
-                    f"{straddled.threshold:g}, so the grade is {straddled.level} or "
-                    f"{rule.level} and the evidence does not say which"
+                    f"the likely range crosses the {straddled.level} threshold "
+                    f"({straddled.threshold:g}), so the grade is {straddled.level} or {rule.level}"
                 ),
             )
         if outcome == INDETERMINATE and straddled is None:
@@ -303,12 +318,19 @@ def _walk(assessment: list[Rule], value: float, low: float | None, high: float |
             rule=straddled,
             between=(straddled.level,),
             reason=(
-                f"the interval spans the {straddled.level} boundary of "
-                f"{straddled.threshold:g}, and no lower rule holds, so the grade is "
-                f"{straddled.level} or no grade at all"
+                f"the likely range crosses the {straddled.level} threshold "
+                f"({straddled.threshold:g}) and no lower rule applies, so the grade is "
+                f"{straddled.level} or none"
             ),
         )
-    return _Decision(verdict="ungraded", reason="no rule in the score card holds for this value")
+    return _Decision(verdict="ungraded", reason="no rule on the score card applies to this score")
+
+
+def limit_words(ceiling_reason: str | None, level: str, access_tier: str) -> str:
+    """The cap that held a grade down, as a clause."""
+    if ceiling_reason == "summary_only":
+        return f"summary-only results are capped at {level}"
+    return f"{access_tier.replace('_', ' ')} access is capped at {level}"
 
 
 def _decide(rule: Rule, value: float, low: float | None, high: float | None) -> str:
@@ -358,6 +380,7 @@ def _cap(
     measured: list[Measured],
     expression: str | None,
     value: float,
+    access_tier: str,
 ) -> GradedIndicator:
     """Apply the claim ceiling and give the decision its identity.
 
@@ -401,9 +424,8 @@ def _cap(
                     "ceiling_reason": reason,
                     "between": [],
                     "reason": (
-                        f"{reason} caps this at {level}, which is at or below both ends of "
-                        f"{' to '.join(decided.between)}, so the interval no longer decides "
-                        "anything"
+                        f"the likely range allows {' or '.join(decided.between)}, and "
+                        f"{limit_words(reason, level, access_tier)}"
                     ),
                 }
             )
@@ -443,15 +465,28 @@ def _refs(metric: MetricRef | Expression) -> list[MetricRef]:
     return list(metric.values.values()) if isinstance(metric, Expression) else [metric]
 
 
+def _needs_prior(ref: MetricRef) -> bool:
+    return ref.bundle == "prior" or ref.source == "paired_difference"
+
+
+def _plain(ref: MetricRef, bundle: Literal["this", "prior"]) -> MetricRef:
+    """One of the two figures a paired difference is taken between, as a plain estimate."""
+    return ref.model_copy(update={"source": "estimate", "bundle": bundle})
+
+
 def _measure(
     metric: MetricRef | Expression,
     indicator_id: str,
     estimates: Estimates,
     summary_only: frozenset[str],
     prior: Prior | None = None,
+    items: list[ItemRecord] | None = None,
+    plan_sha256: str | None = None,
 ) -> tuple[list[Measured], str | None]:
     measured = [
-        _resolve(ref, *_where(ref, estimates, summary_only, prior), indicator_id)
+        _difference(ref, estimates, summary_only, prior, items, plan_sha256, indicator_id)
+        if ref.source == "paired_difference" and prior is not None
+        else _resolve(ref, *_where(ref, estimates, summary_only, prior), indicator_id)
         for ref in _refs(metric)
     ]
     return measured, metric.expression if isinstance(metric, Expression) else None
@@ -469,6 +504,131 @@ def _where(
     if ref.bundle == "prior" and prior is not None:
         return prior.estimates, prior.summary_only
     return estimates, summary_only
+
+
+def _difference(
+    ref: MetricRef,
+    estimates: Estimates,
+    summary_only: frozenset[str],
+    prior: Prior,
+    items: list[ItemRecord] | None,
+    plan_sha256: str | None,
+    indicator_id: str,
+) -> Measured:
+    """This bundle's figure minus the prior one's, with an interval over the change itself.
+
+    Paired where both bundles ran the same frozen plan and hold the same items, so that a
+    system finding the same items hard both times has that agreement taken out of the
+    interval rather than counted twice. Anywhere else the two stored intervals are combined
+    as though independent. Pairing is checked against the plan hash and the item ids, never
+    assumed, and `difference` records which comparison ran and why.
+    """
+    now = _resolve(_plain(ref, "this"), estimates, summary_only, indicator_id)
+    before = _resolve(_plain(ref, "prior"), prior.estimates, prior.summary_only, indicator_id)
+    measured = Measured(
+        ref=ref,
+        n=min(now.n, before.n),
+        stratum=dict(ref.stratum),
+        summary_only=now.summary_only or before.summary_only,
+    )
+    if (
+        now.value is None
+        or now.low is None
+        or now.high is None
+        or before.value is None
+        or before.low is None
+        or before.high is None
+    ):
+        return measured
+
+    rate = any(
+        entry.k is not None
+        for entry in estimates.estimates
+        if entry.metric == ref.name
+        and entry.pack_id == ref.pack_id
+        and entry.stratum == ref.stratum
+    )
+    joined, reason = _pairs(ref, rate, items, prior, plan_sha256)
+    figures: dict[str, float | int | str] = {"now": now.value, "before": before.value}
+
+    if joined is None:
+        value, low, high = paired.unpaired_difference(
+            (now.value, now.low, now.high), (before.value, before.low, before.high)
+        )
+        difference = Difference(
+            comparison="unpaired",
+            reason=reason,
+            estimator="wilson_difference" if rate else "limits_difference",
+            parameters=figures,
+            reference=(
+                paired.WILSON_DIFFERENCE_REFERENCE if rate else paired.LIMITS_DIFFERENCE_REFERENCE
+            ),
+        )
+    else:
+        computed = paired.paired_difference(joined, bounded=rate)
+        value, low, high = computed.point, computed.low, computed.high
+        difference = Difference(
+            comparison="paired",
+            reason=reason,
+            estimator="paired_clt",
+            parameters={
+                **figures,
+                "items": computed.items,
+                "standard_error": computed.standard_error,
+                "z": Z_95,
+                "confidence": 0.95,
+            },
+            reference=paired.PAIRED_REFERENCE,
+        )
+    return measured.model_copy(
+        update={"value": value, "low": low, "high": high, "difference": difference}
+    )
+
+
+def _pairs(
+    ref: MetricRef,
+    rate: bool,
+    items: list[ItemRecord] | None,
+    prior: Prior,
+    plan_sha256: str | None,
+) -> tuple[list[tuple[float, float]] | None, str]:
+    """Both bundles' per-item scores joined on `item_id`, or None and why they cannot be.
+
+    The same plan hash is the precondition and the same item ids are the check on it. A
+    unit that failed in one run leaves the plans identical and the items not, and pairing
+    whatever survived in both would decide which items count after seeing the results.
+    """
+    if plan_sha256 is None or prior.plan_sha256 is None:
+        return None, "one of the tests does not record its plan"
+    if plan_sha256 != prior.plan_sha256:
+        return None, (
+            f"the tests used different plans ({plan_sha256[:8]} and {prior.plan_sha256[:8]})"
+        )
+    if items is None or prior.items is None:
+        which = "this test" if items is None else "the previous test"
+        return None, f"{which} has no item-level results ({ITEMS_NAME})"
+
+    now, before = _per_item(ref, rate, items), _per_item(ref, rate, prior.items)
+    if now.keys() != before.keys():
+        return None, f"{len(now.keys() ^ before.keys())} item(s) appear in only one test"
+    if len(now) < 2:
+        return None, f"only {len(now)} item(s) to compare; at least 2 are needed"
+    joined = [(now[item_id], before[item_id]) for item_id in sorted(now)]
+    return joined, f"compared item by item: {len(joined)} items, plan {plan_sha256[:8]}"
+
+
+def _per_item(ref: MetricRef, rate: bool, items: list[ItemRecord]) -> dict[str, float]:
+    """Each item's score on one metric in one cell, averaged over its replicates."""
+    observed: dict[str, list[float]] = {}
+    for item in items:
+        if ref.pack_id is not None and item.pack_id != ref.pack_id:
+            continue
+        if any(item.stratum.get(key, "(unset)") != value for key, value in ref.stratum.items()):
+            continue
+        reported = item.outcome if rate else item.score
+        if ref.name in reported:
+            observed.setdefault(item.item_id, []).append(float(reported[ref.name]))
+    return {item_id: fmean(scores) for item_id, scores in observed.items()}
 
 
 def _value_of(
@@ -499,11 +659,11 @@ def _matching(measured: list[Measured], ref: MetricRef) -> Measured:
 def _nothing_measured(measured: list[Measured]) -> str:
     empty = [one for one in measured if one.value is None]
     if not empty:
-        return "the metric could not be evaluated"
+        return "no score could be computed"
     where = ", ".join(sorted({one.ref.name for one in empty}))
     if all(one.n == 0 for one in empty):
-        return f"no observations for {where}, so there is nothing to grade"
-    return f"{where} has a denominator but no point estimate"
+        return f"no results for {where}"
+    return f"{where} has results but no score"
 
 
 def _resolve(
@@ -517,9 +677,8 @@ def _resolve(
     """
     if ref.pack_id is None and estimates.pooled:
         raise ScoreCardError(
-            f"{indicator_id}: {ref.name!r} names no pack and {len(estimates.packs)} packs "
-            f"contributed ({', '.join(estimates.packs)}). The pooled figure adds "
-            "denominators from packs that are not measuring the same thing. Name a pack"
+            f"{indicator_id}: {ref.name!r} has no pack_id and {len(estimates.packs)} packs "
+            f"contributed ({', '.join(estimates.packs)}). Set pack_id to one of them"
         )
     if ref.pack_id is not None and ref.pack_id not in estimates.packs:
         known = ", ".join(estimates.packs) or "none"
@@ -575,15 +734,13 @@ def _worst(ref: MetricRef, estimates: Estimates, contaminated: bool, indicator_i
 
     if not cells:
         raise ScoreCardError(
-            f"{indicator_id}: no cell of {ref.name!r} carries a stratum in this bundle, so "
-            "there is nothing to rank. `estimate` was run without `--by`"
+            f"{indicator_id}: no cell of {ref.name!r} has a stratum in this bundle. "
+            "Run `estimate` with --by"
         )
     if wanted and wanted not in shapes:
         raise ScoreCardError(
             f"{indicator_id}: no cell of {ref.name!r} is keyed by {_keyed(wanted)}. "
-            f"This bundle holds cells keyed: {held}. Re-run `estimate` with that key. "
-            "A dimension nobody rolled up is a gap in the run, not a stratum too thin "
-            "to report"
+            f"This bundle has cells keyed: {held}. Run `estimate` with that key"
         )
     nested = sorted(
         (_keyed(coarse), _keyed(fine)) for coarse in shapes for fine in shapes if coarse < fine
@@ -591,10 +748,9 @@ def _worst(ref: MetricRef, estimates: Estimates, contaminated: bool, indicator_i
     if not wanted and nested:
         coarse, fine = nested[0]
         raise ScoreCardError(
-            f"{indicator_id}: this bundle holds cells of {ref.name!r} keyed ({coarse}) and "
-            f"cells keyed ({fine}) that sit inside them, so a worst stratum naming no keys "
-            "would rank a group against part of itself and report whichever slice of it "
-            f"came out lowest. Name the dimension with `keys`. This bundle holds: {held}"
+            f"{indicator_id}: {ref.name!r} has cells keyed ({coarse}) and cells keyed "
+            f"({fine}) inside them. Set `keys` to the dimension to rank. This bundle has: "
+            f"{held}"
         )
 
     subset = estimates.model_copy(
@@ -614,9 +770,8 @@ def _worst(ref: MetricRef, estimates: Estimates, contaminated: bool, indicator_i
         thin = len(found.excluded)
         over = f" keyed by {_keyed(wanted)}" if wanted else ""
         raise ScoreCardError(
-            f"{indicator_id}: no stratum of {ref.name!r}{over} reaches n={ref.min_n} "
-            f"({thin} cell(s) below it). A worst stratum computed over cells this thin is "
-            "noise, and reporting one would be worse than reporting none"
+            f"{indicator_id}: no stratum of {ref.name!r}{over} reaches n={ref.min_n}. "
+            f"{thin} cell(s) are below it"
         )
     return _from_estimate(ref, found.worst, contaminated)
 
@@ -638,10 +793,7 @@ def _missing(indicator_id: str, ref: MetricRef, kind: str) -> str:
     where = f", stratum {ref.stratum}" if ref.stratum else ""
     pack = f" for pack {ref.pack_id!r}" if ref.pack_id else " pooled"
     which = "the prior bundle" if ref.bundle == "prior" else "this bundle"
-    return (
-        f"{indicator_id}: no {kind} named {ref.name!r}{pack}{where} in {which}. "
-        "An indicator naming a metric that was never computed is an error, not a zero"
-    )
+    return f"{indicator_id}: no {kind} named {ref.name!r}{pack}{where} in {which}"
 
 
 def indicator_at(
@@ -716,14 +868,14 @@ def check(
                     "audit_indicator_undeclared",
                     answered,
                     f"{audit.audit_name} answers {answered!r}, which this score card does "
-                    "not declare. It is a typo or an audit of a different card",
+                    "not declare",
                 )
             elif answered not in audited:
                 report(
                     "audit_indicator_computed",
                     answered,
                     f"{audit.audit_name} answers {answered!r}, which this score card "
-                    "computes from the bundle. An assessor cannot overrule a measurement",
+                    "computes from the bundle. Remove it from the audit responses",
                 )
 
     for indicator in score_card.indicators:
@@ -737,7 +889,7 @@ def check(
         for position, rule in enumerate(indicator.assessment):
             if rule.condition in INTERVAL_CONDITIONS and not has_interval:
                 carries = (
-                    "an expression, which carries no interval by design"
+                    "an expression, which has no interval"
                     if isinstance(metric, Expression)
                     else f"source {metric.source!r}, which carries no interval"
                 )
@@ -769,14 +921,21 @@ def check(
                 )
 
         for ref in _refs(metric):
-            if ref.bundle == "prior" and prior is None:
+            if _needs_prior(ref) and prior is None:
                 # Nothing to check against, and nothing wrong with the card. The indicator
                 # comes back ungraded rather than broken.
                 continue
             try:
-                _resolve(
-                    ref, _where(ref, estimates, frozenset(), prior)[0], frozenset(), indicator.id
-                )
+                if ref.source == "paired_difference" and prior is not None:
+                    _resolve(_plain(ref, "this"), estimates, frozenset(), indicator.id)
+                    _resolve(_plain(ref, "prior"), prior.estimates, frozenset(), indicator.id)
+                else:
+                    _resolve(
+                        ref,
+                        _where(ref, estimates, frozenset(), prior)[0],
+                        frozenset(),
+                        indicator.id,
+                    )
             except ScoreCardError as exc:
                 report("metric_not_found", indicator.id, str(exc), ("metric",))
     return problems
@@ -796,7 +955,17 @@ def load_prior(run_dir: Path) -> Prior:
         estimates=load_estimates(run_dir),
         summary_only=summary_only_packs(run_dir),
         plan_sha256=plan_hash(run_dir),
+        items=run_items(run_dir),
     )
+
+
+def run_items(run_dir: Path) -> list[ItemRecord] | None:
+    """The records a run directory holds, or None where it holds no items.jsonl.
+
+    Absent is a legitimate bundle, one that was hand-assembled from estimates, and it
+    grades everything except a paired difference, which falls back and says so."""
+    path = run_dir / ITEMS_NAME
+    return estimate_items.load_items(path) if path.is_file() else None
 
 
 def access_tier(run_dir: Path) -> str:
@@ -804,8 +973,8 @@ def access_tier(run_dir: Path) -> str:
     path = run_dir / LOCK_NAME
     if not path.exists():
         raise ScoreCardError(
-            f"{run_dir} holds no {LOCK_NAME}, so the access tier the run was frozen with is "
-            "unknown. A grade without its tier is a claim without its ceiling"
+            f"{run_dir} has no {LOCK_NAME}, so its access tier is unknown. Grade the "
+            "directory `touchstone run` wrote"
         )
     return load_lock(path).access_tier
 
@@ -866,47 +1035,76 @@ def write_scorecard(scorecard: Scorecard, out_dir: Path) -> Path:
 
 
 def lines(scorecard: Scorecard) -> list[str]:
-    """One printed line per indicator, and never a level without what qualified it."""
-    rendered = []
+    """The score card as a person reads it: each grade, the score behind it, and why."""
+    rendered: list[str] = []
     for indicator in scorecard.indicators:
-        head = f"{indicator.id}: "
-        if indicator.verdict == "graded" and indicator.level is not None:
-            head += indicator.level
-            if indicator.ceiling_reason:
-                head += f" (capped from {indicator.uncapped_level} by {indicator.ceiling_reason})"
-        elif indicator.verdict == "indeterminate":
-            head += f"indeterminate, {' or '.join(indicator.between)}"
-        else:
-            head += "ungraded"
-
-        rendered.append(head + _working(indicator))
-        if indicator.reason:
-            rendered.append(f"    {indicator.reason}")
+        if rendered:
+            rendered.append("")
+        rendered.append(f"{indicator.name} ({indicator.id})" if indicator.name else indicator.id)
+        rendered.append(f"  Grade: {_grade_words(indicator)}")
+        score = _score_words(indicator)
+        if score:
+            rendered.append(f"  Score: {score}")
+        why = _why(indicator, scorecard.access_tier)
+        if why:
+            rendered.append(f"  Reason: {why}")
+        for one in indicator.measured:
+            if one.difference is not None and one.difference.comparison == "unpaired":
+                rendered.append(f"  Compared by totals: {one.difference.reason}")
     return rendered
 
 
-def _working(indicator: GradedIndicator) -> str:
-    """What the level was decided on, in brackets after it.
+def _grade_words(indicator: GradedIndicator) -> str:
+    if indicator.verdict == "graded" and indicator.level is not None:
+        return indicator.level
+    if indicator.verdict == "indeterminate":
+        options = list(indicator.between)
+        if len(options) == 1:
+            options.append("none")
+        return f"{' or '.join(options)}, inconclusive"
+    return "not graded"
 
-    An expression shows its own value and the formula that produced it, and no interval
-    and no denominator: it has neither. Its inputs are in `scorecard.json`, each with the
-    denominator it carried, and collapsing them onto one line would invent a shared one.
+
+def _why(indicator: GradedIndicator, access_tier: str) -> str | None:
+    """The reason for the grade, including a cap that held it down."""
+    text = indicator.reason
+    limit = (
+        limit_words(indicator.ceiling_reason, indicator.ceiling, access_tier)
+        if indicator.ceiling is not None
+        else None
+    )
+    if text is None and limit is not None:
+        given = "assessed as" if indicator.audit is not None else "scored"
+        text = f"{given} {indicator.uncapped_level}; {limit}"
+    elif text is not None and limit is not None and indicator.verdict == "indeterminate":
+        text = f"{text}; {limit}"
+    return text[:1].upper() + text[1:] if text else None
+
+
+def _score_words(indicator: GradedIndicator) -> str | None:
+    """The number the grade was decided on, with its likely range and how many results.
+
+    An expression shows its own value and the formula that produced it, and no range and
+    no count: it has neither. Its inputs are in `scorecard.json`, each with its own count,
+    and putting them on one line would suggest a shared one.
     """
     if indicator.value is None:
-        return ""
+        return None
     if indicator.expression is not None:
-        return f"  [{indicator.value:.4g} = {indicator.expression}]"
+        return f"{indicator.value:.4g} ({indicator.expression})"
 
     shown = indicator.measured[0] if indicator.measured else None
     if shown is None:
-        return f"  [{indicator.value:.4g}]"
+        return f"{indicator.value:.4g}"
 
-    working = f"  [{indicator.value:.4g}"
+    text = f"{indicator.value:.4g}"
+    if shown.difference is not None:
+        text = f"change of {indicator.value:+.4g} since the previous test"
     if shown.low is not None and shown.high is not None:
-        working += f", {shown.low:.4g} to {shown.high:.4g}"
-    working += f", n={shown.n}"
+        text += f", likely range {shown.low:.4g} to {shown.high:.4g}"
+    text += f", {shown.n} results"
     if shown.stratum:
-        working += ", " + ", ".join(
-            f"{key}={value}" for key, value in sorted(shown.stratum.items())
-        )
-    return working + "]"
+        text += ", " + ", ".join(f"{key} {value}" for key, value in sorted(shown.stratum.items()))
+    if shown.difference is not None and shown.difference.comparison == "paired":
+        text += ", compared item by item"
+    return text

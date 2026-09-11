@@ -58,8 +58,10 @@ Grades work the same way. If the error bar crosses the threshold, the honest ans
 the better letter:
 
 ```console
-headline_accuracy: indeterminate, A or C  [0.91, 0.8783 to 0.9345, n=400]
-    the interval spans the A boundary of 0.9, so the grade is A or C and the evidence does not say which
+Correct answers over the whole sample (headline_accuracy)
+  Grade: A or C, inconclusive
+  Score: 0.91, likely range 0.8783 to 0.9345, 400 results
+  Reason: The likely range crosses the A threshold (0.9), so the grade is A or C
 ```
 
 **The interval is sampling error, and only that.** It is how far the number would move if

@@ -258,23 +258,30 @@ def _measurements(cursor: Cursor, estimates: Estimates | None) -> None:
     )
 
 
+VERDICT_WORDS = {"graded": "graded", "indeterminate": "inconclusive", "ungraded": "not graded"}
+"""The verdict as the page shows it. `scorecard.json` keeps the field's own values."""
+
+
 def _grades(cursor: Cursor, scorecard: Scorecard | None) -> None:
     if scorecard is None or not scorecard.indicators:
         return
     _heading(cursor, "Grades")
 
     _label(cursor, "indicator", LEFT)
-    _label(cursor, "verdict", LEFT + 250)
-    _right(cursor.page, "LEVEL", cursor.y, REGULAR, 6.5, FAINT, tracking=1.1)
+    _label(cursor, "result", LEFT + 250)
+    _right(cursor.page, "GRADE", cursor.y, REGULAR, 6.5, FAINT, tracking=1.1)
     cursor.down(6)
     cursor.rule(grey=0.55)
     cursor.down(13)
 
     for indicator in scorecard.indicators:
-        reason = wrap(indicator.reason or "", REGULAR, 8, COLUMN) if indicator.reason else []
+        said = indicator.reason[:1].upper() + indicator.reason[1:] if indicator.reason else ""
+        reason = wrap(said, REGULAR, 8, COLUMN) if said else []
         cursor.need(22 + 10.5 * len(reason))
         cursor.page.text(LEFT, cursor.y, indicator.id, REGULAR, 8.5, INK)
-        cursor.page.text(LEFT + 250, cursor.y, indicator.verdict, REGULAR, 8.5, MUTED)
+        cursor.page.text(
+            LEFT + 250, cursor.y, VERDICT_WORDS[indicator.verdict], REGULAR, 8.5, MUTED
+        )
         _right(
             cursor.page,
             indicator.level or " or ".join(indicator.between) or "none",
@@ -294,9 +301,8 @@ def _grades(cursor: Cursor, scorecard: Scorecard | None) -> None:
     cursor.down(2)
     _paragraph(
         cursor,
-        f"Graded on the ladder {', '.join(scorecard.levels)} at access tier "
-        f"{scorecard.access_tier}. A ceiling caps what a tier may claim whatever it "
-        f"measured.",
+        f"Grade scale, best first: {', '.join(scorecard.levels)}. Access: "
+        f"{scorecard.access_tier.replace('_', ' ')}.",
         LEFT,
         7.5,
         FAINT,
@@ -310,10 +316,9 @@ def _colophon(cursor: Cursor, report: Report) -> None:
     cursor.down(14)
     _paragraph(
         cursor,
-        "Every figure in this document is read from the bundle it describes and none is "
-        "recomputed here. A grade says what the evidence supports and is not an approval. "
-        "The interval on a rate is sampling error and covers neither the fit of the item "
-        "set to deployment nor the error of whatever decided each outcome.",
+        "Figures are read from the bundle and are not recalculated here. Likely ranges are "
+        "95% confidence intervals and account for the sampling of test items only. How well "
+        "the items represent real use, and errors in marking, are outside them.",
         LEFT,
         7.5,
         MUTED,

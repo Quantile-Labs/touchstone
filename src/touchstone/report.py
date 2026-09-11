@@ -435,14 +435,35 @@ def _paired_difference(scorecard: Scorecard | None) -> Finding:
             status="not applicable",
             detail="this bundle was not compared against an earlier one",
         )
+    differences = [
+        one.difference
+        for indicator in scorecard.indicators
+        for one in indicator.measured
+        if one.difference is not None
+    ]
+    unpaired = [difference for difference in differences if difference.comparison == "unpaired"]
+    if differences and not unpaired:
+        return Finding(
+            code="paired_difference",
+            requirement=requirement,
+            status="met",
+            detail=(
+                f"{_count(len(differences), 'movement figure')} estimated as a paired "
+                f"difference: {differences[0].reason}"
+            ),
+            evidence=[SCORECARD_NAME],
+        )
     return Finding(
         code="paired_difference",
         requirement=requirement,
         status="not met",
         detail=(
-            "movement is graded from two independent intervals rather than from the "
-            "difference and its own interval, which is wider than either and is the figure "
-            "a claim about drift needs"
+            f"{len(unpaired)} of {_count(len(differences), 'movement figure')} fell back to "
+            f"combining two independent intervals, because {unpaired[0].reason}"
+            if unpaired
+            else "the bundle was compared against an earlier one and no indicator reads a "
+            "paired_difference, so movement is graded from two figures with no interval "
+            "over the change"
         ),
         evidence=[SCORECARD_NAME],
     )

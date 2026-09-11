@@ -49,7 +49,7 @@ indicators:
         threshold: 0.0
 
   - id: weakest_language
-    name: "The weakest language cell of at least thirty items"
+    name: "Accuracy in the weakest language (at least 30 items)"
     metric:
       source: worst_stratum
       name: correct
@@ -72,7 +72,7 @@ indicators:
         threshold: 0.0
 
   - id: run_to_run_stability
-    name: "How far the rate moved between replicates"
+    name: "Variation between repeated runs"
     metric:
       source: replicate_variance
       name: correct
@@ -93,7 +93,7 @@ indicators:
         threshold: 0.0
 
   - id: calibration
-    name: "Expected calibration error of the system's own confidence"
+    name: "Gap between stated confidence and accuracy"
     metric:
       source: calibration
       name: correct

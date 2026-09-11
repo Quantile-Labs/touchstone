@@ -96,7 +96,7 @@ def test_a_straddle_with_nothing_below_it_says_so():
 
     assert verdict.verdict == "indeterminate"
     assert verdict.between == ["C"]
-    assert "no grade at all" in (verdict.reason or "")
+    assert verdict.reason.endswith("so the grade is C or none")
 
 
 def test_an_empty_cell_is_ungraded_and_not_the_worst_level():
@@ -110,7 +110,7 @@ def test_an_empty_cell_is_ungraded_and_not_the_worst_level():
 
     assert verdict.verdict == "ungraded"
     assert verdict.level is None
-    assert "nothing to grade" in (verdict.reason or "")
+    assert "no results for" in (verdict.reason or "")
 
 
 def test_a_tier_ceiling_below_both_ends_settles_the_indeterminacy():
