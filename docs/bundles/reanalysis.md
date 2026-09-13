@@ -18,33 +18,39 @@ redo it.
 ## Recompute the estimates
 
 ```console
-$ touchstone estimate ./run-004 --by language --by difficulty
+$ touchstone estimate ./run-004 --by language --by difficulty --out ./my-analysis
 ```
 
 Runs against the bundle you were handed. No Docker, no network, nothing rerun. It reads
-`items.jsonl` and rewrites `estimates.json`.
+`items.jsonl` from the bundle and writes `estimates.json` to `./my-analysis`, so the
+bundle still verifies afterwards.
 
 Split it differently, cross different keys, look at a stratum the original analysis did not
 report:
 
 ```console
-$ touchstone estimate ./run-004 --by region
+$ touchstone estimate ./run-004 --by region --out ./my-analysis
 ```
 
 If the pack tagged its items with `region`, the cells are there whether or not the first
 analysis looked at them.
 
-!!! warning "Re-estimating overwrites `estimates.json` and invalidates the manifest"
+!!! note "A sealed bundle is never written to"
 
-    Work on a copy of the bundle, or re-seal with `touchstone bundle` afterwards and be
-    clear that the result is your analysis rather than the one you were handed. `verify`
-    against the original hashes is how anyone tells the two apart.
+    `estimate` and `grade` refuse to write into a directory that holds `MANIFEST.json`,
+    because a new or rewritten file makes `verify` fail. Pass `--out`. To make your
+    analysis a bundle of its own, copy the bundle, remove `MANIFEST.json` from the copy and
+    seal it again with `touchstone bundle`. Its hash differs from the one you were handed,
+    which is how anyone tells your analysis from the original.
 
 ## Grade against your own card
 
 ```console
-$ touchstone grade ./run-004 --score-card my-card.yaml
+$ touchstone grade ./run-004 --score-card my-card.yaml --out ./my-analysis
 ```
+
+`grade` reads `estimates.json` from `./my-analysis` when you re-estimated there, and from
+the bundle otherwise, and prints which one it read.
 
 The most useful thing in the format. The bundle carries the numbers; the thresholds are
 yours.

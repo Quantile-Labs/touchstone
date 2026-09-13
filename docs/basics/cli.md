@@ -117,10 +117,11 @@ touchstone estimate [OPTIONS] RUN_DIR
 | `--calibrate`, `-c` | override the outcome each pack declared its confidence is about. Repeat for more. |
 | `--seed` | seed for the bootstrap, so its interval reproduces. Default `0`. |
 | `--resamples` | bootstrap resamples for continuous scores. Default `2000`. |
+| `--out`, `-o` | where to write `estimates.json`. Default the run directory, which is refused once the run is sealed. |
 | `--json` | write one machine-readable envelope to stdout instead of prose. See [Machine-readable output](#machine-readable-output). |
 
 Without `--calibrate` the frozen plan decides, and a pack that declared nothing is not
-calibrated at all. See [Calibration](../estimation/calibration.md) and [Strata and
+calibrated at all. A sealed bundle is never written to: pass `--out` to re-estimate one. See [Calibration](../estimation/calibration.md) and [Strata and
 rollup](../estimation/strata.md).
 
 ---
@@ -139,9 +140,16 @@ touchstone grade [OPTIONS] RUN_DIR --score-card FILE
 | `--score-card`, `-s` | the card to apply: the ladder, its thresholds and its ceilings. **Required.** |
 | `--audit`, `-a` | responses for indicators a person assesses rather than the bundle reports. |
 | `--prior`, `-p` | the bundle from the evaluation before this one, for indicators that grade movement. |
+| `--out`, `-o` | where to write `scorecard.json`. Default the run directory, which is refused once the run is sealed. |
 | `--json` | write one machine-readable envelope to stdout instead of prose. See [Machine-readable output](#machine-readable-output). |
 
-`--audit` responses are copied into the run, so the grade stays recomputable from it.
+A sealed bundle is never written to, because a new or rewritten file makes `verify` fail.
+To grade a bundle you were handed, pass `--out`. The score card is written there, and
+estimates are read from there when it holds an `estimates.json`, so a bundle re-estimated
+with `estimate --out` grades from the same directory. The output names the estimates it
+read. With `--json` the refusal has the code `bundle_sealed`.
+
+`--audit` responses are copied beside the score card, so the grade stays recomputable.
 Without it those indicators are `ungraded`, which is a true statement. Without `--prior`,
 movement indicators are `ungraded`, which is what a first evaluation of a system honestly
 is.
