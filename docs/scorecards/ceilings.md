@@ -109,3 +109,5 @@ because it has no entry for a metric it could never have produced.
 
 If the ceiling sits at or below both ends of an indeterminate range, the range collapses and
 the verdict becomes `graded`. See [Indeterminate](indeterminate.md#a-ceiling-can-settle-it).
+A ceiling between the two ends lowers the better end, and the verdict stays
+`indeterminate`. See [A ceiling inside the range](indeterminate.md#a-ceiling-inside-the-range).

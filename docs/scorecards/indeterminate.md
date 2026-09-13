@@ -13,35 +13,36 @@ says so, and names the two levels the evidence sits between.
 
 ```console
 Correct answers over the whole sample (headline_accuracy)
-  Grade: A or C, inconclusive
-  Score: 0.91, likely range 0.8783 to 0.9345, 400 results
-  Reason: The likely range crosses the A threshold (0.9), so the grade is A or C
+  Grade: B or C, inconclusive
+  Score: 0.72, likely range 0.6741 to 0.7617, 400 results
+  Reason: The likely range crosses the B threshold (0.7), so the grade is B or C
 ```
 
 ## What happened there
 
-The ladder is walked best-first. At the `A` rung, `greater_equal_ci_lower: 0.9`:
+The ladder in `examples/scorecard.yaml` is walked best-first. `A` needs a lower bound of
+0.9, and the whole interval sits below it, so `A` is refused. At the `B` rung,
+`greater_equal_ci_lower: 0.7`:
 
 ```text
-threshold 0.9
-        0.8783 ──────●────── 0.9345
-                  0.91
+threshold 0.7
+        0.6741 ──────●────── 0.7617
+                  0.72
                     ↑
-                   0.9 is inside the interval
+                   0.7 is inside the interval
 ```
 
 The interval straddles. The descent stops, and the levels below the straddled rung become
 the floor.
 
-The result is that the grade is `A` **or** the best level that still holds below, `C` in
-this case, because `B`'s threshold of 0.7 is cleared outright by the lower bound. The
-honest statement is that it is one of these and the evidence does not say which.
+The grade is `B` **or** the best level that holds below it. `C` needs a lower bound of 0.5,
+which 0.6741 clears, so the grade is `B` or `C`, and the evidence does not say which.
 
 ## Why this is not rounding down
 
-Awarding `C` would be a claim: that the system does not clear 0.9. The evidence does not
-support that claim either. A point estimate of 0.91 with a lower bound of 0.878 is entirely
-consistent with a true rate above 0.9.
+Awarding `C` would be a claim: that the system does not clear 0.7. The evidence does not
+support that claim either. A point estimate of 0.72 with a lower bound of 0.674 is entirely
+consistent with a true rate above 0.7.
 
 The sample backs neither letter. `indeterminate` says exactly that, and it carries the
 number that produced it so a reader can decide what to do about it.
@@ -57,11 +58,11 @@ decide, before someone builds a decision on it.
   "id": "headline_accuracy",
   "verdict": "indeterminate",
   "level": null,
-  "between": ["A", "C"],
-  "rule": {"level": "A", "condition": "greater_equal_ci_lower", "threshold": 0.9},
-  "reason": "the likely range crosses the A threshold (0.9), so the grade is A or C",
-  "value": 0.91,
-  "measured": [{"value": 0.91, "low": 0.8783, "high": 0.9345, "n": 400}]
+  "between": ["B", "C"],
+  "rule": {"level": "B", "condition": "greater_equal_ci_lower", "threshold": 0.7},
+  "reason": "the likely range crosses the B threshold (0.7), so the grade is B or C",
+  "value": 0.72,
+  "measured": [{"value": 0.72, "low": 0.6741, "high": 0.7617, "n": 400}]
 }
 ```
 
@@ -104,6 +105,26 @@ interval was never deciding anything that mattered.
 
 `uncapped_level` keeps the better end of the original range, so the working is still
 visible.
+
+## A ceiling inside the range
+
+A ceiling between the two ends lowers the better end, and the verdict stays
+`indeterminate`. The reason carries both steps, so it names the same levels as the grade.
+On a card with rungs at `A` (0.9) and `C` (0.7), a range of `A` or `C` under a `B`
+ceiling:
+
+```json
+{
+  "verdict": "indeterminate",
+  "between": ["B", "C"],
+  "ceiling": "B",
+  "ceiling_reason": "access_tier",
+  "reason": "the likely range crosses the A threshold (0.9), so the grade is A or C; black box access is capped at B, so the grade is B or C"
+}
+```
+
+A ceiling at or above the better end leaves the range as it was, and `ceiling` stays
+`null`. The example at the top of this page is graded under a `B` ceiling for that reason.
 
 ## `indeterminate` is not `ungraded`
 

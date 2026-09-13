@@ -64,9 +64,9 @@ the better letter:
 
 ```console
 Correct answers over the whole sample (headline_accuracy)
-  Grade: A or C, inconclusive
-  Score: 0.91, likely range 0.8783 to 0.9345, 400 results
-  Reason: The likely range crosses the A threshold (0.9), so the grade is A or C
+  Grade: B or C, inconclusive
+  Score: 0.72, likely range 0.6741 to 0.7617, 400 results
+  Reason: The likely range crosses the B threshold (0.7), so the grade is B or C
 ```
 
 **The interval is sampling error, and only that.** It is how far the number would move if
