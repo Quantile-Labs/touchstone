@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Installing touchstone-dqi, and which of the seven commands need Docker.
+description: Installing touchstone-dqi, and which of the eight commands need Docker.
 ---
 
 # Installation
@@ -22,12 +22,12 @@ The command it installs, the package you import, and the name of the project are
 
 ```console
 $ touchstone version
-touchstone 0.4.0
+touchstone 0.5.0
 ```
 
 ## What needs Docker
 
-Two of the seven commands. Everything else reads and writes files.
+Two of the eight commands. Everything else reads and writes files.
 
 | Command | Docker |
 |---|---|
@@ -38,6 +38,7 @@ Two of the seven commands. Everything else reads and writes files.
 | `grade` | no |
 | `bundle` | no |
 | `verify` | no |
+| `report` | no |
 
 This is deliberate. Whoever is handed a bundle has to be able to check it, and requiring
 them to install a container runtime to do arithmetic on a JSON Lines file would put the

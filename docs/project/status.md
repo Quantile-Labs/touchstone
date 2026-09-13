@@ -1,12 +1,47 @@
 ---
 title: Status
-description: What is settled in 0.4.0, what is not, and what is planned.
+description: What is settled in 0.5.0, what is not, and what is planned.
 ---
 
 # Status
 
 Early, and saying so.
 { .lede }
+
+## 0.5.0
+
+**`touchstone report` states what a bundle holds against NIST AI 800-2, as a PDF.** Ten
+practice items, each met, not met or not applicable, with every figure read from
+`estimates.json` and `scorecard.json`. The PDF is written beside the bundle, and the same
+bundle sets the same bytes. See [Reporting](../bundles/reporting.md).
+
+**`environment.json` records what a run cost.** Wall time per unit, and each pack's
+per-row cost summed where the pack reports one.
+
+**A score card can grade movement with an interval.** `source: paired_difference` pairs
+items when both bundles share a plan hash and item ids, and otherwise combines the two
+stored intervals and records why. See [Comparing to a prior
+bundle](../scorecards/prior.md#movement-with-an-interval).
+
+**`estimate` and `grade` refuse to write into a sealed bundle.** A script that re-graded a
+sealed bundle in place now exits 1 with the code `bundle_sealed`. Pass `--out` to write the
+analysis beside it. See [Re-analysis](../bundles/reanalysis.md).
+
+**`validate` finds `packs/` from the plan's location** when the current directory has
+none, so the quick start works from any directory.
+
+**Grade reasons are plain sentences and end on the grade they explain.** Under a ceiling
+that narrows an inconclusive range, the reason names the narrowed range, in the terminal
+and in the PDF. A ceiling that leaves a range as it was is left out of `scorecard.json`, so
+a re-grade can report fewer capped indicators.
+
+A bundle sealed by 0.4.0 verifies as it did, and `report` reads its grade reasons the same
+way. `touchstone_version` stamps `0.5.0`.
+
+```console
+$ touchstone version
+touchstone 0.5.0
+```
 
 ## 0.4.0
 
