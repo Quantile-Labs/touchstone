@@ -82,19 +82,34 @@ def version() -> None:
 def validate(
     plan_path: Annotated[Path, typer.Argument(exists=True, dir_okay=False)],
     manifests: Annotated[
-        Path,
-        typer.Option("--manifests", "-m", help="Directory holding <pack_id>/manifest.yaml"),
-    ] = Path("packs"),
+        Path | None,
+        typer.Option(
+            "--manifests",
+            "-m",
+            exists=True,
+            file_okay=False,
+            help="Directory holding <pack_id>/manifest.yaml. Defaults to packs/ in the "
+            "current directory, else the nearest packs/ at or above the plan",
+        ),
+    ] = None,
     as_json: AsJson = False,
 ) -> None:
     """Check a plan against the manifests of the packs it names."""
     try:
         plan = plan_check.load_plan(plan_path)
+        directory = manifests or plan_check.find_manifests(plan_path)
+        if directory is None:
+            raise errors.PlanError(
+                f"no {plan_check.PACKS_DIR}/ directory in the current directory or above "
+                f"{plan_path}. Pass --manifests with the directory holding "
+                "<pack_id>/manifest.yaml. The example pack is in the source repository and "
+                "is not installed with the package"
+            )
         found = {
             path.parent.name: plan_check.load_manifest(path)
-            for path in sorted(manifests.glob("*/manifest.yaml"))
+            for path in sorted(directory.glob("*/manifest.yaml"))
         }
-        problems = plan_check.check(plan, found, plan_path)
+        problems = plan_check.check(plan, found, plan_path, directory)
     except TouchstoneError as exc:
         if as_json:
             _emit(_raised("validate", exc, path=str(plan_path)))
@@ -103,7 +118,15 @@ def validate(
         raise typer.Exit(1) from exc
 
     if as_json:
-        _emit(_envelope("validate", problems, path=str(plan_path), packs=len(plan.packs)))
+        _emit(
+            _envelope(
+                "validate",
+                problems,
+                path=str(plan_path),
+                packs=len(plan.packs),
+                manifests=str(directory),
+            )
+        )
         if problems:
             raise typer.Exit(1)
         return

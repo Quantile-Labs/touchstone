@@ -35,14 +35,39 @@ def load_manifest(path: Path) -> Manifest:
         raise PlanError(f"{path}: {exc}") from exc
 
 
+PACKS_DIR = "packs"
+
+
+def find_manifests(plan_path: Path) -> Path | None:
+    """The pack directory a plan means when none is named: `packs/` in the current
+    directory, else the nearest `packs/` at or above the plan. None where there is neither.
+
+    The plan's own location is searched so that `validate` works from wherever it is typed,
+    and the current directory comes first so that an explicit layout is never overridden
+    by one found further up.
+    """
+    candidates = [Path(PACKS_DIR), *(parent / PACKS_DIR for parent in plan_path.resolve().parents)]
+    found = next((candidate for candidate in candidates if candidate.is_dir()), None)
+    if found is None or not found.is_absolute():
+        return found
+    try:
+        return found.relative_to(Path.cwd())
+    except ValueError:
+        return found
+
+
 def check(
-    plan: Plan, manifests: dict[str, Manifest], plan_path: Path | None = None
+    plan: Plan,
+    manifests: dict[str, Manifest],
+    plan_path: Path | None = None,
+    manifests_dir: Path | None = None,
 ) -> list[Problem]:
     """Cross-check the plan against pack manifests. Returns every problem, not the first.
 
     `plan_path` is what turns a problem into something an editor can point at. Without it
     the problems are the same problems and carry no position, which is what a caller that
-    holds a `Plan` and not the file it came from can honestly report.
+    holds a `Plan` and not the file it came from can honestly report. `manifests_dir` lets
+    a missing manifest name the file that was expected.
     """
     source = positions.load_source(plan_path) if plan_path is not None else None
     where = str(plan_path) if plan_path is not None else None
@@ -74,7 +99,12 @@ def check(
 
         manifest = manifests.get(pack.id)
         if manifest is None:
-            report("pack_manifest_missing", pack.id, "no manifest found", (*at_pack, "id"), at_pack)
+            expected = (
+                f"no manifest at {manifests_dir / pack.id / 'manifest.yaml'}"
+                if manifests_dir is not None
+                else "no manifest found"
+            )
+            report("pack_manifest_missing", pack.id, expected, (*at_pack, "id"), at_pack)
             continue
 
         for system in manifest.input_systems:

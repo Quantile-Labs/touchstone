@@ -36,6 +36,15 @@ pip install touchstone-dqi
 
 Python 3.12 or later. `freeze` and `run` need Docker; nothing else does.
 
+The examples below use `examples/plan.yaml` and `packs/example_pack` from the source
+repository, which the package does not include. To follow them:
+
+```bash
+git clone https://github.com/Quantile-Labs/touchstone
+cd touchstone
+docker build -t example_pack:1.0 packs/example_pack
+```
+
 > **Note.** The hashes below came from a real run and are specific to the machine that
 > made them. `example_pack` is not published to a registry yet, so the image digest, and
 > every hash that follows it, will differ on yours until it is. The commands themselves

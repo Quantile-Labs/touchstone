@@ -11,6 +11,11 @@ pip install touchstone-dqi
 
 Python 3.12 or later.
 
+The package holds the commands. The example plan and pack the [tutorial](tutorial.md)
+uses are in the source repository, and the tutorial starts by cloning it. `validate` reads
+pack manifests from `packs/` in the current directory, else from the nearest `packs/` at
+or above the plan, and `--manifests` names any other directory.
+
 The distribution is named `touchstone-dqi` because `touchstone` was already taken on PyPI.
 The command it installs, the package you import, and the name of the project are all
 `touchstone`:
