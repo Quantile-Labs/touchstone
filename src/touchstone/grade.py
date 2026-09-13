@@ -386,6 +386,8 @@ def _cap(
 
     A ceiling below the whole indeterminate range settles it: if the grade could not have
     exceeded the ceiling either way, the range collapses and the interval decides nothing.
+    A ceiling inside the range lowers its better end, and the reason says so in the same
+    words the grade is shown in. A ceiling that changes neither end is not recorded.
     """
     level, reason = ceiling
     built = GradedIndicator(
@@ -429,11 +431,26 @@ def _cap(
                     ),
                 }
             )
+        if narrowed == list(decided.between):
+            return built
         return built.model_copy(
-            update={"between": narrowed, "ceiling": level, "ceiling_reason": reason}
+            update={
+                "between": narrowed,
+                "ceiling": level,
+                "ceiling_reason": reason,
+                "reason": (
+                    f"{decided.reason}; {limit_words(reason, level, access_tier)}, so the "
+                    f"grade is {options(narrowed)}"
+                ),
+            }
         )
 
     return built
+
+
+def options(levels: Sequence[str]) -> str:
+    """An indeterminate range as words. A single level is open at the bottom."""
+    return " or ".join([*levels, "none"] if len(levels) == 1 else levels)
 
 
 def _worst_of(score_card: ScoreCard, left: str, right: str) -> str:
@@ -1045,7 +1062,7 @@ def lines(scorecard: Scorecard) -> list[str]:
         score = _score_words(indicator)
         if score:
             rendered.append(f"  Score: {score}")
-        why = _why(indicator, scorecard.access_tier)
+        why = reason_words(indicator, scorecard.access_tier)
         if why:
             rendered.append(f"  Reason: {why}")
         for one in indicator.measured:
@@ -1058,27 +1075,27 @@ def _grade_words(indicator: GradedIndicator) -> str:
     if indicator.verdict == "graded" and indicator.level is not None:
         return indicator.level
     if indicator.verdict == "indeterminate":
-        options = list(indicator.between)
-        if len(options) == 1:
-            options.append("none")
-        return f"{' or '.join(options)}, inconclusive"
+        return f"{options(indicator.between)}, inconclusive"
     return "not graded"
 
 
-def _why(indicator: GradedIndicator, access_tier: str) -> str | None:
-    """The reason for the grade, including a cap that held it down."""
+def reason_words(indicator: GradedIndicator, access_tier: str) -> str | None:
+    """The reason for the grade as a sentence, including a cap that held it down. The
+    printed score card and the PDF both show this, so the two cannot disagree."""
     text = indicator.reason
-    limit = (
-        limit_words(indicator.ceiling_reason, indicator.ceiling, access_tier)
-        if indicator.ceiling is not None
-        else None
-    )
-    if text is None and limit is not None:
+    if indicator.ceiling is None:
+        return text[:1].upper() + text[1:] if text else None
+    limit = limit_words(indicator.ceiling_reason, indicator.ceiling, access_tier)
+    if text is None:
         given = "assessed as" if indicator.audit is not None else "scored"
         text = f"{given} {indicator.uncapped_level}; {limit}"
-    elif text is not None and limit is not None and indicator.verdict == "indeterminate":
-        text = f"{text}; {limit}"
-    return text[:1].upper() + text[1:] if text else None
+    elif indicator.verdict == "indeterminate":
+        shown = options(indicator.between)
+        if not text.endswith(f"so the grade is {shown}"):
+            # A bundle graded before the reason carried the ceiling holds the range before
+            # the cap in `reason` and the range after it in `between`.
+            text = f"{text}; {limit}, so the grade is {shown}"
+    return text[:1].upper() + text[1:]
 
 
 def _score_words(indicator: GradedIndicator) -> str | None:

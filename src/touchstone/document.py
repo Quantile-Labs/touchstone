@@ -12,6 +12,7 @@ Nothing here computes. The figures are read from the bundle and set; the arithme
 happened in `estimate` and `grade`, where it is tested.
 """
 
+from touchstone import grade
 from touchstone.contracts.estimates import Estimates
 from touchstone.contracts.report import Report
 from touchstone.contracts.scorecard import Scorecard
@@ -275,7 +276,7 @@ def _grades(cursor: Cursor, scorecard: Scorecard | None) -> None:
     cursor.down(13)
 
     for indicator in scorecard.indicators:
-        said = indicator.reason[:1].upper() + indicator.reason[1:] if indicator.reason else ""
+        said = grade.reason_words(indicator, scorecard.access_tier)
         reason = wrap(said, REGULAR, 8, COLUMN) if said else []
         cursor.need(22 + 10.5 * len(reason))
         cursor.page.text(LEFT, cursor.y, indicator.id, REGULAR, 8.5, INK)
@@ -284,7 +285,7 @@ def _grades(cursor: Cursor, scorecard: Scorecard | None) -> None:
         )
         _right(
             cursor.page,
-            indicator.level or " or ".join(indicator.between) or "none",
+            indicator.level or (grade.options(indicator.between) if indicator.between else "none"),
             cursor.y,
             BOLD,
             9,

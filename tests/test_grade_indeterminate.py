@@ -12,9 +12,9 @@ is not "port the score card engine".
 import pytest
 
 from touchstone.contracts.estimates import Estimate, Estimates
-from touchstone.contracts.scorecard import ScoreCard
+from touchstone.contracts.scorecard import GradedIndicator, ScoreCard
 from touchstone.errors import ScoreCardError
-from touchstone.grade import grade
+from touchstone.grade import grade, reason_words
 
 LEVELS = ["A", "B", "C", "D", "E", "F", "G", "H"]
 """Eight, per `03-BUILD-PLAN.md` M3, and named nowhere in `src/`. The engine reads the
@@ -131,6 +131,54 @@ def test_the_same_evidence_at_a_higher_tier_stays_indeterminate():
 
     assert verdict.verdict == "indeterminate"
     assert verdict.between == ["A", "C"]
+
+
+def test_a_ceiling_inside_the_range_lowers_its_better_end_and_says_so():
+    """The grade line and the reason are read together, so they have to name the same
+    levels. The range was A to C, and a B ceiling leaves B to C."""
+    card = score_card(tier_ceilings={"black_box": "B"})
+    verdict = only(card, estimates(point=0.91, low=0.87, high=0.94))
+
+    assert verdict.verdict == "indeterminate"
+    assert verdict.between == ["B", "C"]
+    assert (verdict.ceiling, verdict.ceiling_reason) == ("B", "access_tier")
+    assert verdict.reason == (
+        "the likely range crosses the A threshold (0.9), so the grade is A or C; "
+        "black box access is capped at B, so the grade is B or C"
+    )
+
+
+def test_a_ceiling_that_changes_neither_end_is_not_recorded():
+    """`ceiling` is set only where a ceiling bit. A range of C or none under an A ceiling
+    is the range it was."""
+    card = score_card(tier_ceilings={"black_box": "A"})
+    verdict = only(card, estimates(point=0.71, low=0.66, high=0.75))
+
+    assert verdict.between == ["C"]
+    assert (verdict.ceiling, verdict.ceiling_reason) == (None, None)
+    assert verdict.reason.endswith("so the grade is C or none")
+
+
+def test_a_reason_written_before_it_carried_the_ceiling_still_ends_on_the_grade():
+    """A bundle graded by 0.4.0 holds the range before the cap in `reason` and the range
+    after it in `between`, and a report read from it has to name the second."""
+    narrowed = GradedIndicator(
+        id="headline_accuracy",
+        verdict="indeterminate",
+        between=["B", "C"],
+        ceiling="B",
+        ceiling_reason="access_tier",
+        reason="the likely range crosses the A threshold (0.9), so the grade is A or C",
+    )
+    assert reason_words(narrowed, "black_box") == (
+        "The likely range crosses the A threshold (0.9), so the grade is A or C; "
+        "black box access is capped at B, so the grade is B or C"
+    )
+
+    unchanged = narrowed.model_copy(update={"between": ["A", "C"], "ceiling": "A"})
+    assert reason_words(unchanged, "black_box") == (
+        "The likely range crosses the A threshold (0.9), so the grade is A or C"
+    )
 
 
 def test_an_unrecognised_tier_is_refused_rather_than_left_uncapped():

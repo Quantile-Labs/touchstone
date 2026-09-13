@@ -17,7 +17,7 @@ import pytest
 from conftest import StubBackend
 from typer.testing import CliRunner
 
-from touchstone import report
+from touchstone import grade, report
 from touchstone import run as run_plan
 from touchstone.cli import app
 from touchstone.contracts.environment import Environment, PackCost, RunCost
@@ -203,6 +203,49 @@ def test_movement_graded_with_no_paired_source_does_not_meet_the_item(bundle):
     finding = movement_finding(bundle)
     assert finding.status == "not met"
     assert "no indicator reads a paired_difference" in finding.detail
+
+
+def test_the_grades_on_the_page_read_as_the_printed_score_card(bundle, tmp_path):
+    """The page once dropped the ceiling from a capped grade and showed an open range as a
+    single level. Both now come from the words `grade` prints."""
+    capped = GradedIndicator(
+        id="headline",
+        verdict="graded",
+        level="B",
+        uncapped_level="A",
+        ceiling="B",
+        ceiling_reason="access_tier",
+    )
+    open_range = GradedIndicator(
+        id="weakest",
+        verdict="indeterminate",
+        between=["C"],
+        reason="the likely range crosses the C threshold and no lower rule applies, so the "
+        "grade is C or none",
+    )
+    scorecard = Scorecard(
+        touchstone_version="test",
+        score_card_name="test",
+        access_tier="black_box",
+        levels=["A", "B", "C"],
+        indicators=[capped, open_range],
+    )
+    (bundle / "scorecard.json").write_text(scorecard.model_dump_json())
+    out = tmp_path / "statement.pdf"
+    report.write(bundle, out)
+    page = " ".join(text_of(out.read_bytes()).split())
+
+    reasons = [
+        line.removeprefix("  Reason: ") for line in grade.lines(scorecard) if "Reason:" in line
+    ]
+    assert reasons == [
+        "Scored A; black box access is capped at B",
+        "The likely range crosses the C threshold and no lower rule applies, so the grade is "
+        "C or none",
+    ]
+    for reason in reasons:
+        assert reason in page
+    assert "C or none" in page.split("weakest", 1)[1]
 
 
 def test_every_practice_item_appears_exactly_once(bundle):
