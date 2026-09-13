@@ -1,9 +1,10 @@
 """The README quotes real output, so the README is executed.
 
-CONTEXT.md section 6: documentation that describes behaviour has a test. Three blocks are
+CONTEXT.md section 6: documentation that describes behaviour has a test. Four blocks are
 pinned here. The `estimate` example, whose numbers are the published QL-2026-01 figures
-that tests/test_estimate_credential.py exists to reproduce, and the `validate` and
-`verify` lines, which print no hash and so say the same thing on any machine. The hashes
+that tests/test_estimate_credential.py exists to reproduce, the `grade` example, graded
+with the card the README quotes, and the `validate` and `verify` lines, which print no
+hash and so say the same thing on any machine. The hashes
 `freeze` and `bundle` quote cannot be pinned until `example_pack` is published, because
 they follow an image digest that only exists on the machine that built it.
 """
@@ -71,6 +72,50 @@ def test_the_readme_estimate_example_is_what_the_command_prints(tmp_path):
 
     printed = [line.replace(str(tmp_path), "run-004") for line in result.output.splitlines()]
     assert [line for line in printed if line.strip()] == _quoted_lines()
+
+
+GRADE_BLOCK = re.compile(
+    r"```console\n(Correct answers over the whole sample \(headline_accuracy\)\n.*?)```",
+    re.DOTALL,
+)
+DOCS = README.parent / "docs"
+
+
+def test_the_grade_example_is_what_the_example_card_prints(graded, tmp_path):
+    """Graded with the headline indicator of `examples/scorecard.yaml`, the card the README
+    quotes beside the example, so every level in the output is one a reader finds there.
+    The same block is quoted on two documentation pages, and all three have to agree."""
+    run_dir, _ = graded
+    (run_dir / "items.jsonl").write_text(
+        "".join(
+            json.dumps(
+                {
+                    "item_id": f"q{index:03d}",
+                    "pack_id": "example_pack",
+                    "outcome": {"correct": index < 288},
+                }
+            )
+            + "\n"
+            for index in range(400)
+        )
+    )
+    card = yaml.safe_load((EXAMPLES / "scorecard.yaml").read_text())
+    card["indicators"] = [item for item in card["indicators"] if item["id"] == "headline_accuracy"]
+    card_path = tmp_path / "example-card.yaml"
+    card_path.write_text(yaml.safe_dump(card))
+
+    runner = CliRunner()
+    assert runner.invoke(app, ["estimate", str(run_dir)]).exit_code == 0
+    result = runner.invoke(app, ["grade", str(run_dir), "--score-card", str(card_path)])
+    assert result.exit_code == 0, result.output
+
+    printed = result.output.splitlines()
+    start = printed.index("Correct answers over the whole sample (headline_accuracy)")
+    shown = printed[start : printed.index("", start)]
+    for page in (README, DOCS / "index.md", DOCS / "scorecards" / "indeterminate.md"):
+        match = GRADE_BLOCK.search(page.read_text())
+        assert match, f"{page.name} no longer quotes the grade example"
+        assert match.group(1).splitlines() == shown, page.name
 
 
 def test_the_readme_validate_line_is_what_the_command_prints(monkeypatch):
