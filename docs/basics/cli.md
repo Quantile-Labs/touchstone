@@ -34,7 +34,7 @@ touchstone validate [OPTIONS] PLAN_PATH
 | | |
 |---|---|
 | `PLAN_PATH` | the plan file. Required. |
-| `--manifests`, `-m` | directory holding `<pack_id>/manifest.yaml`. Default `packs`. |
+| `--manifests`, `-m` | directory holding `<pack_id>/manifest.yaml`. Default `packs/` in the current directory, else the nearest `packs/` at or above the plan. |
 | `--json` | write one machine-readable envelope to stdout instead of prose. See [Machine-readable output](#machine-readable-output). |
 
 Reads each pack's manifest and confirms the plan supplies the systems it requires, that

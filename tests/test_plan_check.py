@@ -1,5 +1,13 @@
+import shutil
+from pathlib import Path
+
+from typer.testing import CliRunner
+
+from touchstone.cli import app
 from touchstone.contracts import Manifest, Plan
 from touchstone.plan_check import check
+
+EXAMPLE_PLAN = Path(__file__).resolve().parents[1] / "examples" / "plan.yaml"
 
 PLAN = {
     "plan_name": "demo",
@@ -67,3 +75,28 @@ def test_rejects_a_plan_naming_an_unknown_pack():
     assert [(problem.code, problem.message) for problem in problems] == [
         ("pack_manifest_missing", "procedural_ng: no manifest found")
     ]
+
+
+def test_a_missing_manifest_names_the_file_it_expected(tmp_path):
+    problems = check(Plan.model_validate(PLAN), {}, None, tmp_path / "packs")
+    expected = tmp_path / "packs" / "procedural_ng" / "manifest.yaml"
+    assert messages(problems) == [f"procedural_ng: no manifest at {expected}"]
+
+
+def test_validate_finds_the_packs_above_the_plan_from_another_directory(tmp_path, monkeypatch):
+    """The README quick start typed outside the repository used to report no manifest."""
+    monkeypatch.chdir(tmp_path)
+
+    result = CliRunner().invoke(app, ["validate", str(EXAMPLE_PLAN)])
+
+    assert result.exit_code == 0, result.output
+
+
+def test_validate_without_a_packs_directory_says_what_to_pass(tmp_path, monkeypatch):
+    shutil.copy(EXAMPLE_PLAN, tmp_path / "plan.yaml")
+    monkeypatch.chdir(tmp_path)
+
+    result = CliRunner().invoke(app, ["validate", "plan.yaml"])
+
+    assert result.exit_code == 1
+    assert "--manifests" in result.output
