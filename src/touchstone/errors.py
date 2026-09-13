@@ -14,6 +14,10 @@ class BundleError(TouchstoneError):
     """The bundle is malformed or its hashes do not match."""
 
 
+class SealedBundleError(BundleError):
+    """A command was asked to write into a bundle that is already sealed."""
+
+
 class AnchorError(TouchstoneError):
     """The plan hash could not be timestamped."""
 
@@ -35,6 +39,7 @@ class ScoreCardError(TouchstoneError):
 CODES = {
     "PlanError": "plan_error",
     "BundleError": "bundle_error",
+    "SealedBundleError": "bundle_sealed",
     "AnchorError": "anchor_error",
     "BackendError": "backend_error",
     "EstimateError": "estimate_error",

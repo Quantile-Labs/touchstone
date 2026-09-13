@@ -9,6 +9,7 @@ import json
 
 from typer.testing import CliRunner
 
+from touchstone import bundle
 from touchstone.cli import app
 
 runner = CliRunner()
@@ -64,3 +65,74 @@ def test_estimates_missing_says_which_command_to_run_first(graded):
 
     assert result.exit_code == 1
     assert "touchstone estimate" in result.output
+
+
+def _grade(run_dir, card, *extra):
+    return runner.invoke(app, ["grade", str(run_dir), "--score-card", str(card), *extra])
+
+
+def test_grading_a_sealed_bundle_is_refused_and_leaves_it_verifying(graded):
+    """Grading a bundle somebody was handed must not break the evidence they were handed."""
+    run_dir, card = graded
+    bundle.seal(run_dir)
+
+    result = _grade(run_dir, card)
+
+    assert result.exit_code == 1
+    assert "is sealed" in result.output
+    assert "--out" in result.output
+    assert not (run_dir / "scorecard.json").exists()
+    assert bundle.verify(run_dir) == []
+
+
+def test_out_grades_a_sealed_bundle_without_touching_it(graded, tmp_path):
+    run_dir, card = graded
+    bundle.seal(run_dir)
+    mine = tmp_path / "mine"
+
+    result = _grade(run_dir, card, "--out", str(mine))
+
+    assert result.exit_code == 0, result.output
+    assert (mine / "scorecard.json").is_file()
+    assert f"Estimates: {run_dir / 'estimates.json'}" in result.output
+    assert bundle.verify(run_dir) == []
+
+
+def test_out_holding_estimates_is_graded_in_place_of_the_bundles(graded, tmp_path):
+    """Re-estimate beside a sealed bundle, then grade what was re-estimated."""
+    run_dir, card = graded
+    mine = tmp_path / "mine"
+    mine.mkdir()
+    narrower = json.loads((run_dir / "estimates.json").read_text())
+    narrower["estimates"][0] |= {"point": 0.94, "low": 0.92, "high": 0.96, "k": 376}
+    (mine / "estimates.json").write_text(json.dumps(narrower))
+
+    result = _grade(run_dir, card, "--out", str(mine))
+
+    assert result.exit_code == 0, result.output
+    assert f"Estimates: {mine / 'estimates.json'}" in result.output
+    indicator = json.loads((mine / "scorecard.json").read_text())["indicators"][0]
+    assert (indicator["verdict"], indicator["level"]) == ("graded", "A")
+
+
+def test_out_inside_a_sealed_bundle_is_refused(graded):
+    run_dir, card = graded
+    bundle.seal(run_dir)
+
+    result = _grade(run_dir, card, "--out", str(run_dir / "analysis"))
+
+    assert result.exit_code == 1
+    assert not (run_dir / "analysis").exists()
+    assert bundle.verify(run_dir) == []
+
+
+def test_a_sealed_refusal_carries_its_own_code(graded):
+    run_dir, card = graded
+    bundle.seal(run_dir)
+
+    result = _grade(run_dir, card, "--json")
+
+    assert result.exit_code == 1
+    assert [problem["code"] for problem in json.loads(result.stdout)["problems"]] == [
+        "bundle_sealed"
+    ]

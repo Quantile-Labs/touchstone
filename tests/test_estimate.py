@@ -5,6 +5,7 @@ import json
 import pytest
 from typer.testing import CliRunner
 
+from touchstone import bundle
 from touchstone.cli import app
 from touchstone.contracts import ItemRecord
 from touchstone.errors import EstimateError
@@ -300,3 +301,38 @@ def test_a_worst_cell_without_counts_is_refused_rather_than_reported():
     )
     with pytest.raises(EstimateError, match="carries no counts"):
         worst_stratum(stripped, "correct", min_n=30)
+
+
+def _sealed_run(tmp_path):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "items.jsonl").write_text(
+        "".join(
+            json.dumps({"item_id": f"q{index}", "outcome": {"correct": index % 3 != 0}}) + "\n"
+            for index in range(30)
+        )
+    )
+    bundle.seal(run_dir)
+    return run_dir
+
+
+def test_estimating_a_sealed_bundle_is_refused_and_leaves_it_verifying(tmp_path):
+    run_dir = _sealed_run(tmp_path)
+
+    result = CliRunner().invoke(app, ["estimate", str(run_dir)])
+
+    assert result.exit_code == 1
+    assert "is sealed" in result.output
+    assert not (run_dir / ESTIMATES_NAME).exists()
+    assert bundle.verify(run_dir) == []
+
+
+def test_estimate_out_writes_beside_a_sealed_bundle(tmp_path):
+    run_dir = _sealed_run(tmp_path)
+    mine = tmp_path / "mine"
+
+    result = CliRunner().invoke(app, ["estimate", str(run_dir), "--out", str(mine)])
+
+    assert result.exit_code == 0, result.output
+    assert (mine / ESTIMATES_NAME).is_file()
+    assert bundle.verify(run_dir) == []

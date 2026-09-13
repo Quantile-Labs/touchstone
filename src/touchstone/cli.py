@@ -269,16 +269,27 @@ def estimate(
     resamples: Annotated[
         int, typer.Option("--resamples", help="Bootstrap resamples for continuous scores")
     ] = estimate_items.RESAMPLES,
+    out: Annotated[
+        Path | None,
+        typer.Option(
+            "--out",
+            "-o",
+            help="Where to write estimates.json. Defaults to the run directory, which is "
+            "refused once the run is sealed",
+        ),
+    ] = None,
     as_json: AsJson = False,
 ) -> None:
     """Compute rates and intervals, by stratum. Offline, no Docker."""
+    destination = out or run_dir
     try:
+        bundle.refuse_sealed(run_dir, destination, estimate_items.ESTIMATES_NAME)
         items = estimate_items.load_items(run_dir)
         declared = estimate_items.declared_calibration(run_dir)
         estimates = estimate_items.estimate(
             items, by, calibrate, declared, seed=seed, resamples=resamples
         )
-        path = estimate_items.write_estimates(estimates, run_dir)
+        path = estimate_items.write_estimates(estimates, destination)
     except TouchstoneError as exc:
         if as_json:
             _emit(_raised("estimate", exc, path=str(run_dir)))
@@ -338,8 +349,8 @@ def grade(
             "-a",
             exists=True,
             dir_okay=False,
-            help="Responses for the indicators a person assesses. Copied into the run so "
-            "the grade can be recomputed. Without it those indicators are ungraded",
+            help="Responses for the indicators a person assesses. Copied beside the score "
+            "card so the grade can be recomputed. Without it those indicators are ungraded",
         ),
     ] = None,
     prior: Annotated[
@@ -353,9 +364,20 @@ def grade(
             "movement. Without it those indicators are ungraded",
         ),
     ] = None,
+    out: Annotated[
+        Path | None,
+        typer.Option(
+            "--out",
+            "-o",
+            help="Where to write scorecard.json. Defaults to the run directory, which is "
+            "refused once the run is sealed. Estimates are read from here when it holds an "
+            "estimates.json, and from the run directory otherwise",
+        ),
+    ] = None,
     as_json: AsJson = False,
 ) -> None:
     """Apply a score card and produce DQI indicators. Offline, no Docker."""
+    destination = out or run_dir
     try:
         if prior is not None and prior.resolve() == run_dir.resolve():
             circular = f"{prior} is the bundle being graded. Pass a different bundle to --prior"
@@ -366,8 +388,12 @@ def grade(
             typer.echo(circular, err=True)
             raise typer.Exit(1)
 
+        bundle.refuse_sealed(run_dir, destination, grade_run.SCORECARD_NAME)
         card = grade_run.load_scorecard(score_card)
-        estimates = grade_run.load_estimates(run_dir)
+        estimates_dir = (
+            destination if (destination / estimate_items.ESTIMATES_NAME).is_file() else run_dir
+        )
+        estimates = grade_run.load_estimates(estimates_dir)
         tier = grade_run.access_tier(run_dir)
         responses = grade_run.load_audit(audit) if audit else None
         before = grade_run.load_prior(prior) if prior else None
@@ -383,7 +409,7 @@ def grade(
 
         audit_sha256 = None
         if audit is not None:
-            _, audit_sha256 = grade_run.copy_audit(audit, run_dir)
+            _, audit_sha256 = grade_run.copy_audit(audit, destination)
 
         scorecard = grade_run.grade(
             card,
@@ -396,7 +422,7 @@ def grade(
             before,
             grade_run.run_items(run_dir) if before else None,
         )
-        path = grade_run.write_scorecard(scorecard, run_dir)
+        path = grade_run.write_scorecard(scorecard, destination)
     except TouchstoneError as exc:
         if as_json:
             _emit(_raised("grade", exc, path=str(run_dir)))
@@ -419,6 +445,7 @@ def grade(
                     if indicator.verdict == "indeterminate"
                 ],
                 path=str(path),
+                estimates=str(estimates_dir / estimate_items.ESTIMATES_NAME),
                 indicators=len(scorecard.indicators),
                 access_tier=scorecard.access_tier,
                 verdicts=dict(counted),
@@ -439,6 +466,7 @@ def grade(
             else f"different plans, {this_plan} and {earlier_plan}"
         )
         typer.echo(f"Compared with: {prior} ({plans})")
+    typer.echo(f"Estimates: {estimates_dir / estimate_items.ESTIMATES_NAME}")
     typer.echo(f"Saved to: {path}")
     typer.echo("")
     for line in grade_run.lines(scorecard):

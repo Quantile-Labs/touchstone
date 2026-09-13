@@ -20,10 +20,27 @@ from touchstone.contracts.bundle import (
     FileEntry,
 )
 from touchstone.contracts.diagnostics import Problem
-from touchstone.errors import BundleError
+from touchstone.errors import BundleError, SealedBundleError
 
 MANIFEST_NAME = "MANIFEST.json"
 CHUNK = 1 << 20
+
+
+def refuse_sealed(bundle_dir: Path, destination: Path, name: str) -> None:
+    """Raise if writing `name` into `destination` would change a sealed bundle.
+
+    Any file added or rewritten under a sealed directory fails `verify`, so the bundle
+    somebody was handed would stop checking out for a reason that has nothing to do with
+    its evidence. Checked before a command writes anything, so a refusal leaves no trace.
+    """
+    target = destination.resolve()
+    for sealed, shown in ((bundle_dir.resolve(), bundle_dir), (target, destination)):
+        if (sealed / MANIFEST_NAME).is_file() and target.is_relative_to(sealed):
+            raise SealedBundleError(
+                f"{shown} is sealed. Writing {name} into it would make `touchstone verify` "
+                f"fail. Pass --out to write it somewhere else, or remove {MANIFEST_NAME} "
+                "and seal the bundle again"
+            )
 
 
 def sha256_file(path: Path) -> str:
