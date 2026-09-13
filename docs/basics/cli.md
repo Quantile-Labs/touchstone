@@ -10,7 +10,8 @@ $ touchstone --help
 Evaluation runs that produce verifiable evidence.
 ```
 
-Seven commands, in the order they run. Only `freeze` and `run` need Docker.
+Eight commands. The first seven run in this order, and `report` reads a sealed bundle
+afterwards. Only `freeze` and `run` need Docker.
 
 ```text
 validate -> freeze -> run -> estimate -> grade -> bundle -> verify
@@ -245,7 +246,7 @@ The prose output is the default and is unchanged.
 ```console
 $ touchstone validate plan.yaml --json
 {
-  "touchstone_version": "0.4.0",
+  "touchstone_version": "0.5.0",
   "envelope": 1,
   "command": "validate",
   "ok": false,
@@ -289,5 +290,5 @@ ignores what it does not recognise keeps working.
 
 ```console
 $ touchstone version
-touchstone 0.4.0
+touchstone 0.5.0
 ```
