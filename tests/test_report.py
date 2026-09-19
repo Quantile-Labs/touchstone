@@ -74,7 +74,59 @@ def test_a_complete_bundle_still_fails_the_items_this_tool_does_not_satisfy(bund
     stated = report.conformance(bundle)
     failing = {finding.code for finding in stated.findings if finding.status == "not met"}
 
-    assert "assumption_checks" in failing, "the bundle records the estimator, not its premises"
+    assert "constructs_separated" in failing, "the golden bundle pools two packs"
+
+
+def without(bundle_dir: Path, *fields: str) -> None:
+    """Strip `fields` from estimates.json, as a bundle written before they existed."""
+    path = bundle_dir / "estimates.json"
+    held = json.loads(path.read_text())
+    for field in fields:
+        del held[field]
+    path.write_text(json.dumps(held))
+
+
+def finding(bundle_dir: Path, code: str):
+    return next(f for f in report.conformance(bundle_dir).findings if f.code == code)
+
+
+def test_recorded_assumptions_meet_the_item_and_say_what_was_checked(bundle):
+    found = finding(bundle, "assumption_checks")
+    assert found.status == "met"
+    assert "functional form consistent on 3 outcomes" in found.detail
+    assert "independent items not checked" in found.detail
+
+
+def test_a_bundle_written_before_assumptions_were_recorded_does_not_meet_it(bundle):
+    without(bundle, "assumptions")
+    assert finding(bundle, "assumption_checks").status == "not met"
+
+
+def test_variation_names_every_unquantified_source_from_the_budget(bundle):
+    found = finding(bundle, "variation_decomposed")
+    assert found.status == "met"
+    assert "marking, item selection, item leakage, endpoint identity" in found.detail
+
+
+def test_a_bundle_with_no_budget_names_nothing_it_leaves_out(bundle):
+    without(bundle, "uncertainty")
+    found = finding(bundle, "variation_decomposed")
+    assert found.status == "not met"
+    assert "no uncertainty budget" in found.detail
+
+
+def test_the_budget_on_the_page_is_the_one_the_bundle_holds(bundle, tmp_path):
+    out = tmp_path / "statement.pdf"
+    report.write(bundle, out)
+    printed = text_of(out.read_bytes())
+
+    budgets = json.loads((bundle / "estimates.json").read_text())["uncertainty"]
+    assert budgets
+    for budget in budgets:
+        for part in budget["components"]:
+            if part["magnitude"] != "unquantified":
+                assert f"{part['magnitude']:.4f}" in printed
+    assert printed.count("Not quantified: marking, item selection") == len(budgets)
 
 
 def cost_finding(bundle_dir: Path):

@@ -3,8 +3,8 @@
   "files": [
     {
       "path": "estimates.json",
-      "sha256": "6311d447cbfba681bb2d046e2a85f13e436f6625584852482e77cfbb56ac3821",
-      "size": 15223
+      "sha256": "f894660741b8b0ee24b6e58d0b1d786323a73cca95fc89126ea87b82f0c2d187",
+      "size": 29188
     },
     {
       "path": "items.jsonl",
@@ -13,7 +13,7 @@
     }
   ],
   "run_ledger": "absent",
-  "sealed_utc": "2026-09-01T17:14:20Z",
-  "sha256": "fed077894e1fb3cd8aec1889a5b3e2b224ef2abf4d0382653933cb68cf202b84",
-  "touchstone_version": "0.3.0"
+  "sealed_utc": "2026-09-19T11:59:38Z",
+  "sha256": "7138def0520b5e8503bf5b00a0579f8d98334a4e3c2f08080115aa57f728d469",
+  "touchstone_version": "0.5.0"
 }

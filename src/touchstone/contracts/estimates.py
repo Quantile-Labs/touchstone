@@ -9,6 +9,8 @@ carries the method, its parameters and a citation, and the arithmetic can be red
 in a spreadsheet, or by hand without this code.
 """
 
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -177,6 +179,70 @@ class ReplicateVariance(BaseModel):
     model_config = {"extra": "forbid"}
 
 
+class UncertaintyComponent(BaseModel):
+    """One source of uncertainty in a figure, with its size or the statement that it has none.
+
+    The shape is the uncertainty budget of JCGM 100:2008, the GUM: every component, its size
+    and how it was evaluated. A budget listing only the components that have numbers reads as
+    complete, so a source nothing here measures is listed as `unquantified` rather than
+    left out."""
+
+    source: str = Field(min_length=1)
+    """`sampling`, `completion_sampling`, `item_sampling`, `marking`, `item_selection`,
+    `item_leakage`, `endpoint_identity`."""
+
+    magnitude: float | Literal["unquantified"]
+    """A standard uncertainty on the scale of the figure. Quantified components are
+    independent and combine in quadrature."""
+
+    method: str = Field(min_length=1)
+    """How the magnitude was obtained, or what would be needed to obtain one."""
+
+    reference: str | None = None
+
+    model_config = {"extra": "forbid"}
+
+
+class UncertaintyBudget(BaseModel):
+    """Every known source of uncertainty in one whole-sample figure."""
+
+    metric: str = Field(min_length=1)
+    pack_id: str | None = None
+    point: float
+    components: list[UncertaintyComponent] = Field(min_length=1)
+
+    model_config = {"extra": "forbid"}
+
+
+class Assumption(BaseModel):
+    """A premise the estimators rest on, and what checking it found.
+
+    NIST AI 800-2 ipd Practice 3.1 item 1 asks for modelling assumptions to be reported
+    with the results of any checks of them. NIST AI 800-3 section 6.2 names the ones a
+    regression-free estimator fails silently on, which is why an unchecked one is listed
+    rather than omitted."""
+
+    name: Literal["unidimensional", "functional_form", "independent_items"]
+    statement: str = Field(min_length=1)
+    """What is assumed, in the terms of this bundle."""
+
+    metric: str | None = None
+    """The outcome a check ran over. None for an assumption about the whole bundle."""
+
+    pack_id: str | None = None
+
+    result: Literal["consistent", "violated", "not checked"]
+    """`consistent` is a check that found no evidence against the assumption, which is
+    weaker than showing it holds."""
+
+    finding: str = Field(min_length=1)
+    method: str | None = None
+    parameters: dict[str, float | int | str] = Field(default_factory=dict)
+    reference: str | None = None
+
+    model_config = {"extra": "forbid"}
+
+
 class Estimates(BaseModel):
     """The `estimates.json` of an evidence bundle."""
 
@@ -205,5 +271,11 @@ class Estimates(BaseModel):
 
     replicate_variance: list[ReplicateVariance] = Field(default_factory=list)
     """One per boolean outcome, where the plan asked for more than one replicate."""
+
+    uncertainty: list[UncertaintyBudget] = Field(default_factory=list)
+    """One per whole-sample figure. Empty in a bundle written before budgets existed."""
+
+    assumptions: list[Assumption] = Field(default_factory=list)
+    """Empty in a bundle written before assumptions were recorded."""
 
     model_config = {"extra": "forbid"}

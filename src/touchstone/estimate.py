@@ -13,9 +13,16 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from touchstone import __version__
+from touchstone import __version__, uncertainty
 from touchstone.contracts import ItemRecord
-from touchstone.contracts.estimates import Calibration, Estimate, Estimates, WorstStratum
+from touchstone.contracts.estimates import (
+    Calibration,
+    Estimate,
+    Estimates,
+    ReplicateVariance,
+    UncertaintyBudget,
+    WorstStratum,
+)
 from touchstone.errors import EstimateError
 from touchstone.freeze import LOCK_NAME, load_lock
 from touchstone.run import ITEMS_NAME
@@ -237,6 +244,17 @@ def _calibrate(
     return curve, rate
 
 
+def _budgets(computed: list[Estimate], spreads: list[ReplicateVariance]) -> list[UncertaintyBudget]:
+    """One budget per whole-sample figure."""
+    variance = {(spread.metric, spread.pack_id): spread for spread in spreads}
+    budgets = [
+        uncertainty.budget(entry, variance.get((entry.metric, entry.pack_id)))
+        for entry in computed
+        if not entry.stratum
+    ]
+    return [found for found in budgets if found is not None]
+
+
 def estimate(
     items: list[ItemRecord],
     keys: list[str] | None = None,
@@ -312,6 +330,8 @@ def estimate(
         estimates=computed,
         calibration=curves,
         replicate_variance=spreads,
+        uncertainty=_budgets(computed, spreads),
+        assumptions=uncertainty.assumptions(packs, spreads),
     )
 
 
@@ -406,6 +426,10 @@ def _where(entry: Estimate) -> str:
     return ", ".join(parts) if parts else "overall"
 
 
+def _words(name: str) -> str:
+    return name.replace("_", " ")
+
+
 def lines(estimates: Estimates) -> list[str]:
     """One printed line per estimate. Never a rate without its interval and denominator."""
     rendered = []
@@ -445,4 +469,25 @@ def lines(estimates: Estimates) -> list[str]:
                 f"{parts.trials:g} trial(s): completion {parts.completion:.5f}, "
                 f"item {parts.item:.5f}, total {parts.total:.5f}"
             )
+    unsized = {
+        part.source: None
+        for budget in estimates.uncertainty
+        for part in budget.components
+        if part.magnitude == "unquantified"
+    }
+    if unsized:
+        rendered.append(f"  not quantified: {', '.join(_words(source) for source in unsized)}")
+    unchecked = {a.name: None for a in estimates.assumptions if a.result == "not checked"}
+    for assumed in estimates.assumptions:
+        if assumed.result != "not checked":
+            scope = " ".join(part for part in (assumed.pack_id, assumed.metric) if part)
+            tested = assumed.parameters.get("p_value")
+            rendered.append(
+                f"  {_words(assumed.name)} [{scope}]: {assumed.result}"
+                + (f", p = {tested:.3g}" if isinstance(tested, float) else "")
+            )
+    if unchecked:
+        rendered.append(
+            f"  assumptions not checked: {', '.join(_words(name) for name in unchecked)}"
+        )
     return rendered

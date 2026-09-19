@@ -17,6 +17,8 @@ run-004/estimates.json: 3 estimate(s) from 6772 item(s)
   evidenced [overall]: 3.6% (95% CI 3.2-4.0%, n=6772)
   evidenced [rung=hybas_entry]: 0.0% (95% CI 0.0-0.1%, n=3682)
   evidenced [rung=real_gauge]: 7.8% (95% CI 6.9-8.8%, n=3090)
+  not quantified: marking, item selection, item leakage, endpoint identity
+  assumptions not checked: unidimensional, functional form, independent items
 ```
 
 ## No bare proportion leaves the laboratory

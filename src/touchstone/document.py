@@ -259,6 +259,106 @@ def _measurements(cursor: Cursor, estimates: Estimates | None) -> None:
     )
 
 
+def _words(name: str) -> str:
+    return name.replace("_", " ")
+
+
+def _uncertainty(cursor: Cursor, estimates: Estimates | None) -> None:
+    """Each whole-sample figure's budget: the sized components, then what is not sized."""
+    if estimates is None or not estimates.uncertainty:
+        return
+    _heading(cursor, "Uncertainty")
+
+    _label(cursor, "figure and source", LEFT)
+    _right(cursor.page, "STANDARD UNCERTAINTY", cursor.y, REGULAR, 6.5, FAINT, tracking=1.1)
+    cursor.down(6)
+    cursor.rule(grey=0.55)
+    cursor.down(13)
+
+    for budget in estimates.uncertainty:
+        sized = [part for part in budget.components if part.magnitude != "unquantified"]
+        unsized = ", ".join(
+            _words(part.source) for part in budget.components if part.magnitude == "unquantified"
+        )
+        note = wrap(f"Not quantified: {unsized}.", REGULAR, 8, COLUMN - 12) if unsized else []
+        cursor.need(13 + 12 * len(sized) + 10.5 * len(note) + 14)
+
+        scope = f"{budget.pack_id}, " if budget.pack_id else ""
+        cursor.page.text(LEFT, cursor.y, f"{scope}{budget.metric}", REGULAR, 8.5, INK)
+        cursor.down(12)
+        for part in sized:
+            cursor.page.text(LEFT + 12, cursor.y, _words(part.source), REGULAR, 8.5, MUTED)
+            _right(cursor.page, f"{part.magnitude:.4f}", cursor.y, REGULAR, 8.5, INK)
+            cursor.down(12)
+        for line in note:
+            cursor.page.text(LEFT + 12, cursor.y, line, REGULAR, 8, FAINT)
+            cursor.down(10.5)
+        cursor.down(1)
+        cursor.rule(grey=0.92)
+        cursor.down(12)
+
+    cursor.down(2)
+    _paragraph(
+        cursor,
+        "Standard uncertainties are on the scale of the figure and combine in quadrature. "
+        "The method behind each is in estimates.json.",
+        LEFT,
+        7.5,
+        FAINT,
+    )
+
+
+ASSUMPTION_WORDS = {
+    "consistent": "consistent",
+    "violated": "not supported",
+    "not checked": "not checked",
+}
+"""The result as the page shows it. `estimates.json` keeps the field's own values."""
+
+
+def _assumptions(cursor: Cursor, estimates: Estimates | None) -> None:
+    if estimates is None or not estimates.assumptions:
+        return
+    _heading(cursor, "Assumptions")
+
+    _label(cursor, "assumption", LEFT)
+    _right(cursor.page, "RESULT", cursor.y, REGULAR, 6.5, FAINT, tracking=1.1)
+    cursor.down(6)
+    cursor.rule(grey=0.55)
+    cursor.down(13)
+
+    for assumed in estimates.assumptions:
+        said = (
+            f"{assumed.statement}. {assumed.finding[:1].upper()}{assumed.finding[1:].rstrip('.')}."
+        )
+        finding = wrap(said, REGULAR, 8, COLUMN)
+        cursor.need(22 + 10.5 * len(finding))
+        scope = ", ".join(part for part in (assumed.pack_id, assumed.metric) if part)
+        cursor.page.text(
+            LEFT,
+            cursor.y,
+            _words(assumed.name) + (f" ({scope})" if scope else ""),
+            REGULAR,
+            8.5,
+            INK,
+        )
+        _right(
+            cursor.page,
+            ASSUMPTION_WORDS[assumed.result],
+            cursor.y,
+            REGULAR,
+            8.5,
+            INK if assumed.result == "violated" else MUTED,
+        )
+        cursor.down(11)
+        for line in finding:
+            cursor.page.text(LEFT, cursor.y, line, REGULAR, 8, FAINT)
+            cursor.down(10.5)
+        cursor.down(1)
+        cursor.rule(grey=0.92)
+        cursor.down(12)
+
+
 VERDICT_WORDS = {"graded": "graded", "indeterminate": "inconclusive", "ungraded": "not graded"}
 """The verdict as the page shows it. `scorecard.json` keeps the field's own values."""
 
@@ -341,6 +441,8 @@ def build(report: Report, estimates: Estimates | None, scorecard: Scorecard | No
     _masthead(cursor, report)
     _findings(cursor, report)
     _measurements(cursor, estimates)
+    _uncertainty(cursor, estimates)
+    _assumptions(cursor, estimates)
     _grades(cursor, scorecard)
     _colophon(cursor, report)
     _footers(cursor.pages, report)

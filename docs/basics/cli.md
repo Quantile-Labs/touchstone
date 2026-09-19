@@ -105,6 +105,8 @@ run-004/estimates.json: 3 estimate(s) from 6772 item(s)
   evidenced [overall]: 3.6% (95% CI 3.2-4.0%, n=6772)
   evidenced [rung=hybas_entry]: 0.0% (95% CI 0.0-0.1%, n=3682)
   evidenced [rung=real_gauge]: 7.8% (95% CI 6.9-8.8%, n=3090)
+  not quantified: marking, item selection, item leakage, endpoint identity
+  assumptions not checked: unidimensional, functional form, independent items
 ```
 
 ```text
@@ -211,7 +213,7 @@ State what a bundle holds against each practice item, as a PDF.
 
 ```console
 $ touchstone report ./run-004
-./run-004.pdf: 10 practice item(s), 3 not met
+./run-004.pdf: 10 practice item(s), 2 not met
               met    3.1.3  Every reported figure carries an interval and names the method
           not met    3.2.3  The cost of producing the result is recorded
 ```

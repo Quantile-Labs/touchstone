@@ -14,7 +14,7 @@ the same bundle as a document those readers can open.
 
 ```console
 $ touchstone report ./run-004
-./run-004.pdf: 10 practice item(s), 3 not met
+./run-004.pdf: 10 practice item(s), 2 not met
 ```
 
 The statement is written beside the bundle, never inside it. A file the manifest does not
@@ -40,21 +40,16 @@ Six items come from NIST AI 800-2 ipd, Practices 3.1 to 3.3:
 | 3.3 | Claims are qualified by what the evidence supports |
 
 Four more are added here, because the practices as summarised elsewhere miss them: the
-estimand each interval covers is named, the assumption checks behind each estimator are
-recorded, figures from packs measuring different things are not aggregated, and movement
+estimand each interval covers is named, the [assumption
+checks](../estimation/uncertainty.md#the-assumptions) behind each estimator are recorded,
+figures from packs measuring different things are not aggregated, and movement
 against an earlier evaluation is estimated as a paired difference.
 
 ## It reports failures as failures
 
 A statement listing only what passed is marketing, and the first reviewer who diffs it
-against the practice list will say so. One item fails on every bundle this tool produces
-today.
-
-**Assumption checks are not recorded.** The bundle names the estimator that ran and not
-whether its premises hold. A Wilson interval over a sample that is not exchangeable is
-arithmetic on the wrong model, and nothing here would say so.
-
-Two more fail on the tutorial bundle, and both come down to the pack.
+against the practice list will say so. Two items fail on the tutorial bundle, and both
+come down to the pack.
 
 **Costs are recorded in part.** `run` measures the wall time of every unit and writes it to
 `environment.json`. Tokens and spend are only visible to the pack, which reports them on

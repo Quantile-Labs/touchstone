@@ -18,7 +18,8 @@ that came from sampling items. Only the first shrinks when a plan buys more repl
 """
 
 from collections import defaultdict
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
+from math import erfc, exp, gamma, sqrt
 from statistics import fmean, stdev, variance
 
 from touchstone.contracts import ItemRecord
@@ -29,6 +30,58 @@ COMPONENTS_REFERENCE = (
     "additive sources of variation in a score, from sampling completions per item and "
     "from sampling items."
 )
+
+HOMOGENEITY_REFERENCE = (
+    "Pearson, K. (1900). On the criterion that a given system of deviations from the "
+    "probable in the case of a correlated system of variables is such that it can be "
+    "reasonably supposed to have arisen from random sampling. Philosophical Magazine, "
+    "series 5, 50(302), 157-175. The chi-square test of homogeneity over a 2 by r table."
+)
+
+
+def chi_square_sf(statistic: float, df: int) -> float:
+    """P(X >= statistic) for X chi-square on `df` degrees of freedom.
+
+    Closed form for an integer `df`, which is the only kind a contingency table has: a
+    finite Poisson sum for even `df`, and the same sum over half-integers plus a
+    complementary error function for odd.
+    """
+    if df < 1:
+        raise ValueError(f"a chi-square needs at least 1 degree of freedom, got {df}")
+    if statistic <= 0:
+        return 1.0
+    half = statistic / 2
+    if df % 2 == 0:
+        term = total = exp(-half)
+        for i in range(1, df // 2):
+            term *= half / i
+            total += term
+    else:
+        total = erfc(sqrt(half))
+        term = exp(-half) * sqrt(half) / gamma(1.5)
+        for i in range(1, (df - 1) // 2 + 1):
+            total += term
+            term *= half / (i + 0.5)
+    return min(1.0, total)
+
+
+def homogeneity(rates: Mapping[int, tuple[int, int]]) -> tuple[float, int, float] | None:
+    """Pearson's statistic, its degrees of freedom and p-value for equal replicate rates.
+
+    None below two replicates with observations. The test treats replicates as
+    independent samples, and replicates of one plan draw the same items, which makes the
+    replicate rates move together and the test conservative: a small p-value here is
+    stronger evidence of drift than its nominal level says, never weaker.
+    """
+    observed = [(k, n) for k, n in rates.values() if n]
+    if len(observed) < 2:
+        return None
+    df = len(observed) - 1
+    pooled = sum(k for k, _ in observed) / sum(n for _, n in observed)
+    if pooled in (0.0, 1.0):
+        return 0.0, df, 1.0
+    statistic = sum((k - n * pooled) ** 2 / (n * pooled * (1 - pooled)) for k, n in observed)
+    return statistic, df, chi_square_sf(statistic, df)
 
 
 def variance_components(cells: Sequence[tuple[int, int]]) -> VarianceComponents | None:
