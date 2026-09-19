@@ -1,12 +1,34 @@
 ---
 title: Status
-description: What is settled in 0.5.0, what is not, and what is planned.
+description: What is settled in 0.6.0, what is not, and what is planned.
 ---
 
 # Status
 
 Early, and saying so.
 { .lede }
+
+## 0.6.0
+
+**`estimates.json` carries an uncertainty budget.** Each whole-sample figure lists its
+sampling uncertainty, split into completions and items where the plan ran replicates, and
+names marking, item selection, item leakage and endpoint identity as unquantified. See
+[Uncertainty and assumptions](../estimation/uncertainty.md).
+
+**`estimates.json` records the assumptions behind the estimators.** The functional form is
+tested across replicates with Pearson's chi-square, and unidimensionality and item
+independence are recorded as not checked.
+
+**`report` prints both.** The assumption item is now met on any bundle `estimate` writes.
+Item 3.1.4 now needs the budget, so a bundle estimated by 0.5.0 fails it until it is
+estimated again with `--out`.
+
+A bundle sealed by 0.5.0 verifies as it did. `touchstone_version` stamps `0.6.0`.
+
+```console
+$ touchstone version
+touchstone 0.6.0
+```
 
 ## 0.5.0
 
@@ -37,11 +59,6 @@ a re-grade can report fewer capped indicators.
 
 A bundle sealed by 0.4.0 verifies as it did, and `report` reads its grade reasons the same
 way. `touchstone_version` stamps `0.5.0`.
-
-```console
-$ touchstone version
-touchstone 0.5.0
-```
 
 ## 0.4.0
 

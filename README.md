@@ -267,7 +267,7 @@ says what the evidence supports; nothing in it amounts to an approval.
 
 ## Status
 
-Early, and saying so. 0.5.0 is the current release, all eight commands work and are
+Early, and saying so. 0.6.0 is the current release, all eight commands work and are
 tested doing it, and this document describes the code that is on PyPI. The four files a
 person writes have published [JSON
 Schemas](https://touchstone.quantilelabs.com/reference/schemas/), so an editor with a YAML
