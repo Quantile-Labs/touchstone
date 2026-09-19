@@ -122,7 +122,7 @@ def conformance(bundle_dir: Path, contents: Contents | None = None) -> Report:
             _code_and_image(lock),
             _claims_qualified(scorecard),
             _estimand(estimates),
-            _assumption_checks(),
+            _assumption_checks(estimates),
             _constructs(estimates),
             _paired_difference(scorecard),
         ],
@@ -158,19 +158,41 @@ def _uncertainty(estimates: Estimates | None) -> Finding:
     )
 
 
+def _unquantified(estimates: Estimates) -> list[str]:
+    """Every source some budget in the bundle lists as unquantified, in the order listed."""
+    named = [
+        part.source.replace("_", " ")
+        for budget in estimates.uncertainty
+        for part in budget.components
+        if part.magnitude == "unquantified"
+    ]
+    return list(dict.fromkeys(named))
+
+
 def _variation(estimates: Estimates | None) -> Finding:
     requirement = "Sources of variation are decomposed, or named as unquantified"
-    if estimates is None or not estimates.replicate_variance:
+    if estimates is None or not estimates.uncertainty:
+        return Finding(
+            code="variation_decomposed",
+            practice="3.1.4",
+            requirement=requirement,
+            status="not met",
+            detail="the bundle carries no uncertainty budget, so nothing names what the "
+            "intervals leave out",
+            evidence=[ESTIMATES_NAME] if estimates else [],
+        )
+    unnamed = f"Named unquantified: {', '.join(_unquantified(estimates))}"
+    if not estimates.replicate_variance:
         return Finding(
             code="variation_decomposed",
             practice="3.1.4",
             requirement=requirement,
             status="not met",
             detail=(
-                "the run holds one replicate per item, so between-replicate variance was "
-                "never measured and the interval reflects sampling error alone"
+                "the run holds one replicate per item, so sampling completions and sampling "
+                f"items are one component and cannot be told apart. {unnamed}"
             ),
-            evidence=[ESTIMATES_NAME] if estimates else [],
+            evidence=[ESTIMATES_NAME],
         )
     return Finding(
         code="variation_decomposed",
@@ -179,8 +201,7 @@ def _variation(estimates: Estimates | None) -> Finding:
         status="met",
         detail=(
             f"{_count(len(estimates.replicate_variance), 'outcome')} split into variance "
-            "from sampling completions and from sampling items. Three sources are named "
-            "unquantified: item selection against deployment, judge error, and item leakage"
+            f"from sampling completions and from sampling items. {unnamed}"
         ),
         evidence=[ESTIMATES_NAME],
     )
@@ -380,16 +401,38 @@ def _estimand(estimates: Estimates | None) -> Finding:
     )
 
 
-def _assumption_checks() -> Finding:
+def _assumption_checks(estimates: Estimates | None) -> Finding:
+    requirement = "The checks behind each estimator's assumptions are recorded"
+    if estimates is None or not estimates.assumptions:
+        return Finding(
+            code="assumption_checks",
+            requirement=requirement,
+            status="not met",
+            detail=(
+                "the bundle records which estimator ran and not whether its assumptions hold. "
+                "A Wilson interval on a sample that is not exchangeable is arithmetic on the "
+                "wrong model, and nothing here would say so"
+            ),
+            evidence=[ESTIMATES_NAME] if estimates else [],
+        )
+    results: dict[str, list[str]] = {}
+    for assumed in estimates.assumptions:
+        results.setdefault(assumed.name.replace("_", " "), []).append(assumed.result)
+    stated = "; ".join(
+        f"{name} "
+        + " and ".join(
+            f"{result} on {_count(found.count(result), 'outcome')}" if len(found) > 1 else result
+            for result in dict.fromkeys(found)
+        )
+        for name, found in results.items()
+    )
     return Finding(
         code="assumption_checks",
-        requirement="The checks behind each estimator's assumptions are recorded",
-        status="not met",
-        detail=(
-            "the bundle records which estimator ran and not whether its assumptions hold. "
-            "A Wilson interval on a sample that is not exchangeable is arithmetic on the "
-            "wrong model, and nothing here would say so"
-        ),
+        requirement=requirement,
+        status="met",
+        detail=f"{_count(len(results), 'assumption')} named, each with what checking it "
+        f"found. {stated}",
+        evidence=[ESTIMATES_NAME],
     )
 
 

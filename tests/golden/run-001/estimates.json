@@ -1,4 +1,76 @@
 {
+  "assumptions": [
+    {
+      "finding": "checking it needs a latent variable model over the rows, and the estimators here fit none. The figures carrying no pack pool 2 packs, where it is least likely to hold",
+      "method": null,
+      "metric": null,
+      "name": "unidimensional",
+      "pack_id": null,
+      "parameters": {},
+      "reference": null,
+      "result": "not checked",
+      "statement": "The items of a figure measure one construct"
+    },
+    {
+      "finding": "replicate rates 0.667, 0.667 are within chance (chi-square 0.00 on 1 df, p = 1)",
+      "method": "pearson_chi_square_homogeneity",
+      "metric": "correct",
+      "name": "functional_form",
+      "pack_id": null,
+      "parameters": {
+        "alpha": 0.05,
+        "df": 1,
+        "p_value": 1.0,
+        "statistic": 0.0
+      },
+      "reference": "Pearson, K. (1900). On the criterion that a given system of deviations from the probable in the case of a correlated system of variables is such that it can be reasonably supposed to have arisen from random sampling. Philosophical Magazine, series 5, 50(302), 157-175. The chi-square test of homogeneity over a 2 by r table.",
+      "result": "consistent",
+      "statement": "Each item has one probability of success, and every trial of it is a draw at that probability"
+    },
+    {
+      "finding": "replicate rates 0.667, 0.667 are within chance (chi-square 0.00 on 1 df, p = 1)",
+      "method": "pearson_chi_square_homogeneity",
+      "metric": "correct",
+      "name": "functional_form",
+      "pack_id": "credit_pack",
+      "parameters": {
+        "alpha": 0.05,
+        "df": 1,
+        "p_value": 1.0,
+        "statistic": 0.0
+      },
+      "reference": "Pearson, K. (1900). On the criterion that a given system of deviations from the probable in the case of a correlated system of variables is such that it can be reasonably supposed to have arisen from random sampling. Philosophical Magazine, series 5, 50(302), 157-175. The chi-square test of homogeneity over a 2 by r table.",
+      "result": "consistent",
+      "statement": "Each item has one probability of success, and every trial of it is a draw at that probability"
+    },
+    {
+      "finding": "replicate rates 0.667, 0.667 are within chance (chi-square 0.00 on 1 df, p = 1)",
+      "method": "pearson_chi_square_homogeneity",
+      "metric": "correct",
+      "name": "functional_form",
+      "pack_id": "flood_pack",
+      "parameters": {
+        "alpha": 0.05,
+        "df": 1,
+        "p_value": 1.0,
+        "statistic": 0.0
+      },
+      "reference": "Pearson, K. (1900). On the criterion that a given system of deviations from the probable in the case of a correlated system of variables is such that it can be reasonably supposed to have arisen from random sampling. Philosophical Magazine, series 5, 50(302), 157-175. The chi-square test of homogeneity over a 2 by r table.",
+      "result": "consistent",
+      "statement": "Each item has one probability of success, and every trial of it is a draw at that probability"
+    },
+    {
+      "finding": "checking it needs item groups, such as items sharing a source document, and the rows do not carry them",
+      "method": null,
+      "metric": null,
+      "name": "independent_items",
+      "pack_id": null,
+      "parameters": {},
+      "reference": null,
+      "result": "not checked",
+      "statement": "Items are independent of one another once each is scored"
+    }
+  ],
   "calibration": [
     {
       "bins": [
@@ -552,5 +624,284 @@
       "unstable_items": 0
     }
   ],
-  "touchstone_version": "0.3.0"
+  "touchstone_version": "0.5.0",
+  "uncertainty": [
+    {
+      "components": [
+        {
+          "magnitude": 0.0,
+          "method": "anova_moment, the completion term over 60 items",
+          "reference": "NIST AI 800-3, Appendix A.3, equation 22. doi:10.6028/NIST.AI.800-3. The two additive sources of variation in a score, from sampling completions per item and from sampling items.",
+          "source": "completion_sampling"
+        },
+        {
+          "magnitude": 0.061371641193221554,
+          "method": "anova_moment, the item term over 60 items",
+          "reference": "NIST AI 800-3, Appendix A.3, equation 22. doi:10.6028/NIST.AI.800-3. The two additive sources of variation in a score, from sampling completions per item and from sampling items.",
+          "source": "item_sampling"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no agreement study between how outcomes were marked and a reference marking",
+          "reference": null,
+          "source": "marking"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no measure of how well the items represent the use a claim is about",
+          "reference": null,
+          "source": "item_selection"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no test of whether the system saw the items before it was evaluated",
+          "reference": null,
+          "source": "item_leakage"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no check that the endpoint that answered is the system named",
+          "reference": null,
+          "source": "endpoint_identity"
+        }
+      ],
+      "metric": "correct",
+      "pack_id": null,
+      "point": 0.6666666666666666
+    },
+    {
+      "components": [
+        {
+          "magnitude": 0.012542517006802756,
+          "method": "half the width of the bootstrap_bca interval over z = 1.9600",
+          "reference": "Efron, B. (1987). Better bootstrap confidence intervals. Journal of the American Statistical Association 82(397), 171-185.",
+          "source": "sampling"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no agreement study between how outcomes were marked and a reference marking",
+          "reference": null,
+          "source": "marking"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no measure of how well the items represent the use a claim is about",
+          "reference": null,
+          "source": "item_selection"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no test of whether the system saw the items before it was evaluated",
+          "reference": null,
+          "source": "item_leakage"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no check that the endpoint that answered is the system named",
+          "reference": null,
+          "source": "endpoint_identity"
+        }
+      ],
+      "metric": "quality",
+      "pack_id": null,
+      "point": 0.6975
+    },
+    {
+      "components": [
+        {
+          "magnitude": 0.015350492468860432,
+          "method": "half the width of the wilson_clustered interval over z = 1.9600",
+          "reference": "Kish, L. (1965). Survey Sampling. Wiley, section 8.2. The design effect, and the effective sample size a clustered design is worth.",
+          "source": "sampling"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no agreement study between how outcomes were marked and a reference marking",
+          "reference": null,
+          "source": "marking"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no measure of how well the items represent the use a claim is about",
+          "reference": null,
+          "source": "item_selection"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no test of whether the system saw the items before it was evaluated",
+          "reference": null,
+          "source": "item_leakage"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no check that the endpoint that answered is the system named",
+          "reference": null,
+          "source": "endpoint_identity"
+        }
+      ],
+      "metric": "confident_and_wrong(correct)",
+      "pack_id": null,
+      "point": 0.0
+    },
+    {
+      "components": [
+        {
+          "magnitude": 0.0,
+          "method": "anova_moment, the completion term over 30 items",
+          "reference": "NIST AI 800-3, Appendix A.3, equation 22. doi:10.6028/NIST.AI.800-3. The two additive sources of variation in a score, from sampling completions per item and from sampling items.",
+          "source": "completion_sampling"
+        },
+        {
+          "magnitude": 0.0875376219064817,
+          "method": "anova_moment, the item term over 30 items",
+          "reference": "NIST AI 800-3, Appendix A.3, equation 22. doi:10.6028/NIST.AI.800-3. The two additive sources of variation in a score, from sampling completions per item and from sampling items.",
+          "source": "item_sampling"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no agreement study between how outcomes were marked and a reference marking",
+          "reference": null,
+          "source": "marking"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no measure of how well the items represent the use a claim is about",
+          "reference": null,
+          "source": "item_selection"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no test of whether the system saw the items before it was evaluated",
+          "reference": null,
+          "source": "item_leakage"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no check that the endpoint that answered is the system named",
+          "reference": null,
+          "source": "endpoint_identity"
+        }
+      ],
+      "metric": "correct",
+      "pack_id": "credit_pack",
+      "point": 0.6666666666666666
+    },
+    {
+      "components": [
+        {
+          "magnitude": 0.018282312925170095,
+          "method": "half the width of the bootstrap_bca interval over z = 1.9600",
+          "reference": "Efron, B. (1987). Better bootstrap confidence intervals. Journal of the American Statistical Association 82(397), 171-185.",
+          "source": "sampling"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no agreement study between how outcomes were marked and a reference marking",
+          "reference": null,
+          "source": "marking"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no measure of how well the items represent the use a claim is about",
+          "reference": null,
+          "source": "item_selection"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no test of whether the system saw the items before it was evaluated",
+          "reference": null,
+          "source": "item_leakage"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no check that the endpoint that answered is the system named",
+          "reference": null,
+          "source": "endpoint_identity"
+        }
+      ],
+      "metric": "quality",
+      "pack_id": "credit_pack",
+      "point": 0.6950000000000001
+    },
+    {
+      "components": [
+        {
+          "magnitude": 0.0,
+          "method": "anova_moment, the completion term over 30 items",
+          "reference": "NIST AI 800-3, Appendix A.3, equation 22. doi:10.6028/NIST.AI.800-3. The two additive sources of variation in a score, from sampling completions per item and from sampling items.",
+          "source": "completion_sampling"
+        },
+        {
+          "magnitude": 0.0875376219064817,
+          "method": "anova_moment, the item term over 30 items",
+          "reference": "NIST AI 800-3, Appendix A.3, equation 22. doi:10.6028/NIST.AI.800-3. The two additive sources of variation in a score, from sampling completions per item and from sampling items.",
+          "source": "item_sampling"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no agreement study between how outcomes were marked and a reference marking",
+          "reference": null,
+          "source": "marking"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no measure of how well the items represent the use a claim is about",
+          "reference": null,
+          "source": "item_selection"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no test of whether the system saw the items before it was evaluated",
+          "reference": null,
+          "source": "item_leakage"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no check that the endpoint that answered is the system named",
+          "reference": null,
+          "source": "endpoint_identity"
+        }
+      ],
+      "metric": "correct",
+      "pack_id": "flood_pack",
+      "point": 0.6666666666666666
+    },
+    {
+      "components": [
+        {
+          "magnitude": 0.018282312925170036,
+          "method": "half the width of the bootstrap_bca interval over z = 1.9600",
+          "reference": "Efron, B. (1987). Better bootstrap confidence intervals. Journal of the American Statistical Association 82(397), 171-185.",
+          "source": "sampling"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no agreement study between how outcomes were marked and a reference marking",
+          "reference": null,
+          "source": "marking"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no measure of how well the items represent the use a claim is about",
+          "reference": null,
+          "source": "item_selection"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no test of whether the system saw the items before it was evaluated",
+          "reference": null,
+          "source": "item_leakage"
+        },
+        {
+          "magnitude": "unquantified",
+          "method": "no check that the endpoint that answered is the system named",
+          "reference": null,
+          "source": "endpoint_identity"
+        }
+      ],
+      "metric": "quality",
+      "pack_id": "flood_pack",
+      "point": 0.7
+    }
+  ]
 }

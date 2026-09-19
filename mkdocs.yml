@@ -122,6 +122,7 @@ nav:
       - Strata and rollup: estimation/strata.md
       - Replicates: estimation/replicates.md
       - Calibration: estimation/calibration.md
+      - Uncertainty and assumptions: estimation/uncertainty.md
   - Score cards:
       - Anatomy: scorecards/anatomy.md
       - Conditions: scorecards/conditions.md
