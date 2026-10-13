@@ -90,12 +90,20 @@ def test_seeds_differ_between_replicates_and_between_packs():
 
 
 def test_seed_derivation_is_stable():
-    """Pinned on purpose. If this number moves, every past run stops reproducing.
+    """Pinned on purpose. If this number moves, a plan frozen again gets other seeds, and
+    `lock_format` has to move with it.
 
     Reproduce it without this codebase:
-        printf '7:example_pack:0' | shasum -a 256 | cut -c1-16   # then hex to int
+        printf '7:example_pack:0' | shasum -a 256 | cut -c1-16   # hex to int, then >> 11
     """
-    assert freeze_plan.derive_seed(7, "example_pack", 0) == 16110102871655720643
+    assert freeze_plan.derive_seed(7, "example_pack", 0) == 16110102871655720643 >> 11
+
+
+def test_a_seed_is_exact_as_a_json_number_where_numbers_are_doubles():
+    seeds = [
+        freeze_plan.derive_seed(root, "example_pack", n) for root in range(50) for n in range(50)
+    ]
+    assert all(seed < 2**53 and float(seed) == seed for seed in seeds)
 
 
 def test_freezing_the_same_plan_twice_gives_the_same_bytes():

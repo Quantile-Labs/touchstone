@@ -47,10 +47,15 @@ One root seed becomes one seed per pack per replicate, by SHA-256 so any languag
 the derivation:
 
 ```python
-seed = int.from_bytes(
-    hashlib.sha256(f"{root_seed}:{pack_id}:{replicate}".encode()).digest()[:8], "big"
+seed = (
+    int.from_bytes(
+        hashlib.sha256(f"{root_seed}:{pack_id}:{replicate}".encode()).digest()[:8], "big"
+    )
+    >> 11
 )
 ```
+
+The shift keeps 53 bits, so the seed is exact as a JSON number in any language.
 
 Recorded in the lock, so a rerun matches rather than being asserted to.
 
@@ -74,7 +79,7 @@ When it was frozen is an *event*, and events belong in [the ledger](ledger.md).
 ## `lock_format`
 
 ```json
-{"lock_format": 4, "plan_name": "demo", "access_tier": "black_box", ...}
+{"lock_format": 5, "plan_name": "demo", "access_tier": "black_box", ...}
 ```
 
 A format bump changes the bytes and therefore the hash of an unchanged plan. That is

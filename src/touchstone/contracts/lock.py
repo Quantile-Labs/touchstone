@@ -50,9 +50,10 @@ class PlanLock(BaseModel):
     twice produces the same bytes and therefore the same hash. When it was frozen is an
     event, and events belong in the ledger."""
 
-    lock_format: int = Field(default=4, ge=1)
-    """2 added `calibrates`, 3 added `emits_items`, 4 added `resources`. A format bump
-    changes the bytes and therefore the hash of an unchanged plan, which is the point."""
+    lock_format: int = Field(default=5, ge=1)
+    """2 added `calibrates`, 3 added `emits_items`, 4 added `resources`, 5 narrowed the
+    seeds to 53 bits. A format bump changes the bytes and therefore the hash of an
+    unchanged plan, which is the point."""
 
     plan_name: str
     access_tier: str
