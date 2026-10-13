@@ -91,13 +91,13 @@ def run_ledger(bundle_dir: Path) -> Literal["complete", "absent"]:
         return "absent"
 
     events = []
-    for line in path.read_text().splitlines():
+    for number, line in enumerate(path.read_text().splitlines(), start=1):
         if not line.strip():
             continue
         try:
-            events.append(json.loads(line).get("event"))
-        except json.JSONDecodeError as exc:
-            raise BundleError(f"{LEDGER_DIR}/{RUNLOG_NAME} is not readable: {exc}") from exc
+            events.append(json.loads(line)["event"])
+        except (ValueError, TypeError, KeyError) as exc:
+            raise BundleError(f"{LEDGER_DIR}/{RUNLOG_NAME}:{number} is not a ledger event") from exc
 
     if RUN_FINISHED in events:
         return "complete"

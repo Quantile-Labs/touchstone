@@ -164,3 +164,12 @@ def test_a_dangling_symlink_fails_verify(tmp_path):
     (root / "extra").symlink_to(tmp_path / "nowhere")
 
     assert [(f.code, f.subject) for f in bundle.verify(root)] == [("symlink", "extra")]
+
+
+@pytest.mark.parametrize("line", ["1", "[]", "{}", "not json"])
+def test_a_ledger_line_that_is_not_an_event_is_refused(tmp_path, line):
+    (tmp_path / "ledger").mkdir()
+    (tmp_path / "ledger" / "RUNLOG.jsonl").write_text(line + "\n")
+
+    with pytest.raises(BundleError, match="RUNLOG.jsonl:1"):
+        bundle.seal(tmp_path)
