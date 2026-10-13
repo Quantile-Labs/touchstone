@@ -8,6 +8,7 @@ this codebase can reproduce is not an anchor.
 
 import json
 import subprocess
+from math import nan
 from pathlib import Path
 
 import pytest
@@ -168,3 +169,9 @@ def test_an_empty_hash_file_is_named_rather_than_raising(tmp_path):
     (tmp_path / freeze_plan.HASH_NAME).write_text("")
     with pytest.raises(PlanError, match="is empty"):
         freeze_plan.recorded_hash(tmp_path)
+
+
+def test_a_parameter_json_cannot_carry_is_refused():
+    plan = Plan.model_validate(PLAN | {"systems": {"chatbot": {"type": "x", "params": {"t": nan}}}})
+    with pytest.raises(PlanError, match="NaN"):
+        freeze_plan.lock_bytes(freeze_plan.freeze(plan, StubBackend()))
