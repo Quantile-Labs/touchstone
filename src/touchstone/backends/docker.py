@@ -36,6 +36,10 @@ DOCKER_FAILED = 125
 """What `docker run` exits with when docker itself failed and the pack never started: a
 name already in use, an image that is gone, a daemon that refused the request."""
 
+NAME_TAKEN = "is already in use"
+"""What docker says when the container name exists. Names are the run id, so this is a
+second run of the same plan on one host, or a container a dead run left behind."""
+
 
 def _termination(exit_code: int) -> str | None:
     """Why the runtime ended a container that ran to completion, or None if it did not.
@@ -251,9 +255,11 @@ class DockerBackend(ContainerBackend):
         args += [spec.image, *spec.args]
 
         started = _now()
+        ours = True
         try:
             done = self._cli(*args, timeout=spec.timeout_seconds)
             if done.returncode == DOCKER_FAILED:
+                ours = NAME_TAKEN not in done.stderr
                 # Recorded as an exit code this would read as the pack's own verdict.
                 raise BackendError(f"{spec.run_id} did not start: {done.stderr.strip()}")
             exit_code, stdout = done.returncode, done.stdout
@@ -264,8 +270,10 @@ class DockerBackend(ContainerBackend):
         finally:
             # Not --rm. Removal is a single call on every branch, so a container the
             # harness killed for running long and one that exited on its own leave the host
-            # in the same state.
-            self._cli("rm", "--force", spec.run_id)
+            # in the same state. A name that was taken belongs to another run on this
+            # host, and removing it would end that run's container.
+            if ours:
+                self._cli("rm", "--force", spec.run_id)
 
         stdout_path = None
         if spec.capture_stdout:

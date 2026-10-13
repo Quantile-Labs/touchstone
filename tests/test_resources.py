@@ -140,3 +140,24 @@ def test_output_that_is_not_utf8_is_read_rather_than_raised(tmp_path):
 def test_docker_failing_to_start_a_pack_is_not_the_packs_exit_code(tmp_path):
     with pytest.raises(BackendError, match="did not start"):
         termination_for(125, tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("stderr", "removed"),
+    [('Conflict. The container name "/unit" is already in use by container "abc".', False),
+     ("no such image", True)],
+)  # fmt: skip
+def test_a_container_another_run_holds_is_not_removed(tmp_path, stderr, removed):
+    backend = DockerBackend()
+    seen: list[str] = []
+
+    def stub(*args: str, timeout: int | None = None) -> subprocess.CompletedProcess:
+        seen.append(args[0])
+        code = 125 if args[0] == "run" else 0
+        return subprocess.CompletedProcess(list(args), code, stdout="", stderr=stderr)
+
+    backend._cli = stub  # type: ignore[method-assign]
+    with pytest.raises(BackendError, match="did not start"):
+        backend.run(RunSpec(run_id="unit", pack_id="p", image="i", output_dir=tmp_path / "out"))
+
+    assert ("rm" in seen) is removed
