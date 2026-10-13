@@ -61,6 +61,10 @@ class Environment(BaseModel):
     image_digests: list[str] = Field(default_factory=list)
     """Every image that actually ran, read back from the runtime."""
 
+    proxy_digests: list[str] = Field(default_factory=list)
+    """The egress proxy image behind every enforced allowlist. Empty where no unit had
+    one, and in an environment.json written before `run` recorded it."""
+
     egress_enforced: bool | None = None
     """Across the whole run. False if any unit was granted a network it declared but the
     backend could not restrict. A claim that a pack was contained is not available then."""

@@ -36,10 +36,11 @@ that grants everything. The allowlist comes from a pack's manifest, and a pack i
 thing being contained.
 """
 
-PROXY_IMAGE = "ubuntu/squid:latest"
-"""Canonical's build. Named here rather than in a plan because it is part of the trust
-boundary rather than part of the experiment, and the digest that actually ran is recorded
-in `environment.json`."""
+PROXY_IMAGE = "ubuntu/squid@sha256:6a097f68bae708cedbabd6188d68c7e2e7a38cedd05a176e1cc0ba29e3bbe029"
+"""Canonical's build, pinned to the image index `latest` named on 13 October 2026, so the
+control a run rests on does not change under a tag. Named here rather than in a plan
+because it is part of the trust boundary rather than part of the experiment, and the
+digest that actually ran is recorded in `environment.json`."""
 
 PROXY_PORT = 3128
 

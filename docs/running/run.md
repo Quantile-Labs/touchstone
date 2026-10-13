@@ -103,6 +103,7 @@ use. The ledger records it as `unit_failed` with Docker's message, and no exit c
   "isolation": "container",
   "plan_hash": "81c63db1…",
   "image_digests": ["example_pack@sha256:…"],
+  "proxy_digests": ["ubuntu/squid@sha256:…"],
   "egress_enforced": true,
   "cost": {
     "wall_seconds": 34.412,
@@ -121,7 +122,8 @@ use. The ledger records it as `unit_failed` with Docker's message, and no exit c
 ```
 
 `image_digests` is read back from the runtime, so it holds the images that *actually ran*
-rather than the ones the lock asked for. `isolation` is what the backend could actually provide: a runtime
+rather than the ones the lock asked for. `proxy_digests` is the egress proxy image behind
+every enforced allowlist, empty where no pack declared egress. `isolation` is what the backend could actually provide: a runtime
 that contained the pack less well than a container says so here, machine-readably, because
 that is the access-tier argument applied to the runtime.
 

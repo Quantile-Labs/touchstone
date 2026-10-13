@@ -111,7 +111,8 @@ class DockerBackend(ContainerBackend):
             return self._run(spec, network="bridge", egress_enforced=False)
 
         with self._contained(spec) as network:
-            return self._run(spec, network=network, egress_enforced=True)
+            result = self._run(spec, network=network, egress_enforced=True)
+        return result.model_copy(update={"proxy_digest": self.resolve_digest(egress.PROXY_IMAGE)})
 
     @contextmanager
     def _contained(self, spec: RunSpec) -> Iterator[str]:

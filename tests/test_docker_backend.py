@@ -13,7 +13,7 @@ from pathlib import Path
 
 import pytest
 
-from touchstone.backends import DockerBackend, RunSpec
+from touchstone.backends import DockerBackend, RunSpec, egress
 from touchstone.contracts import ItemRecord
 from touchstone.contracts.manifest import Resources
 from touchstone.errors import BackendError, PlanError
@@ -150,6 +150,7 @@ def test_a_declared_allowlist_is_enforced_and_cannot_be_bypassed(backend, tmp_pa
         )
     )
     assert result.egress_enforced is True
+    assert result.proxy_digest == egress.PROXY_IMAGE
 
     reach = json.loads((tmp_path / "out" / "reach.json").read_text())
     assert reach["declared"] == "reached", reach
