@@ -234,3 +234,14 @@ def test_a_row_that_is_not_a_json_object_is_left_out_and_the_run_still_finishes(
     assert events[-2]["units"] == {"example_pack-0": 3, "example_pack-1": 3}
     assert events[-1]["event"] == "run_finished"
     assert events[-1]["items"] == 4
+
+
+def test_the_environment_names_the_proxy_image_behind_an_enforced_allowlist(frozen, tmp_path):
+    class Proxied(StubBackend):
+        def run(self, spec):
+            return super().run(spec).model_copy(update={"proxy_digest": "squid@sha256:abc"})
+
+    run_plan.run(frozen, tmp_path / "out", Proxied())
+    path = tmp_path / "out" / run_plan.ENVIRONMENT_NAME
+
+    assert Environment.model_validate_json(path.read_text()).proxy_digests == ["squid@sha256:abc"]

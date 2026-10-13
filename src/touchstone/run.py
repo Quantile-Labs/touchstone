@@ -234,6 +234,7 @@ def write_environment(
         isolation=backend.isolation,
         plan_hash=plan_hash,
         image_digests=sorted({result.image_digest for result in results}),
+        proxy_digests=sorted({result.proxy_digest for result in results if result.proxy_digest}),
         egress_enforced=_overall_egress(results),
         cost=cost,
     )

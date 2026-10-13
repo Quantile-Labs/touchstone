@@ -86,6 +86,9 @@ class RunResult(BaseModel):
     was enforced. False when it was declared, granted whole, and not enforced. A grade
     computed from a run with False here cannot claim the pack was contained."""
 
+    proxy_digest: str | None = None
+    """The egress proxy image that enforced the allowlist. None where nothing did."""
+
     termination: str | None = None
     """Set when the runtime ended the pack rather than the pack exiting on its own:
     timeout, out_of_memory, cancelled. Both ASQI backends report a timeout as exit 137,
