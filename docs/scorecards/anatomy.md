@@ -167,7 +167,7 @@ Needs `--prior`. See [Comparing to a prior bundle](prior.md#movement-with-an-int
 
 ```json
 {
-  "touchstone_version": "0.7.0",
+  "touchstone_version": "0.8.0",
   "score_card_name": "example",
   "access_tier": "black_box",
   "levels": ["A", "B", "C", "unfit"],
