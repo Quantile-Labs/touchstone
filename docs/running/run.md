@@ -14,6 +14,9 @@ $ touchstone run ./run-004 -o ./run-004
 `run` executes a frozen plan. It refuses one that was never frozen or has been edited.
 { .lede }
 
+It also refuses an output directory that already holds a run. A run that died part way is
+run again into a new directory.
+
 **Needs Docker.** It is one of two commands that do.
 
 ## Units
