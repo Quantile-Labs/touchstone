@@ -26,7 +26,7 @@ from touchstone.contracts.report import Finding, Report
 from touchstone.contracts.scorecard import Scorecard
 from touchstone.errors import BundleError
 from touchstone.estimate import ESTIMATES_NAME
-from touchstone.freeze import LOCK_NAME
+from touchstone.freeze import HASH_NAME, LOCK_NAME, recorded_hash
 from touchstone.run import ENVIRONMENT_NAME
 
 PROFILE = "nist-ai-800-2"
@@ -95,10 +95,8 @@ def conformance(bundle_dir: Path, contents: Contents | None = None) -> Report:
     plan_hash = None
     if scorecard is not None:
         plan_hash = scorecard.plan_sha256
-    if plan_hash is None:
-        stamped = bundle_dir / "PLAN.sha256"
-        if stamped.is_file():
-            plan_hash = stamped.read_text(encoding="utf-8").split()[0]
+    if plan_hash is None and (bundle_dir / HASH_NAME).is_file():
+        plan_hash = recorded_hash(bundle_dir)
 
     def recorded(key: str) -> str | None:
         value = manifest_raw.get(key) if manifest_raw else None

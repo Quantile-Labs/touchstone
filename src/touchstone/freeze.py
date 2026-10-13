@@ -94,7 +94,10 @@ def recorded_hash(directory: Path) -> str:
     path = directory / HASH_NAME
     if not path.is_file():
         raise PlanError(f"no {HASH_NAME} beside the lock: this plan was never frozen")
-    return path.read_text().split()[0]
+    recorded = path.read_text().split()
+    if not recorded:
+        raise PlanError(f"{path} is empty: freeze the plan again")
+    return recorded[0]
 
 
 def check_frozen(directory: Path) -> None:
