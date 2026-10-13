@@ -54,7 +54,9 @@ def sha256_file(path: Path) -> str:
 
 def canonical_json(value: object) -> bytes:
     """Serialise to the byte form that gets hashed. Sorted keys, no insignificant space."""
-    return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+    return json.dumps(
+        value, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
+    ).encode()
 
 
 def bundle_hash(files: list[FileEntry]) -> str:

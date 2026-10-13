@@ -68,7 +68,12 @@ def freeze(plan: Plan, backend: ContainerBackend) -> PlanLock:
 
 def lock_bytes(lock: PlanLock) -> bytes:
     """Exactly what gets hashed, and exactly what lands on disk."""
-    return canonical_json(lock.model_dump()) + b"\n"
+    try:
+        return canonical_json(lock.model_dump()) + b"\n"
+    except ValueError as exc:
+        # `.nan` and `.inf` are YAML and are not JSON, so the bytes would hash here and
+        # parse nowhere else.
+        raise PlanError("a parameter in the plan is NaN or infinite") from exc
 
 
 def write_lock(lock: PlanLock, directory: Path) -> tuple[Path, str]:
