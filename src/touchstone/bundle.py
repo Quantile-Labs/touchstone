@@ -21,6 +21,7 @@ from touchstone.contracts.bundle import (
 )
 from touchstone.contracts.diagnostics import Problem
 from touchstone.errors import BundleError, SealedBundleError
+from touchstone.text import read_text
 
 MANIFEST_NAME = "MANIFEST.json"
 CHUNK = 1 << 20
@@ -91,7 +92,7 @@ def run_ledger(bundle_dir: Path) -> Literal["complete", "absent"]:
         return "absent"
 
     events = []
-    for number, line in enumerate(path.read_text().splitlines(), start=1):
+    for number, line in enumerate(read_text(path).splitlines(), start=1):
         if not line.strip():
             continue
         try:
@@ -142,7 +143,7 @@ def load_manifest(bundle_dir: Path) -> BundleManifest:
     if not path.is_file():
         raise BundleError(f"no {MANIFEST_NAME} in {bundle_dir}")
     try:
-        return BundleManifest.model_validate_json(path.read_text())
+        return BundleManifest.model_validate_json(read_text(path))
     except ValidationError as exc:
         raise BundleError(f"{MANIFEST_NAME} is malformed: {exc}") from exc
 

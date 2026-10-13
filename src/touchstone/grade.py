@@ -53,6 +53,7 @@ from touchstone.freeze import HASH_NAME, LOCK_NAME, load_lock, recorded_hash
 from touchstone.run import ITEMS_NAME
 from touchstone.stats import paired
 from touchstone.stats.proportion import Z_95
+from touchstone.text import read_text
 
 SCORECARD_NAME = "scorecard.json"
 
@@ -76,7 +77,7 @@ class Prior:
 def load_scorecard(path: Path) -> ScoreCard:
     """Read a score card and check it against itself. Raises on anything malformed."""
     try:
-        raw = yaml.safe_load(path.read_text())
+        raw = yaml.safe_load(read_text(path))
     except yaml.YAMLError as exc:
         raise ScoreCardError(f"{path}: {exc}") from exc
     if not isinstance(raw, dict):
@@ -999,7 +1000,7 @@ def access_tier(run_dir: Path) -> str:
 def load_audit(path: Path) -> AuditResponses:
     """Read a file of audit responses and check it against itself."""
     try:
-        raw = yaml.safe_load(path.read_text())
+        raw = yaml.safe_load(read_text(path))
     except yaml.YAMLError as exc:
         raise ScoreCardError(f"{path}: {exc}") from exc
     if not isinstance(raw, dict):
@@ -1031,7 +1032,7 @@ def load_estimates(run_dir: Path) -> Estimates:
     if not path.exists():
         raise ScoreCardError(f"{path} does not exist. Run `touchstone estimate` first")
     try:
-        return Estimates.model_validate(json.loads(path.read_text()))
+        return Estimates.model_validate(json.loads(read_text(path)))
     except (json.JSONDecodeError, ValidationError) as exc:
         raise ScoreCardError(f"{path}: {exc}") from exc
 

@@ -28,7 +28,7 @@ def load_source(path: Path) -> str | None:
     convenience and losing it must not turn a reported problem into a crash."""
     try:
         return path.read_text(encoding="utf-8")
-    except OSError:
+    except (OSError, UnicodeDecodeError):
         return None
 
 

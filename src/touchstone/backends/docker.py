@@ -188,7 +188,7 @@ class DockerBackend(ContainerBackend):
             return
         path = spec.output_dir / f"{spec.run_id}.egress.log"
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("\n".join(entries) + "\n")
+        path.write_text("\n".join(entries) + "\n", encoding="utf-8")
 
     def _run(self, spec: RunSpec, network: str, egress_enforced: bool | None) -> RunResult:
         spec.output_dir.mkdir(parents=True, exist_ok=True)
@@ -252,7 +252,7 @@ class DockerBackend(ContainerBackend):
         stdout_path = None
         if spec.capture_stdout:
             stdout_path = spec.output_dir / f"{spec.run_id}.stdout.log"
-            stdout_path.write_text(stdout)
+            stdout_path.write_text(stdout, encoding="utf-8")
 
         return RunResult(
             run_id=spec.run_id,

@@ -19,18 +19,19 @@ from touchstone import positions
 from touchstone.contracts import Manifest, Plan
 from touchstone.contracts.diagnostics import Problem
 from touchstone.errors import PlanError
+from touchstone.text import read_text
 
 
 def load_plan(path: Path) -> Plan:
     try:
-        return Plan.model_validate(yaml.safe_load(path.read_text()))
+        return Plan.model_validate(yaml.safe_load(read_text(path)))
     except (yaml.YAMLError, ValidationError) as exc:
         raise PlanError(f"{path}: {exc}") from exc
 
 
 def load_manifest(path: Path) -> Manifest:
     try:
-        return Manifest.model_validate(yaml.safe_load(path.read_text()))
+        return Manifest.model_validate(yaml.safe_load(read_text(path)))
     except (yaml.YAMLError, ValidationError) as exc:
         raise PlanError(f"{path}: {exc}") from exc
 

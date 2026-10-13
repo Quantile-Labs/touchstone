@@ -343,3 +343,17 @@ def test_a_score_that_is_not_a_finite_number_is_refused(tmp_path, value):
     (tmp_path / "items.jsonl").write_text(f'{{"item_id": "a", "score": {{"quality": {value}}}}}\n')
     with pytest.raises(EstimateError, match="items.jsonl:1"):
         load_items(tmp_path)
+
+
+def test_a_file_that_is_not_utf8_is_named(tmp_path):
+    (tmp_path / "items.jsonl").write_bytes(b'\xff{"item_id": "a"}\n')
+
+    result = CliRunner().invoke(app, ["estimate", str(tmp_path), "--json"])
+
+    assert result.exit_code == 1
+    assert json.loads(result.output)["problems"][0]["code"] == "not_utf8"
+
+
+def test_a_line_separator_inside_a_string_does_not_split_the_row(tmp_path):
+    (tmp_path / "items.jsonl").write_text('{"item_id": "a b"}\n', encoding="utf-8")
+    assert [item.item_id for item in load_items(tmp_path)] == ["a b"]

@@ -13,7 +13,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from touchstone import __version__, uncertainty
+from touchstone import __version__, text, uncertainty
 from touchstone.contracts import ItemRecord
 from touchstone.contracts.estimates import (
     Calibration,
@@ -57,7 +57,7 @@ def load_items(path: Path) -> list[ItemRecord]:
         raise EstimateError(f"no item records at {path}. Run the plan before estimating it")
 
     items = []
-    for number, line in enumerate(path.read_text().splitlines(), start=1):
+    for number, line in enumerate(text.rows(path), start=1):
         if not line.strip():
             continue
         try:
