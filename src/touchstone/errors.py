@@ -18,6 +18,10 @@ class SealedBundleError(BundleError):
     """A command was asked to write into a bundle that is already sealed."""
 
 
+class EncodingError(TouchstoneError):
+    """A file the tool reads as text is not UTF-8."""
+
+
 class AnchorError(TouchstoneError):
     """The plan hash could not be timestamped."""
 
@@ -40,6 +44,7 @@ CODES = {
     "PlanError": "plan_error",
     "BundleError": "bundle_error",
     "SealedBundleError": "bundle_sealed",
+    "EncodingError": "not_utf8",
     "AnchorError": "anchor_error",
     "BackendError": "backend_error",
     "EstimateError": "estimate_error",

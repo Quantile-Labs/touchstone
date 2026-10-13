@@ -19,6 +19,7 @@ from touchstone.bundle import canonical_json, sha256_file
 from touchstone.contracts import Plan
 from touchstone.contracts.lock import LockedPack, PlanLock
 from touchstone.errors import PlanError
+from touchstone.text import read_text
 
 LOCK_NAME = "plan.lock.json"
 HASH_NAME = "PLAN.sha256"
@@ -84,7 +85,7 @@ def write_lock(lock: PlanLock, directory: Path) -> tuple[Path, str]:
 
 def load_lock(path: Path) -> PlanLock:
     try:
-        return PlanLock.model_validate_json(path.read_text())
+        return PlanLock.model_validate_json(read_text(path))
     except ValidationError as exc:
         raise PlanError(f"{path}: {exc}") from exc
 
@@ -94,7 +95,7 @@ def recorded_hash(directory: Path) -> str:
     path = directory / HASH_NAME
     if not path.is_file():
         raise PlanError(f"no {HASH_NAME} beside the lock: this plan was never frozen")
-    recorded = path.read_text().split()
+    recorded = read_text(path).split()
     if not recorded:
         raise PlanError(f"{path} is empty: freeze the plan again")
     return recorded[0]

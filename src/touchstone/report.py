@@ -17,7 +17,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from touchstone import __version__, document
+from touchstone import __version__, document, text
 from touchstone import bundle as bundle_files
 from touchstone.contracts.environment import Environment
 from touchstone.contracts.estimates import Estimates
@@ -46,7 +46,7 @@ def _read(path: Path) -> dict[str, object] | None:
     if not path.is_file():
         return None
     try:
-        loaded = json.loads(path.read_text(encoding="utf-8"))
+        loaded = json.loads(text.read_text(path))
     except (OSError, json.JSONDecodeError) as exc:
         raise BundleError(f"{path}: {exc}") from exc
     return loaded if isinstance(loaded, dict) else None
@@ -216,7 +216,7 @@ def _item_results(bundle_dir: Path, manifest: dict[str, object] | None) -> Findi
             status="not met",
             detail=f"the bundle holds no {ITEMS_NAME}, so no figure in it can be recomputed",
         )
-    rows = sum(1 for line in path.read_text(encoding="utf-8").splitlines() if line.strip())
+    rows = sum(1 for line in text.rows(path) if line.strip())
     sealed = ""
     if manifest is not None:
         listed = manifest.get("files")
