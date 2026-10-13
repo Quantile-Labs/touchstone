@@ -69,8 +69,13 @@ class DockerBackend(ContainerBackend):
 
     def _cli(self, *args: str, timeout: int | None = None) -> subprocess.CompletedProcess[str]:
         try:
+            # A pack prints what it likes, and one stray byte must not cost the run.
             return subprocess.run(
-                [self.binary, *args], capture_output=True, text=True, timeout=timeout
+                [self.binary, *args],
+                capture_output=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=timeout,
             )
         except FileNotFoundError as exc:
             raise BackendError(f"{self.binary} is not on PATH") from exc

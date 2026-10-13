@@ -126,3 +126,11 @@ def test_a_kill_under_the_cap_is_named_without_asking_docker_why(tmp_path):
 def test_a_pack_that_fails_on_its_own_is_not_read_as_a_kill(tmp_path):
     assert termination_for(1, tmp_path) is None
     assert termination_for(0, tmp_path) is None
+
+
+def test_output_that_is_not_utf8_is_read_rather_than_raised(tmp_path):
+    binary = tmp_path / "docker"
+    binary.write_text("#!/bin/sh\nprintf 'ok \\377'\n")
+    binary.chmod(0o755)
+
+    assert DockerBackend(binary=str(binary))._cli("logs").stdout == "ok \ufffd"
