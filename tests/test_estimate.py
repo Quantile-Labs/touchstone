@@ -357,3 +357,11 @@ def test_a_file_that_is_not_utf8_is_named(tmp_path):
 def test_a_line_separator_inside_a_string_does_not_split_the_row(tmp_path):
     (tmp_path / "items.jsonl").write_text('{"item_id": "a b"}\n', encoding="utf-8")
     assert [item.item_id for item in load_items(tmp_path)] == ["a b"]
+
+
+def test_the_cli_refuses_fewer_than_one_resample(tmp_path):
+    (tmp_path / "items.jsonl").write_text(
+        '{"item_id": "a", "score": {"q": 0.5}}\n{"item_id": "b", "score": {"q": 0.7}}\n'
+    )
+    result = CliRunner().invoke(app, ["estimate", str(tmp_path), "--resamples", "0"])
+    assert result.exit_code == 2
