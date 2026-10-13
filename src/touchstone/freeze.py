@@ -24,12 +24,18 @@ from touchstone.text import read_text
 LOCK_NAME = "plan.lock.json"
 HASH_NAME = "PLAN.sha256"
 DEFAULT_ROOT_SEED = 0
+SEED_SHIFT = 11
 
 
 def derive_seed(root_seed: int, pack_id: str, replicate: int) -> int:
-    """One root seed to a seed per pack per replicate. SHA-256 so any language agrees."""
+    """One root seed to a seed per pack per replicate. SHA-256 so any language agrees.
+
+    The top 53 bits of the digest. A wider seed is not exact as a JSON number wherever
+    numbers are doubles, so a reader in such a language held a different seed from the
+    one that ran.
+    """
     payload = f"{root_seed}:{pack_id}:{replicate}".encode()
-    return int.from_bytes(hashlib.sha256(payload).digest()[:8], "big")
+    return int.from_bytes(hashlib.sha256(payload).digest()[:8], "big") >> SEED_SHIFT
 
 
 def freeze(plan: Plan, backend: ContainerBackend) -> PlanLock:

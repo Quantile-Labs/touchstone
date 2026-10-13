@@ -120,7 +120,7 @@ over a balanced grid.
 `freeze` derives one seed per pack per replicate from the root seed:
 
 ```python
-seed = sha256(f"{root_seed}:{pack_id}:{replicate}")[:8]
+seed = sha256(f"{root_seed}:{pack_id}:{replicate}")[:8] >> 11
 ```
 
 They are recorded in `plan.lock.json`, so a rerun matches rather than being asserted to.
