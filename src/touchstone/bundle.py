@@ -176,10 +176,12 @@ def verify(bundle_dir: Path) -> list[Problem]:
 
     recorded = {entry.path for entry in manifest.files}
     for path in sorted(bundle_dir.rglob("*")):
-        if not path.is_file():
-            continue
         name = path.relative_to(bundle_dir).as_posix()
-        if name != MANIFEST_NAME and name not in recorded:
+        if path.is_symlink():
+            # `seal` refuses one, so one here arrived afterwards, and a recorded file
+            # swapped for a link still hashes on the machine that holds the target.
+            failures.append(_missing(bundle_dir, name, "symlink", "symlink"))
+        elif path.is_file() and name != MANIFEST_NAME and name not in recorded:
             failures.append(_missing(bundle_dir, name, "file_not_recorded", "not recorded"))
 
     return failures

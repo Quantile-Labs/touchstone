@@ -56,6 +56,7 @@ jq -r '.files[] | "\(.sha256)  \(.path)"' MANIFEST.json | shasum -a 256 -c
 2. Every path in it stays inside the bundle root.
 3. Every file listed exists, is the recorded size, and hashes to the recorded digest.
 4. The bundle hash recomputes from the file list.
+5. The folder holds no file the manifest does not list, and no symlink.
 
 Any failure exits non-zero.
 
