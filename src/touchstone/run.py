@@ -26,7 +26,7 @@ from touchstone.contracts.bundle import LEDGER_DIR, RUN_FINISHED, RUNLOG_NAME
 from touchstone.contracts.environment import PackCost, RunCost
 from touchstone.contracts.lock import PlanLock
 from touchstone.contracts.manifest import Resources
-from touchstone.errors import TouchstoneError
+from touchstone.errors import BundleError, TouchstoneError
 from touchstone.freeze import HASH_NAME, LOCK_NAME, check_frozen, load_lock, recorded_hash
 
 ENVIRONMENT_NAME = "environment.json"
@@ -239,7 +239,12 @@ def run(
     lock = load_lock(lock_dir / LOCK_NAME)
     plan_hash = recorded_hash(lock_dir)
 
-    ledger = Ledger(out_dir / LEDGER_DIR / RUNLOG_NAME)
+    log = out_dir / LEDGER_DIR / RUNLOG_NAME
+    if log.exists():
+        # A second run appends to the first one's ledger and merges its leftover rows, so
+        # a run that died would still seal on the earlier `run_finished`.
+        raise BundleError(f"{out_dir} already holds a run. Pass a new directory to --out")
+    ledger = Ledger(log)
     todo = units(lock)
     ledger.record(
         "run_started",

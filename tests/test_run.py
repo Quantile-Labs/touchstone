@@ -13,7 +13,7 @@ from conftest import DIGEST, StubBackend
 from touchstone import freeze as freeze_plan
 from touchstone import run as run_plan
 from touchstone.contracts import Environment
-from touchstone.errors import BackendError, PlanError
+from touchstone.errors import BackendError, BundleError, PlanError
 
 
 def ledger(out_dir: Path) -> list[dict]:
@@ -203,3 +203,14 @@ def test_the_plan_is_copied_when_the_run_lands_elsewhere(tmp_path):
 
     assert (out_dir / run_plan.LOCK_NAME).read_text() == '{"lock_format": 1}'
     assert (out_dir / run_plan.HASH_NAME).read_text() == "hash\n"
+
+
+def test_a_directory_that_already_holds_a_run_is_refused(frozen, tmp_path):
+    """The second run appended to the first one's ledger, so one that died part way
+    still sealed as complete."""
+    run_plan.run(frozen, tmp_path / "out", StubBackend())
+    backend = StubBackend()
+
+    with pytest.raises(BundleError, match="already holds a run"):
+        run_plan.run(frozen, tmp_path / "out", backend)
+    assert backend.seen == []
