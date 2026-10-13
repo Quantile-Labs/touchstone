@@ -256,7 +256,7 @@ test or a certificate. A grade says what the evidence supports.
 
 ## Status
 
-Early. 0.7.0 is the current release. All eight commands work and are tested, and this
+Early. 0.8.0 is the current release. All eight commands work and are tested, and this
 document describes the code on PyPI.
 
 The four files a person writes have published [JSON

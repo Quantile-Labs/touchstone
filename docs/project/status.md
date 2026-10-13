@@ -1,12 +1,36 @@
 ---
 title: Status
-description: What is settled in 0.7.0, what is not, and what is planned.
+description: What is settled in 0.8.0, what is not, and what is planned.
 ---
 
 # Status
 
 Early, and saying so.
 { .lede }
+
+## 0.8.0
+
+**Derived seeds are 53 bits, and `lock_format` is 5.** A 64-bit seed is not exact as a JSON
+number where numbers are doubles. A plan frozen again gets a different hash and different
+seeds. A lock already frozen runs as it did. See [Freeze and the lock](../running/freeze.md#seeds).
+
+**The egress proxy image is pinned to a digest**, and `environment.json` records it as
+`proxy_digests`. It ran as `latest` before.
+
+**`TOUCHSTONE_PROXY_DNS` names the resolvers the proxy asks**, for networks that block
+`1.1.1.1` and `8.8.8.8`. See [Containment](../running/containment.md#name-resolution).
+
+**A container name another run holds is left alone.** A second run of the same plan on one
+host removed the first run's container. It now fails and says the name is taken.
+
+**`verify` checks the recorded size**, with the code `file_size_mismatch`.
+
+A bundle sealed by 0.7.0 verifies as it did. `touchstone_version` stamps `0.8.0`.
+
+```console
+$ touchstone version
+touchstone 0.8.0
+```
 
 ## 0.7.0
 
@@ -35,11 +59,6 @@ Also fixed: an empty `PLAN.sha256`, a ledger line that is not an event, `--resam
 `--by` key named twice, pack output that is not UTF-8, and a `.nan` plan parameter.
 
 A bundle sealed by 0.6.0 verifies as it did. `touchstone_version` stamps `0.7.0`.
-
-```console
-$ touchstone version
-touchstone 0.7.0
-```
 
 ## 0.6.0
 
