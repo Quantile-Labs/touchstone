@@ -162,3 +162,9 @@ def test_the_lock_carries_no_timestamp(tmp_path):
     """A timestamp would mean freezing the same plan twice gave two hashes."""
     record = json.loads(Path(freeze_plan.write_lock(frozen(), tmp_path)[0]).read_text())
     assert not [key for key in record if "utc" in key or "time" in key]
+
+
+def test_an_empty_hash_file_is_named_rather_than_raising(tmp_path):
+    (tmp_path / freeze_plan.HASH_NAME).write_text("")
+    with pytest.raises(PlanError, match="is empty"):
+        freeze_plan.recorded_hash(tmp_path)

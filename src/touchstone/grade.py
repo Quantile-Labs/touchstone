@@ -49,7 +49,7 @@ from touchstone.contracts.scorecard import (
 )
 from touchstone.errors import ScoreCardError
 from touchstone.estimate import ESTIMATES_NAME
-from touchstone.freeze import HASH_NAME, LOCK_NAME, load_lock
+from touchstone.freeze import HASH_NAME, LOCK_NAME, load_lock, recorded_hash
 from touchstone.run import ITEMS_NAME
 from touchstone.stats import paired
 from touchstone.stats.proportion import Z_95
@@ -1038,10 +1038,7 @@ def load_estimates(run_dir: Path) -> Estimates:
 
 def plan_hash(run_dir: Path) -> str | None:
     """The frozen plan's hash, as `freeze` wrote it beside the lock."""
-    path = run_dir / HASH_NAME
-    if not path.exists():
-        return None
-    return path.read_text().split()[0]
+    return recorded_hash(run_dir) if (run_dir / HASH_NAME).is_file() else None
 
 
 def write_scorecard(scorecard: Scorecard, out_dir: Path) -> Path:
