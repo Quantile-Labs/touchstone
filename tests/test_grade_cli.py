@@ -136,3 +136,15 @@ def test_a_sealed_refusal_carries_its_own_code(graded):
     assert [problem["code"] for problem in json.loads(result.stdout)["problems"]] == [
         "bundle_sealed"
     ]
+
+
+def test_an_estimate_that_is_not_a_number_is_refused(graded):
+    run_dir, card = graded
+    estimates = run_dir / "estimates.json"
+    estimates.write_text(estimates.read_text().replace("0.91", "NaN"))
+
+    result = runner.invoke(app, ["grade", str(run_dir), "--score-card", str(card)])
+
+    assert result.exit_code == 1
+    assert "estimates.json" in result.output
+    assert not (run_dir / "scorecard.json").exists()

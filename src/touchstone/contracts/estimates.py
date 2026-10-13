@@ -47,7 +47,7 @@ class Estimate(BaseModel):
     reference: str = Field(min_length=1)
     """The published source of the estimator. The citation is what makes it reviewable."""
 
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "allow_inf_nan": False}
 
 
 class WorstStratum(BaseModel):

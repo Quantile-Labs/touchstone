@@ -46,4 +46,5 @@ class ItemRecord(BaseModel):
     sample. Two packs both reporting `correct` are not measuring the same thing, so
     pooling them into one denominator is the aggregate this tool exists to prevent."""
 
-    model_config = {"extra": "forbid"}
+    model_config = {"extra": "forbid", "allow_inf_nan": False}
+    """One NaN score makes the mean NaN, and JSON has no way to write either."""

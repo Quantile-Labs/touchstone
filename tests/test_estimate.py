@@ -336,3 +336,10 @@ def test_estimate_out_writes_beside_a_sealed_bundle(tmp_path):
     assert result.exit_code == 0, result.output
     assert (mine / ESTIMATES_NAME).is_file()
     assert bundle.verify(run_dir) == []
+
+
+@pytest.mark.parametrize("value", ["NaN", "Infinity"])
+def test_a_score_that_is_not_a_finite_number_is_refused(tmp_path, value):
+    (tmp_path / "items.jsonl").write_text(f'{{"item_id": "a", "score": {{"quality": {value}}}}}\n')
+    with pytest.raises(EstimateError, match="items.jsonl:1"):
+        load_items(tmp_path)
