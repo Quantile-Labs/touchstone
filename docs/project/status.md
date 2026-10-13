@@ -1,12 +1,45 @@
 ---
 title: Status
-description: What is settled in 0.6.0, what is not, and what is planned.
+description: What is settled in 0.7.0, what is not, and what is planned.
 ---
 
 # Status
 
 Early, and saying so.
 { .lede }
+
+## 0.7.0
+
+A release of fixes to failure paths. Four change what a command accepts.
+
+**`run` refuses a directory that already holds a run.** A second run appended to the first
+ledger, so one that died part way still sealed as complete. Run again into a new directory.
+
+**Item records and estimates refuse `NaN` and infinity.** A non-finite score was written
+into `estimates.json` and graded as a figure.
+
+**`verify` fails on a symlink**, with the code `symlink`. A recorded file swapped for a
+link to the same bytes used to verify.
+
+**Docker failing to start a pack is a failed unit.** Exit 125 was recorded as the pack's
+own exit code. The ledger now records `unit_failed` with Docker's message.
+
+**A row that is not a JSON object is left out and counted.** The ledger records
+`rows_unreadable` and the run reports it as a failure. It used to raise after every unit
+had finished.
+
+**Files are read as UTF-8 on every host**, and one that is not UTF-8 is named, with the
+code `not_utf8`. A permission or path error is one line with the code `os_error`.
+
+Also fixed: an empty `PLAN.sha256`, a ledger line that is not an event, `--resamples 0`, a
+`--by` key named twice, pack output that is not UTF-8, and a `.nan` plan parameter.
+
+A bundle sealed by 0.6.0 verifies as it did. `touchstone_version` stamps `0.7.0`.
+
+```console
+$ touchstone version
+touchstone 0.7.0
+```
 
 ## 0.6.0
 
@@ -24,11 +57,6 @@ Item 3.1.4 now needs the budget, so a bundle estimated by 0.5.0 fails it until i
 estimated again with `--out`.
 
 A bundle sealed by 0.5.0 verifies as it did. `touchstone_version` stamps `0.6.0`.
-
-```console
-$ touchstone version
-touchstone 0.6.0
-```
 
 ## 0.5.0
 
