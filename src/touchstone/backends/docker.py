@@ -130,6 +130,11 @@ class DockerBackend(ContainerBackend):
                 "carrying anything but a name is refused rather than escaped"
             )
 
+        try:
+            resolvers = egress.nameservers(os.environ.get(egress.DNS_ENV))
+        except ValueError as exc:
+            raise BackendError(str(exc)) from exc
+
         network = f"{spec.run_id}-net"
         proxy = f"{spec.run_id}-proxy"
         self._require("network", "create", "--internal", network)
@@ -153,7 +158,7 @@ class DockerBackend(ContainerBackend):
                 "sh",
                 egress.PROXY_IMAGE,
                 "-c",
-                egress.start_command(egress.squid_config(spec.egress)),
+                egress.start_command(egress.squid_config(spec.egress, resolvers)),
             )
             # The proxy needs a way out that the pack does not have. Attaching it to the
             # default bridge after the fact is what makes the two networks asymmetric.

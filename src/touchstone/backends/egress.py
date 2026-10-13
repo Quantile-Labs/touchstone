@@ -21,6 +21,7 @@ proxy that had to be trusted with the client's API keys, and no bank's security 
 should approve one. That constraint is the point, not a limitation.
 """
 
+import ipaddress
 import re
 import shlex
 
@@ -70,7 +71,30 @@ def check_hosts(hosts: list[str]) -> list[str]:
     return [host for host in hosts if ADDRESS.match(host) or not HOST.match(host)]
 
 
-def squid_config(hosts: list[str]) -> str:
+DNS_ENV = "TOUCHSTONE_PROXY_DNS"
+NAMESERVERS = ("1.1.1.1", "8.8.8.8")
+"""The resolvers the proxy asks, and the variable that replaces them. A network that
+blocks public resolvers denies every declared host, so the operator names its own."""
+
+
+def nameservers(value: str | None) -> list[str]:
+    """The resolvers named in `value`, separated by spaces or commas, else the defaults.
+
+    They are written into the proxy configuration like the hosts are, so anything that is
+    not an address is refused.
+    """
+    servers = (value or "").replace(",", " ").split() or list(NAMESERVERS)
+    for server in servers:
+        try:
+            ipaddress.ip_address(server)
+        except ValueError as exc:
+            raise ValueError(f"{DNS_ENV} holds {server!r}, which is not an IP address") from exc
+        if "%" in server:
+            raise ValueError(f"{DNS_ENV} holds {server!r}, and a scoped address is not accepted")
+    return servers
+
+
+def squid_config(hosts: list[str], resolvers: list[str] | None = None) -> str:
     """A default-deny configuration allowing CONNECT to exactly these hosts.
 
     `dstdomain example.com` matches that host and not its subdomains: a leading dot is
@@ -100,7 +124,7 @@ http_access allow declared
 http_access deny all
 
 # The pack's network is internal, so the proxy resolves names and the pack never does.
-dns_nameservers 1.1.1.1 8.8.8.8
+dns_nameservers {" ".join(resolvers or NAMESERVERS)}
 
 cache deny all
 access_log stdio:{ACCESS_LOG}
