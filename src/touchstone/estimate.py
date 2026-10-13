@@ -280,7 +280,7 @@ def estimate(
     frozen plan. `calibrate` overrides it for every pack, which is what re-analysing an
     old bundle under a corrected definition needs.
     """
-    keys = list(keys or [])
+    keys = list(dict.fromkeys(keys or []))
     declared = dict(declared or {})
     groupings = _groupings(keys)
 

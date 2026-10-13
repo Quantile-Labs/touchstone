@@ -365,3 +365,7 @@ def test_the_cli_refuses_fewer_than_one_resample(tmp_path):
     )
     result = CliRunner().invoke(app, ["estimate", str(tmp_path), "--resamples", "0"])
     assert result.exit_code == 2
+
+
+def test_a_key_named_twice_is_rolled_up_once():
+    assert estimate(_items(), ["language", "language"]) == estimate(_items(), ["language"])
