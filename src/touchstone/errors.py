@@ -55,7 +55,9 @@ than by class so that adding an error without adding its code is a missing key h
 not a silent fall through to something that reads as deliberate."""
 
 
-def code(exc: TouchstoneError) -> str:
+def code(exc: Exception) -> str:
     """The identifier a caller branches on. `touchstone_error` for anything unmapped,
     which is a signal that CODES is behind the exception hierarchy."""
+    if isinstance(exc, OSError):
+        return "os_error"
     return CODES.get(type(exc).__name__, "touchstone_error")

@@ -23,6 +23,11 @@ app = typer.Typer(add_completion=False, help="Evaluation runs that produce verif
 
 NOT_YET = "not implemented yet, see the pipeline table in README.md"
 
+FAILED = (TouchstoneError, OSError)
+"""What a command reports in one line and exits 1 on. OSError is here because a missing
+permission or a file where a directory was expected is the user's to fix, and a traceback
+does not say so."""
+
 AsJson = Annotated[
     bool,
     typer.Option(
@@ -66,7 +71,7 @@ def _straddled(indicator: GradedIndicator, card: Path, at: tuple[int, int] | Non
     )
 
 
-def _raised(command: str, exc: TouchstoneError, **result: object) -> Envelope:
+def _raised(command: str, exc: Exception, **result: object) -> Envelope:
     """An envelope for the one error that stopped the command. It carries no position,
     because an exception knows what went wrong and not where it was written."""
     return _envelope(command, [Problem(code=errors.code(exc), message=str(exc))], **result)
@@ -110,7 +115,7 @@ def validate(
             for path in sorted(directory.glob("*/manifest.yaml"))
         }
         problems = plan_check.check(plan, found, plan_path, directory)
-    except TouchstoneError as exc:
+    except FAILED as exc:
         if as_json:
             _emit(_raised("validate", exc, path=str(plan_path)))
             raise typer.Exit(1) from exc
@@ -149,7 +154,7 @@ def verify(
     try:
         manifest = bundle.load_manifest(bundle_dir)
         failures = bundle.verify(bundle_dir)
-    except TouchstoneError as exc:
+    except FAILED as exc:
         if as_json:
             _emit(_raised("verify", exc, path=str(bundle_dir)))
             raise typer.Exit(1) from exc
@@ -192,7 +197,7 @@ def freeze(
         lock = freeze_plan.freeze(plan, DockerBackend())
         lock_path, digest = freeze_plan.write_lock(lock, out)
         receipt = anchor_plan.stamp(out / freeze_plan.HASH_NAME, out) if anchor else None
-    except TouchstoneError as exc:
+    except FAILED as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
 
@@ -221,7 +226,7 @@ def run_(
     """Execute a frozen plan. Refuses one that was never frozen or has been edited."""
     try:
         failures = run_plan.run(lock_dir, out, DockerBackend(), allow_unenforced_egress)
-    except TouchstoneError as exc:
+    except FAILED as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
 
@@ -290,7 +295,7 @@ def estimate(
             items, by, calibrate, declared, seed=seed, resamples=resamples
         )
         path = estimate_items.write_estimates(estimates, destination)
-    except TouchstoneError as exc:
+    except FAILED as exc:
         if as_json:
             _emit(_raised("estimate", exc, path=str(run_dir)))
             raise typer.Exit(1) from exc
@@ -423,7 +428,7 @@ def grade(
             grade_run.run_items(run_dir) if before else None,
         )
         path = grade_run.write_scorecard(scorecard, destination)
-    except TouchstoneError as exc:
+    except FAILED as exc:
         if as_json:
             _emit(_raised("grade", exc, path=str(run_dir)))
             raise typer.Exit(1) from exc
@@ -512,7 +517,7 @@ def report(
                 f"{report_bundle.PROFILE}"
             )
         stated = report_bundle.write(bundle_dir, destination)
-    except TouchstoneError as exc:
+    except FAILED as exc:
         if as_json:
             _emit(_raised("report", exc, path=str(bundle_dir)))
             raise typer.Exit(1) from exc
@@ -555,7 +560,7 @@ def bundle_(
     """Seal a run into an evidence bundle and hash every file."""
     try:
         manifest = bundle.seal(bundle_dir)
-    except TouchstoneError as exc:
+    except FAILED as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
 
