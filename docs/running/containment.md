@@ -47,6 +47,19 @@ network is what makes the answer irrelevant.
 └─────────────────────────────┘
 ```
 
+## Name resolution
+
+The pack's network is internal, so the proxy resolves names and the pack never does. It
+asks `1.1.1.1` and `8.8.8.8`. On a network that blocks public resolvers every declared host
+is denied, so name your own:
+
+```console
+$ TOUCHSTONE_PROXY_DNS=10.0.0.2 touchstone run ./run-004 -o ./run-004
+```
+
+Several addresses are separated by spaces or commas. Anything that is not an IP address is
+refused before a container starts.
+
 ## The proxy never terminates TLS
 
 The proxy reads the hostname off the `CONNECT` line and the bytes stay opaque. It is never

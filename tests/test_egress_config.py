@@ -11,6 +11,7 @@ import pytest
 from touchstone.backends.egress import (
     PROXY_PORT,
     check_hosts,
+    nameservers,
     proxy_env,
     squid_config,
     start_command,
@@ -105,3 +106,18 @@ def test_the_config_is_quoted_into_the_start_command():
     command = start_command(squid_config(["api.openai.com"]))
     assert command.startswith("printf %s '")
     assert "exec /usr/local/bin/entrypoint.sh" in command
+
+
+def test_the_proxy_asks_the_resolvers_it_is_given():
+    config = squid_config(["example.com"], nameservers("10.0.0.2, 10.0.0.3"))
+    assert "dns_nameservers 10.0.0.2 10.0.0.3\n" in config
+
+
+def test_the_default_resolvers_stand_where_none_is_named():
+    assert "dns_nameservers 1.1.1.1 8.8.8.8\n" in squid_config(["example.com"], nameservers(None))
+
+
+@pytest.mark.parametrize("value", ["dns.example.com", "10.0.0.2;http_access", "fe80::1%eth0"])
+def test_a_resolver_that_is_not_an_address_is_refused(value):
+    with pytest.raises(ValueError, match="TOUCHSTONE_PROXY_DNS"):
+        nameservers(value)
