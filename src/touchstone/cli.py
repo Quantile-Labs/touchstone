@@ -272,7 +272,7 @@ def estimate(
         int, typer.Option("--seed", help="Seed for the bootstrap, so its interval reproduces")
     ] = 0,
     resamples: Annotated[
-        int, typer.Option("--resamples", help="Bootstrap resamples for continuous scores")
+        int, typer.Option("--resamples", min=1, help="Bootstrap resamples for continuous scores")
     ] = estimate_items.RESAMPLES,
     out: Annotated[
         Path | None,
