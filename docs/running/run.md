@@ -78,6 +78,9 @@ cannot tell them apart, so `RunResult` carries `termination` beside it:
 A pack killed for memory is recorded as `out_of_memory`, not as a timeout. See [Resource
 limits](limits.md).
 
+Exit 125 is Docker failing before the pack started, such as a container name already in
+use. The ledger records it as `unit_failed` with Docker's message, and no exit code.
+
 ## What run writes
 
 | File | Contents |

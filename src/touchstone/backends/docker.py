@@ -32,6 +32,10 @@ SIGKILL_EXIT = 137
 """128 plus SIGKILL. What docker reports for a killed container, what ASQI reports for a
 timeout, and what the kernel leaves behind when it enforces a memory cap."""
 
+DOCKER_FAILED = 125
+"""What `docker run` exits with when docker itself failed and the pack never started: a
+name already in use, an image that is gone, a daemon that refused the request."""
+
 
 def _termination(exit_code: int) -> str | None:
     """Why the runtime ended a container that ran to completion, or None if it did not.
@@ -243,6 +247,9 @@ class DockerBackend(ContainerBackend):
         started = _now()
         try:
             done = self._cli(*args, timeout=spec.timeout_seconds)
+            if done.returncode == DOCKER_FAILED:
+                # Recorded as an exit code this would read as the pack's own verdict.
+                raise BackendError(f"{spec.run_id} did not start: {done.stderr.strip()}")
             exit_code, stdout = done.returncode, done.stdout
             termination = _termination(exit_code)
         except subprocess.TimeoutExpired:

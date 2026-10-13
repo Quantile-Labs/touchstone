@@ -19,6 +19,7 @@ from touchstone.backends.base import RunSpec
 from touchstone.backends.docker import DockerBackend
 from touchstone.contracts import Plan
 from touchstone.contracts.manifest import Resources
+from touchstone.errors import BackendError
 
 
 def args_for(**resources) -> list[str]:
@@ -134,3 +135,8 @@ def test_output_that_is_not_utf8_is_read_rather_than_raised(tmp_path):
     binary.chmod(0o755)
 
     assert DockerBackend(binary=str(binary))._cli("logs").stdout == "ok \ufffd"
+
+
+def test_docker_failing_to_start_a_pack_is_not_the_packs_exit_code(tmp_path):
+    with pytest.raises(BackendError, match="did not start"):
+        termination_for(125, tmp_path)
