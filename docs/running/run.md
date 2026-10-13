@@ -29,9 +29,9 @@ under `runs/`.
 
 ```text
 run-004/runs/
-├── example_pack.r0/
+├── example_pack-0/
 │   └── items.jsonl
-└── example_pack.r1/
+└── example_pack-1/
     └── items.jsonl
 ```
 

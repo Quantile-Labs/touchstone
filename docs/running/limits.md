@@ -58,7 +58,7 @@ while staying comfortably inside its memory limit. `pids` is the limit that stop
 A pack killed by the memory cgroup is recorded as `out_of_memory`:
 
 ```json
-{"utc": "...", "event": "unit_finished", "run_id": "example_pack.r0",
+{"utc": "...", "event": "unit_finished", "run_id": "example_pack-0",
  "exit_code": 137, "termination": "out_of_memory", "egress_enforced": true}
 ```
 
