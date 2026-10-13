@@ -29,6 +29,7 @@ process killed halfway through leaves a truthful partial record rather than noth
 | `unit_finished` | `run_id`, `exit_code`, `image_digest`, `termination`, `egress_enforced`, `wall_seconds` |
 | `unit_failed` | `run_id`, `error`, `wall_seconds` |
 | `pack_id_overwritten` | `records` |
+| `rows_unreadable` | `units`, the rows left out of `items.jsonl` per run id |
 | `run_finished` | `items`, `failures`, `egress_enforced` |
 
 Every line carries `utc` and `event`. `wall_seconds` is measured by the harness on a
