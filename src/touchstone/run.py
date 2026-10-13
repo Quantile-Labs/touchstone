@@ -99,28 +99,42 @@ def _args(unit: Unit, lock: PlanLock) -> list[str]:
     ]
 
 
-def collect_items(out_dir: Path, owners: dict[str, str]) -> tuple[int, int]:
+def collect_items(out_dir: Path, owners: dict[str, str]) -> tuple[int, int, Counter[str]]:
     """Merge every unit's records into one items.jsonl, stamping which pack wrote each.
 
-    Returns (records, overwritten). `owners` maps a run id to the pack that produced it,
-    so provenance comes from the harness rather than from a directory name a pack could
-    influence. A pack that stamped the field itself has its value replaced: one that could
-    name itself could name another, and every rate downstream is grouped by this field.
+    Returns (records, overwritten, unreadable). `owners` maps a run id to the pack that
+    produced it, so provenance comes from the harness rather than from a directory name a
+    pack could influence. A pack that stamped the field itself has its value replaced: one
+    that could name itself could name another, and every rate downstream is grouped by
+    this field.
+
+    A line that is not a JSON object cannot be stamped, so it is left out and counted
+    against its unit. Raising here would cost a run whose packs have already finished.
     """
     lines = []
     overwritten = 0
+    unreadable: Counter[str] = Counter()
     for path in sorted((out_dir / RUNS_DIR).glob(f"*/{ITEMS_NAME}")):
-        pack_id = owners.get(path.parent.name)
-        for line in path.read_text().splitlines():
+        run_id = path.parent.name
+        pack_id = owners.get(run_id)
+        # Bytes split on the newline alone. Text mode reads in the host's locale, and
+        # `str.splitlines` breaks a row at a U+2028 that JSON allows inside a string.
+        for line in path.read_bytes().split(b"\n"):
             if not line.strip():
                 continue
-            record = json.loads(line)
+            try:
+                record = json.loads(line)
+            except ValueError:
+                record = None
+            if not isinstance(record, dict):
+                unreadable[run_id] += 1
+                continue
             if record.get("pack_id") not in (None, pack_id):
                 overwritten += 1
             record["pack_id"] = pack_id
             lines.append(json.dumps(record, sort_keys=True))
     (out_dir / ITEMS_NAME).write_text("".join(line + "\n" for line in lines))
-    return len(lines), overwritten
+    return len(lines), overwritten, unreadable
 
 
 def _since(began: float) -> float:
@@ -299,9 +313,15 @@ def run(
             failures.append(f"{unit.run_id}: {reason}")
 
     owners = {unit.run_id: unit.pack_id for unit in todo}
-    count, overwritten = collect_items(out_dir, owners)
+    count, overwritten, unreadable = collect_items(out_dir, owners)
     if overwritten:
         ledger.record("pack_id_overwritten", records=overwritten)
+    if unreadable:
+        ledger.record("rows_unreadable", units=dict(unreadable))
+        failures += [
+            f"{run_id}: {rows} row(s) in {ITEMS_NAME} are not JSON objects and were left out"
+            for run_id, rows in unreadable.items()
+        ]
     copy_plan(lock_dir, out_dir)
     write_environment(out_dir, backend, plan_hash, results, tally_cost(out_dir, todo, wall))
     ledger.record(

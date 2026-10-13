@@ -214,3 +214,23 @@ def test_a_directory_that_already_holds_a_run_is_refused(frozen, tmp_path):
     with pytest.raises(BundleError, match="already holds a run"):
         run_plan.run(frozen, tmp_path / "out", backend)
     assert backend.seen == []
+
+
+def test_a_row_that_is_not_a_json_object_is_left_out_and_the_run_still_finishes(frozen, tmp_path):
+    class Garbled(StubBackend):
+        def run(self, spec):
+            result = super().run(spec)
+            with (spec.output_dir / "items.jsonl").open("ab") as handle:
+                handle.write(b'not json\n[1]\n\xff\n{"item_id": "a\xe2\x80\xa8b"}\n')
+            return result
+
+    failures = run_plan.run(frozen, tmp_path / "out", Garbled())
+
+    assert failures == [
+        f"example_pack-{n}: 3 row(s) in items.jsonl are not JSON objects and were left out"
+        for n in range(2)
+    ]
+    events = ledger(tmp_path / "out")
+    assert events[-2]["units"] == {"example_pack-0": 3, "example_pack-1": 3}
+    assert events[-1]["event"] == "run_finished"
+    assert events[-1]["items"] == 4

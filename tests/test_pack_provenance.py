@@ -81,7 +81,7 @@ def test_a_pack_cannot_name_itself(tmp_path):
         json.dumps({"item_id": "a", "pack_id": "somebody_else"}) + "\n"
     )
 
-    count, overwritten = run_plan.collect_items(tmp_path, {"example_pack-0": "example_pack"})
+    count, overwritten, _ = run_plan.collect_items(tmp_path, {"example_pack-0": "example_pack"})
     assert (count, overwritten) == (1, 1)
     assert load_items(tmp_path)[0].pack_id == "example_pack"
 
