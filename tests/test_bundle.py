@@ -148,3 +148,19 @@ def test_an_unreadable_ledger_is_an_error_and_not_an_absent_one(tmp_path):
 
     with pytest.raises(BundleError):
         bundle.seal(tmp_path)
+
+
+def test_a_recorded_file_swapped_for_a_symlink_fails_verify(tmp_path):
+    root = sealed(tmp_path / "bundle", {"items.jsonl": "x"})
+    (tmp_path / "elsewhere").write_text("x")
+    (root / "items.jsonl").unlink()
+    (root / "items.jsonl").symlink_to(tmp_path / "elsewhere")
+
+    assert [(f.code, f.subject) for f in bundle.verify(root)] == [("symlink", "items.jsonl")]
+
+
+def test_a_dangling_symlink_fails_verify(tmp_path):
+    root = sealed(tmp_path, {"items.jsonl": "x"})
+    (root / "extra").symlink_to(tmp_path / "nowhere")
+
+    assert [(f.code, f.subject) for f in bundle.verify(root)] == [("symlink", "extra")]
