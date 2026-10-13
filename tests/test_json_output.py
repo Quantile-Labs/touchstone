@@ -194,3 +194,16 @@ def test_the_human_output_is_untouched_by_any_of_this():
     assert result.exit_code == 0
     assert result.output == f"{EXAMPLE_PLAN}: ok, 1 pack(s)\n"
     assert "{" not in result.output
+
+
+def test_an_os_error_is_one_line_and_a_code(tmp_path):
+    (tmp_path / "items.jsonl").write_text('{"item_id": "a", "outcome": {"correct": true}}\n')
+    (tmp_path / "taken").write_text("a file where a directory was asked for")
+    args = ["estimate", str(tmp_path), "--out", str(tmp_path / "taken")]
+
+    plain = runner.invoke(app, args)
+    assert isinstance(plain.exception, SystemExit), "handled, not a traceback"
+    assert "taken" in plain.output
+
+    result = runner.invoke(app, [*args, "--json"])
+    assert json.loads(result.output)["problems"][0]["code"] == "os_error"
