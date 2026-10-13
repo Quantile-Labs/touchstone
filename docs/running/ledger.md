@@ -38,8 +38,8 @@ unit that failed carries it too. `environment.json` [sums it per pack](run.md#co
 
 ```json
 {"access_tier":"black_box","backend":"docker","event":"run_started","isolation":"container","plan_hash":"81c63db1…","plan_name":"demo","units":2,"utc":"2026-08-27T09:14:02Z"}
-{"event":"unit_started","image":"example_pack@sha256:…","run_id":"example_pack.r0","seed":9134…,"utc":"2026-08-27T09:14:02Z"}
-{"egress_enforced":true,"event":"unit_finished","exit_code":0,"image_digest":"sha256:…","run_id":"example_pack.r0","termination":null,"utc":"2026-08-27T09:14:19Z","wall_seconds":17.204}
+{"event":"unit_started","image":"example_pack@sha256:…","run_id":"example_pack-0","seed":9134…,"utc":"2026-08-27T09:14:02Z"}
+{"egress_enforced":true,"event":"unit_finished","exit_code":0,"image_digest":"sha256:…","run_id":"example_pack-0","termination":null,"utc":"2026-08-27T09:14:19Z","wall_seconds":17.204}
 ```
 
 Keys are sorted, so two runs of the same events produce comparable bytes.
