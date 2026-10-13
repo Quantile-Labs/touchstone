@@ -173,3 +173,13 @@ def test_a_ledger_line_that_is_not_an_event_is_refused(tmp_path, line):
 
     with pytest.raises(BundleError, match="RUNLOG.jsonl:1"):
         bundle.seal(tmp_path)
+
+
+def test_a_recorded_size_the_file_does_not_have_fails_verify(tmp_path):
+    root = sealed(tmp_path, {"items.jsonl": "x"})
+    manifest = json.loads((root / "MANIFEST.json").read_text())
+    manifest["files"][0]["size"] = 2
+    manifest["sha256"] = bundle.bundle_hash(bundle.BundleManifest.model_validate(manifest).files)
+    (root / "MANIFEST.json").write_text(json.dumps(manifest))
+
+    assert [f.code for f in bundle.verify(root)] == ["file_size_mismatch"]

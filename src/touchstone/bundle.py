@@ -176,6 +176,8 @@ def verify(bundle_dir: Path) -> list[Problem]:
             failures.append(_missing(bundle_dir, entry.path, "file_missing", "missing"))
         elif sha256_file(target) != entry.sha256:
             failures.append(_missing(bundle_dir, entry.path, "file_hash_mismatch", "hash mismatch"))
+        elif target.stat().st_size != entry.size:
+            failures.append(_missing(bundle_dir, entry.path, "file_size_mismatch", "size mismatch"))
 
     recorded = {entry.path for entry in manifest.files}
     for path in sorted(bundle_dir.rglob("*")):
